@@ -3,6 +3,12 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 import { repos } from "@ai-base/database";
 import { cachedJson } from "@ai-base/cache";
+import {
+  asStringList,
+  normalizeFaq,
+  pickTranslation,
+  primaryAffiliate,
+} from "@/lib/tool-detail";
 import { absoluteUrl, resolvePublicLocale, withLocale } from "@/lib/site";
 
 export const revalidate = 60;
@@ -22,8 +28,7 @@ export async function generateMetadata({
   if (!tool || tool.status !== "published") {
     return { title: "Not found | AI BASE" };
   }
-  const translation =
-    tool.translations.find((t) => t.locale === locale) ?? tool.translations[0];
+  const translation = pickTranslation(tool.translations, locale);
   const title = translation?.seoTitle || `${translation?.name ?? slug} | AI BASE`;
   const description =
     translation?.seoDescription ||
@@ -58,24 +63,19 @@ export default async function ToolDetailPage({
   );
   if (!tool || tool.status !== "published") notFound();
 
-  const translation =
-    tool.translations.find((t) => t.locale === locale) ?? tool.translations[0];
-  const features = (translation?.features as string[]) ?? [];
-  const pros = (translation?.pros as string[]) ?? [];
-  const cons = (translation?.cons as string[]) ?? [];
-  const faq = (translation?.faq as Array<{ q?: string; a?: string; question?: string; answer?: string }>) ?? [];
-  const affiliate = [...tool.affiliateLinks]
-    .filter((l) => l.isHealthy)
-    .sort((a, b) => b.priority - a.priority)[0];
+  const translation = pickTranslation(tool.translations, locale);
+  const features = asStringList(translation?.features);
+  const pros = asStringList(translation?.pros);
+  const cons = asStringList(translation?.cons);
+  const faq = normalizeFaq(translation?.faq);
+  const affiliate = primaryAffiliate(tool.affiliateLinks);
   const ctaHref = affiliate ? `/go/${affiliate.id}` : tool.homepageUrl;
   const ctaLabel =
     affiliate?.label ||
     (locale === "ja" ? "公式サイトを開く" : "Visit website");
 
   const categoryLinks = tool.categories.map((c) => {
-    const tr =
-      c.category.translations.find((t) => t.locale === locale) ??
-      c.category.translations[0];
+    const tr = pickTranslation(c.category.translations, locale);
     return { key: c.category.key, name: tr?.name ?? c.category.key };
   });
 
@@ -100,28 +100,39 @@ export default async function ToolDetailPage({
     await repos.tools.findPublished(locale, { take: 40 })
   ).filter((t) => t.slug !== slug);
 
+  const metaBits = [
+    tool.pricingModel !== "unknown" ? tool.pricingModel : null,
+    tool.hasFreePlan ? (locale === "ja" ? "無料プランあり" : "Free plan") : null,
+    tool.hasApi ? "API" : null,
+  ].filter(Boolean);
+
   return (
-    <main className="container site-section">
+    <main className="container site-section animate-in">
       <script
         type="application/ld+json"
         dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
       />
-      <Link className="muted" href={withLocale("/tools", locale)}>
-        ← {locale === "ja" ? "ツール一覧" : "Tools"}
+
+      <Link className="muted" href={withLocale("/tools", locale)} style={{ fontSize: 14 }}>
+        ← {locale === "ja" ? "ツール一覧" : "All tools"}
       </Link>
-      <div style={{ display: "flex", justifyContent: "space-between", gap: "1rem", alignItems: "start", flexWrap: "wrap", marginTop: "0.75rem" }}>
-        <div style={{ maxWidth: "70ch" }}>
-          <h1 style={{ fontFamily: "var(--font-display-loaded), serif", margin: "0 0 0.35rem" }}>
-            {translation?.name ?? tool.slug}
-          </h1>
-          <p className="muted" style={{ margin: 0 }}>
-            {tool.pricingModel !== "unknown" ? tool.pricingModel : null}
-            {tool.hasFreePlan ? (locale === "ja" ? " · 無料プランあり" : " · Free plan") : null}
-            {tool.hasApi ? " · API" : null}
-          </p>
+
+      <div className="page-header" style={{ marginTop: "1rem", alignItems: "start" }}>
+        <div style={{ maxWidth: "62ch" }}>
+          <h1 className="page-title">{translation?.name ?? tool.slug}</h1>
+          {metaBits.length > 0 ? (
+            <p className="muted" style={{ margin: "0.55rem 0 0", fontSize: 14 }}>
+              {metaBits.join(" · ")}
+            </p>
+          ) : null}
         </div>
         <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
-          <a className="btn btn-primary" href={ctaHref} rel="nofollow sponsored noopener" target="_blank">
+          <a
+            className="btn btn-primary"
+            href={ctaHref}
+            rel="nofollow sponsored noopener"
+            target="_blank"
+          >
             {ctaLabel}
           </a>
           <Link
@@ -137,23 +148,37 @@ export default async function ToolDetailPage({
       </div>
 
       {categoryLinks.length > 0 ? (
-        <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem", marginTop: "1rem" }}>
+        <div className="filter-row" style={{ marginTop: "1rem" }}>
           {categoryLinks.map((c) => (
-            <Link key={c.key} className="pill" href={withLocale(`/categories/${c.key}`, locale)}>
+            <Link
+              key={c.key}
+              className="chip"
+              href={withLocale(`/categories/${c.key}`, locale)}
+            >
               {c.name}
             </Link>
           ))}
         </div>
       ) : null}
 
-      <p style={{ maxWidth: "70ch", marginTop: "1.25rem", lineHeight: 1.65 }}>
+      <p
+        style={{
+          maxWidth: "66ch",
+          marginTop: "1.5rem",
+          lineHeight: 1.7,
+          fontSize: "1.05rem",
+          color: "var(--text)",
+        }}
+      >
         {translation?.description}
       </p>
 
-      <div className="grid-2" style={{ marginTop: "1.5rem" }}>
-        <section className="card-surface" style={{ padding: "1rem 1.15rem" }}>
-          <h2 style={{ marginTop: 0 }}>{locale === "ja" ? "機能" : "Features"}</h2>
-          <ul>
+      <div className="grid-2" style={{ marginTop: "1.75rem" }}>
+        <section className="card-surface" style={{ padding: "1.15rem 1.25rem" }}>
+          <h2 style={{ marginTop: 0, fontSize: "1.05rem", letterSpacing: "-0.02em" }}>
+            {locale === "ja" ? "機能" : "Features"}
+          </h2>
+          <ul style={{ margin: 0, paddingLeft: "1.1rem", lineHeight: 1.65 }}>
             {features.length === 0 ? (
               <li className="muted">{locale === "ja" ? "未掲載" : "Not listed"}</li>
             ) : (
@@ -161,52 +186,68 @@ export default async function ToolDetailPage({
             )}
           </ul>
         </section>
-        <section className="card-surface" style={{ padding: "1rem 1.15rem" }}>
-          <h2 style={{ marginTop: 0 }}>{locale === "ja" ? "長所 / 短所" : "Pros / Cons"}</h2>
-          <p><strong>{locale === "ja" ? "長所" : "Pros"}</strong></p>
-          <ul>
-            {pros.map((f) => (
-              <li key={f}>{f}</li>
-            ))}
+        <section className="card-surface" style={{ padding: "1.15rem 1.25rem" }}>
+          <h2 style={{ marginTop: 0, fontSize: "1.05rem", letterSpacing: "-0.02em" }}>
+            {locale === "ja" ? "長所 / 短所" : "Pros / Cons"}
+          </h2>
+          <p style={{ marginBottom: 0.35, fontWeight: 600, fontSize: 14 }}>
+            {locale === "ja" ? "長所" : "Pros"}
+          </p>
+          <ul style={{ marginTop: 0, paddingLeft: "1.1rem", lineHeight: 1.65 }}>
+            {pros.length === 0 ? (
+              <li className="muted">—</li>
+            ) : (
+              pros.map((f) => <li key={f}>{f}</li>)
+            )}
           </ul>
-          <p><strong>{locale === "ja" ? "短所" : "Cons"}</strong></p>
-          <ul>
-            {cons.map((f) => (
-              <li key={f}>{f}</li>
-            ))}
+          <p style={{ marginBottom: 0.35, fontWeight: 600, fontSize: 14 }}>
+            {locale === "ja" ? "短所" : "Cons"}
+          </p>
+          <ul style={{ marginTop: 0, paddingLeft: "1.1rem", lineHeight: 1.65 }}>
+            {cons.length === 0 ? (
+              <li className="muted">—</li>
+            ) : (
+              cons.map((f) => <li key={f}>{f}</li>)
+            )}
           </ul>
         </section>
       </div>
 
       {faq.length > 0 ? (
-        <section style={{ marginTop: "1.75rem" }}>
-          <h2>{locale === "ja" ? "よくある質問" : "FAQ"}</h2>
-          <div style={{ display: "grid", gap: "0.75rem" }}>
-            {faq.map((item, i) => {
-              const q = item.q ?? item.question ?? "";
-              const a = item.a ?? item.answer ?? "";
-              if (!q) return null;
-              return (
-                <details key={`${q}-${i}`} className="card-surface" style={{ padding: "0.85rem 1rem" }}>
-                  <summary style={{ cursor: "pointer", fontWeight: 600 }}>{q}</summary>
-                  <p className="muted" style={{ marginBottom: 0 }}>{a}</p>
-                </details>
-              );
-            })}
+        <section style={{ marginTop: "2rem" }}>
+          <h2 style={{ fontSize: "1.15rem", letterSpacing: "-0.02em" }}>
+            {locale === "ja" ? "よくある質問" : "FAQ"}
+          </h2>
+          <div style={{ display: "grid", gap: "0.65rem" }}>
+            {faq.map((item, i) => (
+              <details
+                key={`${item.question}-${i}`}
+                className="card-surface"
+                style={{ padding: "0.9rem 1.1rem" }}
+              >
+                <summary style={{ cursor: "pointer", fontWeight: 600 }}>
+                  {item.question}
+                </summary>
+                <p className="muted" style={{ margin: "0.65rem 0 0", lineHeight: 1.6 }}>
+                  {item.answer}
+                </p>
+              </details>
+            ))}
           </div>
         </section>
       ) : null}
 
       {otherTools.length > 0 ? (
-        <section style={{ marginTop: "2rem" }}>
-          <h2>{locale === "ja" ? "ほかのツールと比較" : "Compare with another tool"}</h2>
-          <div style={{ display: "flex", flexWrap: "wrap", gap: "0.45rem" }}>
+        <section style={{ marginTop: "2.25rem" }}>
+          <h2 style={{ fontSize: "1.15rem", letterSpacing: "-0.02em" }}>
+            {locale === "ja" ? "ほかのツールと比較" : "Compare with another tool"}
+          </h2>
+          <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem" }}>
             {otherTools.slice(0, 8).map((t) => (
               <Link
                 key={t.id}
-                className="btn btn-ghost"
+                className="chip"
                 href={withLocale(`/compare?tools=${slug},${t.slug}`, locale)}
-                style={{ padding: "0.35rem 0.7rem" }}
               >
                 vs {t.translations[0]?.name ?? t.slug}
               </Link>
