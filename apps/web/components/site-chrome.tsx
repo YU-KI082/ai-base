@@ -38,6 +38,11 @@ export function SiteHeader() {
       match: "/categories",
     },
     {
+      href: withLocalePath("/articles", locale),
+      label: t.navArticles,
+      match: "/articles",
+    },
+    {
       href: withLocalePath("/compare", locale),
       label: t.navCompare,
       match: "/compare",

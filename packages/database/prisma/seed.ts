@@ -71,12 +71,24 @@ async function upsertTool(demo: SeedTool) {
         features: t.features,
         pros: t.pros,
         cons: t.cons,
+        languageSupport: t.languageSupport ?? [],
+        tags: t.tags ?? [],
+        useCases: t.useCases ?? [],
+        recommendedUsers: t.recommendedUsers ?? [],
+        pricingNotes: t.pricingNotes ?? null,
         seoTitle: `${t.name} | AI BASE`,
         seoDescription: t.description.slice(0, 155),
         faq: [
           {
             q: locale === "ja" ? `${t.name}とは？` : `What is ${t.name}?`,
             a: t.description,
+          },
+          {
+            q:
+              locale === "ja"
+                ? `${t.name}の料金は？`
+                : `How much does ${t.name} cost?`,
+            a: t.pricingNotes ?? (locale === "ja" ? "公式サイトで最新料金を確認してください。" : "Check the official site for current pricing."),
           },
         ],
         schemaJson: {
@@ -94,6 +106,11 @@ async function upsertTool(demo: SeedTool) {
         features: t.features,
         pros: t.pros,
         cons: t.cons,
+        languageSupport: t.languageSupport ?? [],
+        tags: t.tags ?? [],
+        useCases: t.useCases ?? [],
+        recommendedUsers: t.recommendedUsers ?? [],
+        pricingNotes: t.pricingNotes ?? null,
         seoTitle: `${t.name} | AI BASE`,
         seoDescription: t.description.slice(0, 155),
       },
@@ -327,7 +344,222 @@ async function main() {
     }
   }
 
-  console.log(`Seeded ${toolIds.length} published tools + monetization links`);
+  // Seed SEO articles (recommend / compare / ranking / howto / news / usecase)
+  const sampleArticles = [
+    {
+      slug: "best-ai-tools-for-business-2026",
+      kind: "recommend",
+      ja: {
+        title: "ビジネスにおすすめのAIツール厳選【2026年版】",
+        summary:
+          "業務効率化・マーケ・開発向けに使えるAIツールを厳選。料金（Free / Freemium / Paid）と用途別に紹介します。",
+        body: `# ビジネスにおすすめのAIツール厳選【2026年版】
+
+## はじめに
+日々の業務にAIを取り入れるなら、用途と料金を先に決めるのが近道です。
+
+## おすすめ一覧
+- [ChatGPT](/tools/chatgpt) — 汎用対話・文章・調査
+- [Claude](/tools/claude) — 長文分析・コーディング
+- [Notion AI](/tools/notion-ai) — ドキュメント内の執筆支援
+- [Zapier](/tools/zapier-central) — 業務自動化
+- [Cursor](/tools/cursor) — AIコーディング
+
+## 関連
+- [AIツール一覧](/tools)
+- [記事一覧](/articles)
+`,
+      },
+      en: {
+        title: "Best AI tools for business (2026)",
+        summary: "Curated AI tools for ops, marketing, and engineering with pricing notes.",
+        body: `# Best AI tools for business (2026)
+
+## Picks
+- [ChatGPT](/tools/chatgpt?locale=en)
+- [Claude](/tools/claude?locale=en)
+- [Notion AI](/tools/notion-ai?locale=en)
+- [Zapier](/tools/zapier-central?locale=en)
+- [Cursor](/tools/cursor?locale=en)
+`,
+      },
+    },
+    {
+      slug: "chatgpt-vs-claude-comparison",
+      kind: "compare",
+      ja: {
+        title: "ChatGPT vs Claude 徹底比較【特徴・料金・向き不向き】",
+        summary: "人気の2大対話AIを料金・用途・長文処理の観点で比較します。",
+        body: `# ChatGPT vs Claude 徹底比較
+
+## 結論
+汎用とエコシステムなら ChatGPT、長文・分析重視なら Claude が有力です。
+
+## 詳細
+- [ChatGPT](/tools/chatgpt)
+- [Claude](/tools/claude)
+- [比較ページ](/compare?tools=chatgpt,claude)
+`,
+      },
+      en: {
+        title: "ChatGPT vs Claude comparison",
+        summary: "Compare pricing, strengths, and best-fit use cases.",
+        body: `# ChatGPT vs Claude
+
+- [ChatGPT](/tools/chatgpt?locale=en)
+- [Claude](/tools/claude?locale=en)
+`,
+      },
+    },
+    {
+      slug: "ai-tools-ranking-2026",
+      kind: "ranking",
+      ja: {
+        title: "AIツールランキング2026【総合おすすめ】",
+        summary: "テキスト・画像・動画・コーディングなど領域横断で注目ツールをランキング形式で紹介。",
+        body: `# AIツールランキング2026
+
+## Top picks
+- [ChatGPT](/tools/chatgpt)
+- [Midjourney](/tools/midjourney)
+- [Runway](/tools/runway)
+- [GitHub Copilot](/tools/github-copilot)
+- [Perplexity](/tools/perplexity)
+
+## 関連
+- [カテゴリー](/categories)
+`,
+      },
+      en: {
+        title: "AI tools ranking 2026",
+        summary: "Cross-category ranking of standout AI products.",
+        body: `# AI tools ranking 2026
+
+- ChatGPT, Midjourney, Runway, Copilot, Perplexity
+`,
+      },
+    },
+    {
+      slug: "howto-use-chatgpt",
+      kind: "howto",
+      ja: {
+        title: "ChatGPTの使い方｜始め方・活用例・注意点",
+        summary: "ChatGPTの始め方から実務活用、料金確認のポイントまで。",
+        body: `# ChatGPTの使い方
+
+## 始め方
+1. アカウント作成
+2. 無料枠で試す
+3. プロンプトを具体化する
+
+## 詳細ページ
+- [ChatGPT](/tools/chatgpt)
+`,
+      },
+      en: {
+        title: "How to use ChatGPT",
+        summary: "Setup, practical tips, and pricing checkpoints.",
+        body: `# How to use ChatGPT
+
+See the [ChatGPT tool page](/tools/chatgpt?locale=en).
+`,
+      },
+    },
+    {
+      slug: "ai-news-roundup-2026",
+      kind: "news",
+      ja: {
+        title: "最新AIニュースまとめ｜注目アップデート",
+        summary: "モデル性能・料金・日本語対応の変化を追うチェックリストと関連ツール。",
+        body: `# 最新AIニュースまとめ
+
+## チェックしたいツール
+- [Gemini](/tools/gemini)
+- [Grok](/tools/xai-grok)
+- [Mistral AI](/tools/mistral)
+
+- [AIツール一覧](/tools)
+`,
+      },
+      en: {
+        title: "AI news roundup",
+        summary: "Tools and themes to watch as models and pricing shift.",
+        body: `# AI news roundup
+
+Watch Gemini, Grok, and Mistral.
+`,
+      },
+    },
+    {
+      slug: "ai-usecases-for-marketing",
+      kind: "usecase",
+      ja: {
+        title: "マーケティングでのAI活用方法",
+        summary: "コピー作成・SEO・SNS運用に使えるAIの入れ方とおすすめツール。",
+        body: `# マーケティングでのAI活用方法
+
+## おすすめツール
+- [Jasper](/tools/jasper)
+- [Copy.ai](/tools/copy-ai)
+- [Surfer SEO](/tools/surfer)
+- [Buffer](/tools/buffer-ai)
+
+- [マーケカテゴリー](/categories/marketing)
+`,
+      },
+      en: {
+        title: "AI use cases for marketing",
+        summary: "Copy, SEO, and social workflows with matching tools.",
+        body: `# AI use cases for marketing
+
+Jasper, Copy.ai, Surfer, Buffer.
+`,
+      },
+    },
+  ] as const;
+
+  for (const article of sampleArticles) {
+    const row = await prisma.article.upsert({
+      where: { slug: article.slug },
+      create: {
+        slug: article.slug,
+        kind: article.kind,
+        status: "published",
+        publishedAt: new Date(),
+      },
+      update: {
+        kind: article.kind,
+        status: "published",
+        publishedAt: new Date(),
+      },
+    });
+    for (const locale of ["ja", "en"] as const) {
+      const tr = article[locale];
+      await prisma.articleTranslation.upsert({
+        where: { articleId_locale: { articleId: row.id, locale } },
+        create: {
+          articleId: row.id,
+          locale,
+          title: tr.title,
+          summary: tr.summary,
+          body: tr.body,
+          seoTitle: `${tr.title} | AI BASE`,
+          seoDescription: tr.summary.slice(0, 155),
+        },
+        update: {
+          title: tr.title,
+          summary: tr.summary,
+          body: tr.body,
+          seoTitle: `${tr.title} | AI BASE`,
+          seoDescription: tr.summary.slice(0, 155),
+        },
+      });
+    }
+  }
+
+  console.log(
+    `Seeded ${toolIds.length} published tools + monetization links + ${sampleArticles.length} articles`,
+  );
 }
 
 main()

@@ -8,11 +8,15 @@ export function pickTranslation<T extends { locale: string }>(
 }
 
 export function primaryAffiliate<
-  T extends { isHealthy: boolean; priority: number },
+  T extends { isHealthy: boolean; priority: number; network?: string | null },
 >(links: T[]): T | undefined {
-  return [...links]
-    .filter((l) => l.isHealthy)
-    .sort((a, b) => b.priority - a.priority)[0];
+  const healthy = links.filter((l) => l.isHealthy);
+  // Prefer partner / ASP links over official homepage (`direct`)
+  const preferred = healthy.filter(
+    (l) => l.network && l.network !== "direct" && l.network !== "official",
+  );
+  const pool = preferred.length > 0 ? preferred : healthy;
+  return [...pool].sort((a, b) => b.priority - a.priority)[0];
 }
 
 export function normalizeFaq(

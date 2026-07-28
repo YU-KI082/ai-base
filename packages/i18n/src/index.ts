@@ -129,6 +129,20 @@ export type Dictionary = {
     api: string;
     vsPrefix: string;
     toolFallbackDescription: string;
+    overview: string;
+    languages: string;
+    useCases: string;
+    recommendedUsers: string;
+    pricingPlan: string;
+    similarTools: string;
+    tags: string;
+    officialSite: string;
+    affiliateCta: string;
+    breadcrumbHome: string;
+    navArticles: string;
+    articlesTitle: string;
+    articlesDescription: string;
+    articlesEmpty: string;
     adminSignIn: string;
     adminSignInBody: string;
     adminSignInDevHint: string;
@@ -335,6 +349,12 @@ export type Dictionary = {
     selfHealingApprove: string;
     selfHealingReject: string;
     selfHealingAck: string;
+    articles: string;
+    categories: string;
+    addTool: string;
+    editTool: string;
+    deleteTool: string;
+    generateArticle: string;
   };
 };
 
@@ -438,6 +458,20 @@ const ja: Dictionary = {
     api: "API",
     vsPrefix: "vs ",
     toolFallbackDescription: "AI BASEで紹介するAIツール",
+    overview: "概要",
+    languages: "対応言語",
+    useCases: "用途",
+    recommendedUsers: "おすすめユーザー",
+    pricingPlan: "料金プラン",
+    similarTools: "類似AIツール",
+    tags: "タグ",
+    officialSite: "公式サイト",
+    affiliateCta: "詳細・申し込み",
+    breadcrumbHome: "ホーム",
+    navArticles: "記事",
+    articlesTitle: "AI活用記事",
+    articlesDescription: "おすすめ・比較・使い方・ランキングなど、SEOを意識したガイド",
+    articlesEmpty: "公開中の記事はまだありません",
     adminSignIn: "管理画面ログイン",
     adminSignInBody:
       "管理画面へ入るには ADMIN_OPS_SECRET を入力してください。本番では ADMIN_DEV_BYPASS は使えません。",
@@ -658,6 +692,12 @@ const ja: Dictionary = {
     selfHealingApprove: "修正を承認して適用",
     selfHealingReject: "却下",
     selfHealingAck: "確認済み",
+    articles: "記事",
+    categories: "カテゴリー",
+    addTool: "ツール追加",
+    editTool: "編集",
+    deleteTool: "削除",
+    generateArticle: "記事を生成",
   },
 };
 
@@ -761,6 +801,20 @@ const en: Dictionary = {
     api: "API",
     vsPrefix: "vs ",
     toolFallbackDescription: "AI tool on AI BASE",
+    overview: "Overview",
+    languages: "Languages",
+    useCases: "Use cases",
+    recommendedUsers: "Best for",
+    pricingPlan: "Pricing",
+    similarTools: "Similar AI tools",
+    tags: "Tags",
+    officialSite: "Official site",
+    affiliateCta: "Get started",
+    breadcrumbHome: "Home",
+    navArticles: "Articles",
+    articlesTitle: "AI guides & rankings",
+    articlesDescription: "Recommendations, comparisons, how-tos, and rankings built for SEO",
+    articlesEmpty: "No published articles yet",
     adminSignIn: "Admin sign-in",
     adminSignInBody:
       "Enter ADMIN_OPS_SECRET to access the admin console. ADMIN_DEV_BYPASS is disabled in production.",
@@ -981,6 +1035,12 @@ const en: Dictionary = {
     selfHealingApprove: "Approve & apply",
     selfHealingReject: "Reject",
     selfHealingAck: "Acknowledge",
+    articles: "Articles",
+    categories: "Categories",
+    addTool: "Add tool",
+    editTool: "Edit",
+    deleteTool: "Delete",
+    generateArticle: "Generate article",
   },
 };
 

@@ -8,10 +8,11 @@ export const revalidate = 60;
 
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const base = siteUrl();
-  const [tools, comparisons, categories] = await Promise.all([
+  const [tools, comparisons, categories, articles] = await Promise.all([
     repos.tools.listPublishedSlugs(),
     repos.comparisons.findPublished(),
     repos.categories.list(),
+    repos.articles.listPublishedSlugs(),
   ]);
 
   /** Bare URL = Japanese (default); ?locale=en = English */
@@ -21,6 +22,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     "/search",
     "/categories",
     "/compare",
+    "/articles",
   ].flatMap((path) => [
     {
       url: `${base}${path}`,
@@ -73,5 +75,26 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     },
   ]);
 
-  return [...staticRoutes, ...toolRoutes, ...categoryRoutes, ...comparisonRoutes];
+  const articleRoutes = articles.flatMap((a) => [
+    {
+      url: `${base}/articles/${a.slug}`,
+      lastModified: a.updatedAt,
+      changeFrequency: "weekly" as const,
+      priority: 0.75,
+    },
+    {
+      url: `${base}/articles/${a.slug}?locale=en`,
+      lastModified: a.updatedAt,
+      changeFrequency: "weekly" as const,
+      priority: 0.7,
+    },
+  ]);
+
+  return [
+    ...staticRoutes,
+    ...toolRoutes,
+    ...categoryRoutes,
+    ...comparisonRoutes,
+    ...articleRoutes,
+  ];
 }

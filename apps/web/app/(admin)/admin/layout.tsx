@@ -44,6 +44,8 @@ export default async function AdminLayout({
     { href: "/admin/drafts", label: dict.admin.drafts },
     { href: "/admin/ingest", label: dict.admin.ingest },
     { href: "/admin/tools", label: dict.admin.tools },
+    { href: "/admin/articles", label: dict.admin.articles },
+    { href: "/admin/categories", label: dict.admin.categories },
     { href: "/admin/affiliate", label: dict.admin.affiliate },
     { href: "/admin/social", label: dict.admin.social },
     { href: "/admin/sns", label: dict.admin.snsLearning },

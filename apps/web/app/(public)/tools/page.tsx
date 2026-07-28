@@ -47,7 +47,7 @@ export default async function ToolsPage({
       60,
       () =>
         repos.tools.findPublished(locale, {
-          take: 50,
+          take: 120,
           categoryKey,
           q,
         }),

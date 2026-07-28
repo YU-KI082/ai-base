@@ -1,7 +1,7 @@
-import Link from "next/link";
-import { repos } from "@ai-base/database";
 import { cookies } from "next/headers";
-import { getDictionary, resolveLocale, statusLabel } from "@ai-base/i18n";
+import { repos } from "@ai-base/database";
+import { getDictionary, resolveLocale } from "@ai-base/i18n";
+import { ToolsAdminClient } from "./tools-admin-client";
 
 export const dynamic = "force-dynamic";
 
@@ -9,21 +9,47 @@ export default async function AdminToolsPage() {
   const cookieStore = await cookies();
   const locale = resolveLocale(cookieStore.get("locale")?.value);
   const dict = getDictionary(locale);
-  const tools = await repos.tools.findPublished();
+  const [tools, categories] = await Promise.all([
+    repos.tools.listAll(300),
+    repos.categories.list(locale),
+  ]);
 
   return (
-    <main>
-      <h1 style={{ fontFamily: "var(--font-display-loaded), serif", marginTop: 0 }}>
-        {dict.admin.tools}
-      </h1>
-      <ul style={{ listStyle: "none", padding: 0, display: "grid", gap: "0.75rem" }}>
-        {tools.map((tool) => (
-          <li key={tool.id} className="card-surface" style={{ padding: "1rem" }}>
-            <Link href={`/tools/${tool.slug}`}>{tool.slug}</Link>
-            <div className="muted">{statusLabel(locale, tool.status)}</div>
-          </li>
-        ))}
-      </ul>
+    <main className="animate-in">
+      <div className="page-header">
+        <div>
+          <h1 className="page-title">{dict.admin.tools}</h1>
+          <p className="page-subtitle muted">
+            {dict.admin.addTool} / {dict.admin.editTool} / {dict.admin.deleteTool}
+          </p>
+        </div>
+      </div>
+      <div style={{ marginTop: "1.25rem" }}>
+        <ToolsAdminClient
+          locale={locale}
+          initialTools={tools.map((t) => ({
+            id: t.id,
+            slug: t.slug,
+            homepageUrl: t.homepageUrl,
+            pricingModel: t.pricingModel,
+            hasFreePlan: t.hasFreePlan,
+            hasApi: t.hasApi,
+            status: t.status,
+            translations: t.translations.map((tr) => ({
+              locale: tr.locale,
+              name: tr.name,
+              description: tr.description,
+            })),
+            categories: t.categories.map((c) => ({
+              category: { key: c.category.key },
+            })),
+          }))}
+          categories={categories.map((c) => ({
+            key: c.key,
+            name: c.translations[0]?.name ?? c.key,
+          }))}
+        />
+      </div>
     </main>
   );
 }

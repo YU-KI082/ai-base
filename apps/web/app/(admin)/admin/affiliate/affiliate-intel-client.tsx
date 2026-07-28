@@ -92,10 +92,11 @@ export function AffiliateIntelClient({
   const [filter, setFilter] = useState<string>("all");
   const [message, setMessage] = useState<string | null>(null);
   const [toolId, setToolId] = useState(tools[0]?.id ?? "");
-  const [label, setLabel] = useState(dict.public.visitWebsite);
+  const [label, setLabel] = useState("アフィリエイト");
   const [url, setUrl] = useState("https://");
-  const [network, setNetwork] = useState("official");
-  const [priority, setPriority] = useState(10);
+  const [officialUrl, setOfficialUrl] = useState("https://");
+  const [network, setNetwork] = useState("a8");
+  const [priority, setPriority] = useState(100);
 
   const items = useMemo(() => {
     if (filter === "all") return initialItems;
@@ -211,9 +212,10 @@ export function AffiliateIntelClient({
         headers: adminMutationHeaders(),
         body: JSON.stringify({
           toolId,
-          label,
+          label: label || `${network} affiliate`,
           url,
-          network: network || undefined,
+          network,
+          officialUrl: officialUrl || undefined,
           priority,
         }),
       });
@@ -221,6 +223,7 @@ export function AffiliateIntelClient({
         const body = await res.json().catch(() => ({}));
         throw new Error(body.error ?? res.statusText);
       }
+      setMessage(dict.common.success);
       router.refresh();
     } catch (err) {
       setMessage(err instanceof Error ? err.message : String(err));
@@ -460,6 +463,9 @@ export function AffiliateIntelClient({
         style={{ padding: "1rem", maxWidth: 640 }}
       >
         <h2 style={{ marginTop: 0 }}>{a.addTrackingLink}</h2>
+        <p className="muted" style={{ fontSize: 13, marginTop: 0 }}>
+          ASP名・アフィリエイトURL・公式URLを登録。フロントはアフィリエイトURLを優先表示します。
+        </p>
         <label className="muted">
           {a.fieldTool}
           <select
@@ -476,16 +482,31 @@ export function AffiliateIntelClient({
           </select>
         </label>
         <label className="muted">
-          {a.fieldLabel}
-          <input value={label} onChange={(e) => setLabel(e.target.value)} required style={inputStyle} />
+          ASP名 ({a.fieldNetwork})
+          <input
+            value={network}
+            onChange={(e) => setNetwork(e.target.value)}
+            required
+            placeholder="a8 / moshimo / valuecommerce"
+            style={inputStyle}
+          />
         </label>
         <label className="muted">
-          {a.fieldUrl}
+          アフィリエイトURL ({a.fieldUrl})
           <input value={url} onChange={(e) => setUrl(e.target.value)} required style={inputStyle} />
         </label>
         <label className="muted">
-          {a.fieldNetwork}
-          <input value={network} onChange={(e) => setNetwork(e.target.value)} style={inputStyle} />
+          公式URL
+          <input
+            value={officialUrl}
+            onChange={(e) => setOfficialUrl(e.target.value)}
+            placeholder="https://..."
+            style={inputStyle}
+          />
+        </label>
+        <label className="muted">
+          {a.fieldLabel}
+          <input value={label} onChange={(e) => setLabel(e.target.value)} style={inputStyle} />
         </label>
         <label className="muted">
           {a.fieldPriority}

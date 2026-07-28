@@ -1,5 +1,11 @@
 import { createHash } from "node:crypto";
-import type { Locale, Prisma, PrismaClient } from "@prisma/client";
+import type {
+  ContentStatus,
+  Locale,
+  PricingModel,
+  Prisma,
+  PrismaClient,
+} from "@prisma/client";
 import { prisma } from "./client.js";
 
 export type Db = PrismaClient;
@@ -607,6 +613,169 @@ export class ToolRepository {
     });
   }
 
+  async findSimilar(input: {
+    slug: string;
+    categoryKeys: string[];
+    locale?: Locale;
+    take?: number;
+  }) {
+    const take = Math.min(Math.max(input.take ?? 8, 1), 24);
+    return this.db.aiTool.findMany({
+      where: {
+        status: "published",
+        slug: { not: input.slug },
+        ...(input.categoryKeys.length
+          ? {
+              categories: {
+                some: { category: { key: { in: input.categoryKeys } } },
+              },
+            }
+          : {}),
+      },
+      include: {
+        translations: input.locale ? { where: { locale: input.locale } } : true,
+        affiliateLinks: {
+          where: { isHealthy: true },
+          orderBy: { priority: "desc" },
+        },
+      },
+      orderBy: { publishedAt: "desc" },
+      take,
+    });
+  }
+
+  async listAll(take = 200) {
+    return this.db.aiTool.findMany({
+      include: {
+        translations: true,
+        categories: { include: { category: true } },
+        affiliateLinks: { orderBy: { priority: "desc" } },
+      },
+      orderBy: { updatedAt: "desc" },
+      take,
+    });
+  }
+
+  async upsertAdmin(input: {
+    id?: string;
+    slug: string;
+    homepageUrl: string;
+    pricingModel: PricingModel;
+    hasFreePlan: boolean;
+    hasApi: boolean;
+    status?: string;
+    categoryKey?: string;
+    ja: {
+      name: string;
+      description: string;
+      features?: string[];
+      pros?: string[];
+      cons?: string[];
+      tags?: string[];
+      useCases?: string[];
+      recommendedUsers?: string[];
+      languageSupport?: string[];
+      pricingNotes?: string;
+    };
+    en?: {
+      name: string;
+      description: string;
+      features?: string[];
+      pros?: string[];
+      cons?: string[];
+      tags?: string[];
+      useCases?: string[];
+      recommendedUsers?: string[];
+      languageSupport?: string[];
+      pricingNotes?: string;
+    };
+  }) {
+    const status = (input.status as ContentStatus | undefined) ?? "published";
+    const tool = input.id
+      ? await this.db.aiTool.update({
+          where: { id: input.id },
+          data: {
+            slug: input.slug,
+            homepageUrl: input.homepageUrl,
+            pricingModel: input.pricingModel,
+            hasFreePlan: input.hasFreePlan,
+            hasApi: input.hasApi,
+            status,
+            publishedAt: status === "published" ? new Date() : null,
+          },
+        })
+      : await this.db.aiTool.create({
+          data: {
+            slug: input.slug,
+            homepageUrl: input.homepageUrl,
+            pricingModel: input.pricingModel,
+            hasFreePlan: input.hasFreePlan,
+            hasApi: input.hasApi,
+            status,
+            publishedAt: status === "published" ? new Date() : null,
+            sourceName: "admin",
+          },
+        });
+
+    for (const locale of ["ja", "en"] as const) {
+      const tr = locale === "ja" ? input.ja : input.en ?? input.ja;
+      await this.db.aiToolTranslation.upsert({
+        where: { toolId_locale: { toolId: tool.id, locale } },
+        create: {
+          toolId: tool.id,
+          locale,
+          name: tr.name,
+          description: tr.description,
+          features: tr.features ?? [],
+          pros: tr.pros ?? [],
+          cons: tr.cons ?? [],
+          tags: tr.tags ?? [],
+          useCases: tr.useCases ?? [],
+          recommendedUsers: tr.recommendedUsers ?? [],
+          languageSupport: tr.languageSupport ?? [],
+          pricingNotes: tr.pricingNotes,
+          seoTitle: `${tr.name} | AI BASE`,
+          seoDescription: tr.description.slice(0, 155),
+        },
+        update: {
+          name: tr.name,
+          description: tr.description,
+          features: tr.features ?? [],
+          pros: tr.pros ?? [],
+          cons: tr.cons ?? [],
+          tags: tr.tags ?? [],
+          useCases: tr.useCases ?? [],
+          recommendedUsers: tr.recommendedUsers ?? [],
+          languageSupport: tr.languageSupport ?? [],
+          pricingNotes: tr.pricingNotes,
+          seoTitle: `${tr.name} | AI BASE`,
+          seoDescription: tr.description.slice(0, 155),
+        },
+      });
+    }
+
+    if (input.categoryKey) {
+      const category = await this.db.category.findUnique({
+        where: { key: input.categoryKey },
+      });
+      if (category) {
+        await this.db.aiToolCategory.upsert({
+          where: {
+            toolId_categoryId: { toolId: tool.id, categoryId: category.id },
+          },
+          create: { toolId: tool.id, categoryId: category.id },
+          update: {},
+        });
+      }
+    }
+
+    return tool;
+  }
+
+  async deleteById(id: string) {
+    return this.db.aiTool.delete({ where: { id } });
+  }
+
   async findDuplicate(homepageUrl: string, externalId?: string | null) {
     return this.db.aiTool.findFirst({
       where: {
@@ -787,6 +956,137 @@ export class CategoryRepository {
         translations: locale ? { where: { locale } } : true,
       },
     });
+  }
+
+  async upsert(input: {
+    key: string;
+    sortOrder?: number;
+    jaName: string;
+    enName?: string;
+    jaDescription?: string;
+  }) {
+    const category = await this.db.category.upsert({
+      where: { key: input.key },
+      create: { key: input.key, sortOrder: input.sortOrder ?? 100 },
+      update: { sortOrder: input.sortOrder ?? undefined },
+    });
+    for (const locale of ["ja", "en"] as const) {
+      const name = locale === "ja" ? input.jaName : input.enName ?? input.jaName;
+      await this.db.categoryTranslation.upsert({
+        where: { categoryId_locale: { categoryId: category.id, locale } },
+        create: {
+          categoryId: category.id,
+          locale,
+          name,
+          slug: input.key,
+          description: locale === "ja" ? input.jaDescription : undefined,
+        },
+        update: {
+          name,
+          description: locale === "ja" ? input.jaDescription : undefined,
+        },
+      });
+    }
+    return category;
+  }
+
+  async deleteByKey(key: string) {
+    return this.db.category.delete({ where: { key } });
+  }
+}
+
+export class ArticleRepository {
+  constructor(private readonly db: Db = prisma) {}
+
+  async findBySlug(slug: string) {
+    return this.db.article.findUnique({
+      where: { slug },
+      include: { translations: true },
+    });
+  }
+
+  async listPublished(locale?: Locale, take = 50) {
+    return this.db.article.findMany({
+      where: { status: "published" },
+      include: {
+        translations: locale ? { where: { locale } } : true,
+      },
+      orderBy: { publishedAt: "desc" },
+      take,
+    });
+  }
+
+  async listAll(take = 100) {
+    return this.db.article.findMany({
+      include: { translations: true },
+      orderBy: { updatedAt: "desc" },
+      take,
+    });
+  }
+
+  async listPublishedSlugs() {
+    return this.db.article.findMany({
+      where: { status: "published" },
+      select: { slug: true, updatedAt: true },
+      orderBy: { publishedAt: "desc" },
+    });
+  }
+
+  async upsert(input: {
+    id?: string;
+    slug: string;
+    kind: string;
+    status?: string;
+    ja: { title: string; summary: string; body: string };
+    en?: { title: string; summary: string; body: string };
+  }) {
+    const status = (input.status as ContentStatus | undefined) ?? "published";
+    const article = input.id
+      ? await this.db.article.update({
+          where: { id: input.id },
+          data: {
+            slug: input.slug,
+            kind: input.kind,
+            status,
+            publishedAt: status === "published" ? new Date() : null,
+          },
+        })
+      : await this.db.article.create({
+          data: {
+            slug: input.slug,
+            kind: input.kind,
+            status,
+            publishedAt: status === "published" ? new Date() : null,
+          },
+        });
+
+    for (const locale of ["ja", "en"] as const) {
+      const tr = locale === "ja" ? input.ja : input.en ?? input.ja;
+      await this.db.articleTranslation.upsert({
+        where: { articleId_locale: { articleId: article.id, locale } },
+        create: {
+          articleId: article.id,
+          locale,
+          title: tr.title,
+          summary: tr.summary,
+          body: tr.body,
+          seoTitle: `${tr.title} | AI BASE`,
+          seoDescription: tr.summary.slice(0, 155),
+        },
+        update: {
+          title: tr.title,
+          summary: tr.summary,
+          body: tr.body,
+          seoTitle: `${tr.title} | AI BASE`,
+          seoDescription: tr.summary.slice(0, 155),
+        },
+      });
+    }
+    return article;
+  }
+
+  async deleteById(id: string) {
+    return this.db.article.delete({ where: { id } });
   }
 }
 
@@ -2365,6 +2665,7 @@ export class Repositories {
   readonly approvals = new ApprovalRepository();
   readonly candidates = new CandidateRepository();
   readonly tools = new ToolRepository();
+  readonly articles = new ArticleRepository();
   readonly logs = new LogRepository();
   readonly categories = new CategoryRepository();
   readonly affiliates = new AffiliateRepository();

@@ -43,7 +43,7 @@ export default async function CategoryDetailPage({
   if (!category) notFound();
   const tools = await repos.tools.findPublished(locale, {
     categoryKey: key,
-    take: 50,
+    take: 120,
   });
   const name = category.translations[0]?.name ?? key;
 

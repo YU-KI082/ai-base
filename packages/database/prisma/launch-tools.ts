@@ -19,6 +19,11 @@ export type SeedTool = {
     features: string[];
     pros: string[];
     cons: string[];
+    languageSupport?: string[];
+    tags?: string[];
+    useCases?: string[];
+    recommendedUsers?: string[];
+    pricingNotes?: string;
   };
   ja: {
     name: string;
@@ -26,6 +31,11 @@ export type SeedTool = {
     features: string[];
     pros: string[];
     cons: string[];
+    languageSupport?: string[];
+    tags?: string[];
+    useCases?: string[];
+    recommendedUsers?: string[];
+    pricingNotes?: string;
   };
 };
 
@@ -41,6 +51,23 @@ function t(
   jaDesc: string,
   extra?: Partial<SeedTool>,
 ): SeedTool {
+  const pricingNotesEn =
+    pricingModel === "free"
+      ? "Free to use"
+      : pricingModel === "freemium"
+        ? "Free plan available; paid tiers unlock higher limits"
+        : pricingModel === "enterprise"
+          ? "Enterprise / custom pricing"
+          : "Paid subscription or usage-based pricing";
+  const pricingNotesJa =
+    pricingModel === "free"
+      ? "無料で利用可能"
+      : pricingModel === "freemium"
+        ? "無料プランあり。上位プランで制限緩和"
+        : pricingModel === "enterprise"
+          ? "法人向け・個別見積もり"
+          : "有料サブスクまたは従量課金";
+
   return {
     slug,
     homepageUrl,
@@ -51,22 +78,36 @@ function t(
     en: {
       name,
       description: enDesc,
-      features: ["Core AI features", "Web app", "Team use"],
-      pros: ["Useful for daily work", "Actively maintained"],
+      features: ["Core AI features", "Web app", "Team use", `Category: ${categoryKey}`],
+      pros: ["Useful for daily work", "Actively maintained", "Clear product focus"],
       cons: ["Pricing can scale with usage", "Learning curve varies"],
+      languageSupport: ["English", "Japanese (varies by product)"],
+      tags: [categoryKey, pricingModel, hasApi ? "api" : "no-api"],
+      useCases: [
+        `Everyday ${categoryKey} workflows`,
+        "Team collaboration",
+        "Productivity acceleration",
+      ],
+      recommendedUsers: ["Individuals", "Startups", "Marketing / ops teams"],
+      pricingNotes: pricingNotesEn,
     },
     ja: {
       name,
       description: jaDesc,
-      features: ["主要AI機能", "Webアプリ", "チーム利用"],
-      pros: ["日常業務に使いやすい", "継続的に更新"],
+      features: ["主要AI機能", "Webアプリ", "チーム利用", `カテゴリー: ${categoryKey}`],
+      pros: ["日常業務に使いやすい", "継続的に更新", "用途が明確"],
       cons: ["利用量で料金が上がることがある", "習得コストは製品による"],
+      languageSupport: ["日本語（製品による）", "英語"],
+      tags: [categoryKey, pricingModel, hasApi ? "api" : "no-api"],
+      useCases: [`${categoryKey}領域の日常業務`, "チーム連携", "生産性向上"],
+      recommendedUsers: ["個人", "スタートアップ", "マーケ / 業務担当"],
+      pricingNotes: pricingNotesJa,
     },
     ...extra,
   };
 }
 
-/** 100 tools across categories for MVP public catalog. */
+/** 100+ tools across categories for public catalog / monetization. */
 export const LAUNCH_TOOLS: SeedTool[] = [
   t("chatgpt", "ChatGPT", "https://chatgpt.com", "text", "freemium", true, true, "General-purpose conversational AI for drafting, coding, and research.", "文章作成・調査・コーディング支援に使える汎用対話AI。"),
   t("claude", "Claude", "https://claude.ai", "text", "freemium", true, true, "Long-context assistant strong at writing, analysis, and coding.", "長文コンテキストに強い執筆・分析・コーディング向けAI。"),
@@ -173,4 +214,17 @@ export const LAUNCH_TOOLS: SeedTool[] = [
   t("openai-api", "OpenAI Platform", "https://platform.openai.com", "coding", "paid", true, true, "GPT, embeddings, and multimodal APIs.", "GPT・埋め込み・マルチモーダルAPI。"),
   t("anthropic-api", "Anthropic API", "https://www.anthropic.com/api", "coding", "paid", false, true, "Claude models via official API.", "公式API経由のClaudeモデル。"),
   t("aws-bedrock", "Amazon Bedrock", "https://aws.amazon.com/bedrock", "coding", "enterprise", false, true, "Managed foundation models on AWS.", "AWS上のマネージド基盤モデル。"),
-].slice(0, 100);
+  t("cohere", "Cohere", "https://cohere.com", "text", "paid", true, true, "Enterprise LLM platform for RAG and agents.", "企業向けRAG・エージェント向けLLMプラットフォーム。"),
+  t("mistral", "Mistral AI", "https://mistral.ai", "text", "freemium", true, true, "European open-weight and hosted LLM models.", "欧州発のオープンウェイト／ホスト型LLM。"),
+  t("xai-grok", "Grok", "https://x.ai", "text", "paid", true, true, "xAI assistant with real-time knowledge access.", "xAIのリアルタイム知識アクセス付きアシスタント。"),
+  t("notebooklm", "NotebookLM", "https://notebooklm.google.com", "education", "free", true, false, "Google AI notebook that grounds answers in your sources.", "自分の資料を根拠に答えるGoogleのAIノート。"),
+  t("chatgpt-team", "ChatGPT Team", "https://chatgpt.com", "productivity", "paid", false, true, "Shared ChatGPT workspace for teams with admin controls.", "管理機能付きのチーム向けChatGPTワークスペース。"),
+  t("windsurf", "Windsurf", "https://windsurf.com", "coding", "freemium", true, false, "Agentic IDE for cascade-style coding workflows.", "カスケード型コーディング向けエージェントIDE。"),
+  t("manus", "Manus", "https://manus.im", "automation", "freemium", true, false, "General AI agent for multi-step computer tasks.", "複数ステップのPC作業を行う汎用AIエージェント。"),
+  t("grok-x", "Grok on X", "https://x.com/i/grok", "text", "freemium", true, false, "Grok chat integrated into the X social platform.", "X上で使えるGrokチャット。"),
+  t("pictory", "Pictory", "https://pictory.ai", "video", "paid", false, false, "Turn scripts and blogs into short AI videos.", "脚本やブログから短尺AI動画を生成。"),
+  t("invideo", "InVideo AI", "https://invideo.io", "video", "freemium", true, false, "Text-to-video marketing clips with templates.", "テンプレート付きテキスト動画マーケ生成。"),
+  t("napkin", "Napkin AI", "https://www.napkin.ai", "design", "freemium", true, false, "Turn text into visual diagrams instantly.", "テキストを即座に図解へ変換。"),
+  t("tldv", "tl;dv", "https://tldv.io", "audio", "freemium", true, true, "Meeting recording, AI notes, and clip sharing.", "会議録画・AIノート・クリップ共有。"),
+  t("granola", "Granola", "https://www.granola.ai", "productivity", "freemium", true, false, "AI meeting notes that stay under your control.", "自分でコントロールできるAI会議ノート。"),
+];

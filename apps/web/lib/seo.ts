@@ -37,7 +37,14 @@ export function softwareApplicationJsonLd(input: {
   description?: string | null;
   url: string;
   applicationCategory?: string;
+  pricingModel?: string | null;
+  offersPrice?: string;
 }): Record<string, unknown> {
+  const price =
+    input.offersPrice ??
+    (input.pricingModel === "free" || input.pricingModel === "freemium"
+      ? "0"
+      : undefined);
   return {
     "@context": "https://schema.org",
     "@type": "SoftwareApplication",
@@ -47,8 +54,9 @@ export function softwareApplicationJsonLd(input: {
     applicationCategory: input.applicationCategory ?? "BusinessApplication",
     offers: {
       "@type": "Offer",
-      price: "0",
-      priceCurrency: "USD",
+      price: price ?? "0",
+      priceCurrency: "JPY",
+      ...(input.pricingModel ? { category: input.pricingModel } : {}),
     },
   };
 }
@@ -68,5 +76,43 @@ export function faqPageJsonLd(
         text: item.answer,
       },
     })),
+  };
+}
+
+export function breadcrumbListJsonLd(
+  items: Array<{ name: string; url: string }>,
+): Record<string, unknown> {
+  return {
+    "@context": "https://schema.org",
+    "@type": "BreadcrumbList",
+    itemListElement: items.map((item, index) => ({
+      "@type": "ListItem",
+      position: index + 1,
+      name: item.name,
+      item: item.url,
+    })),
+  };
+}
+
+export function articleJsonLd(input: {
+  title: string;
+  description?: string | null;
+  url: string;
+  datePublished?: string | Date | null;
+}): Record<string, unknown> {
+  return {
+    "@context": "https://schema.org",
+    "@type": "Article",
+    headline: input.title,
+    description: input.description ?? undefined,
+    url: input.url,
+    datePublished: input.datePublished
+      ? new Date(input.datePublished).toISOString()
+      : undefined,
+    publisher: {
+      "@type": "Organization",
+      name: "AI BASE",
+      url: absoluteUrl("/"),
+    },
   };
 }
