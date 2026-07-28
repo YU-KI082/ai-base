@@ -46,6 +46,18 @@ type AiBaseEvent<T> = {
 | `content.approved.v1` | approval API | publisher |
 | `content.rejected.v1` | approval API | writer |
 | `content.published.v1` | publisher | social, analytics, planner |
+| `sns.trend.scout.requested.v1` | admin SNS | sns-trend-scout |
+| `sns.trend.observed.v1` | sns-trend-scout | sns-viral-analyzer |
+| `sns.patterns.analyze.requested.v1` | scout / admin | sns-viral-analyzer |
+| `sns.patterns.ready.v1` | sns-viral-analyzer | observers |
+| `sns.experiment.plan.requested.v1` | viral-analyzer | sns-experiment-planner |
+| `sns.experiment.created.v1` | experiment-planner | observers |
+| `sns.recommend.requested.v1` | viral / performance | sns-strategy |
+| `sns.recommendations.ready.v1` | sns-strategy | social |
+| `sns.post.score.requested.v1` | admin / social | sns-strategy |
+| `sns.feedback.tick.v1` | admin / scheduler | sns-performance |
+| `sns.metrics.ingest.requested.v1` | admin metrics | sns-performance |
+| `sns.learning.updated.v1` | sns-performance | sns-strategy |
 
 ## Rules
 

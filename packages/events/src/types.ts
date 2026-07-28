@@ -38,6 +38,18 @@ export const EventTypes = {
   AgentRunStarted: "agent.run.started.v1",
   AgentRunCompleted: "agent.run.completed.v1",
   AgentRunFailed: "agent.run.failed.v1",
+  SnsTrendScoutRequested: "sns.trend.scout.requested.v1",
+  SnsTrendObserved: "sns.trend.observed.v1",
+  SnsPatternsAnalyzeRequested: "sns.patterns.analyze.requested.v1",
+  SnsPatternsReady: "sns.patterns.ready.v1",
+  SnsExperimentPlanRequested: "sns.experiment.plan.requested.v1",
+  SnsExperimentCreated: "sns.experiment.created.v1",
+  SnsRecommendRequested: "sns.recommend.requested.v1",
+  SnsRecommendationsReady: "sns.recommendations.ready.v1",
+  SnsPostScoreRequested: "sns.post.score.requested.v1",
+  SnsFeedbackTick: "sns.feedback.tick.v1",
+  SnsMetricsIngestRequested: "sns.metrics.ingest.requested.v1",
+  SnsLearningUpdated: "sns.learning.updated.v1",
 } as const;
 
 export type EventType = (typeof EventTypes)[keyof typeof EventTypes];
@@ -121,6 +133,63 @@ export const ContentPublishedDataSchema = z.object({
   workflowId: z.string(),
   toolId: z.string(),
   slug: z.string(),
+});
+
+export const SnsTrendScoutRequestedDataSchema = z.object({
+  platforms: z.array(z.enum(["instagram", "tiktok"])).default(["instagram", "tiktok"]),
+  locales: z.array(LocaleSchema).default(["en", "ja"]),
+  useSeedCatalog: z.boolean().default(true),
+});
+
+export const SnsTrendObservedDataSchema = z.object({
+  observationIds: z.array(z.string()),
+  count: z.number().int().nonnegative(),
+});
+
+export const SnsPatternsAnalyzeRequestedDataSchema = z.object({
+  platform: z.enum(["instagram", "tiktok"]).optional(),
+  locale: LocaleSchema.optional(),
+});
+
+export const SnsPatternsReadyDataSchema = z.object({
+  patternIds: z.array(z.string()),
+  count: z.number().int().nonnegative(),
+});
+
+export const SnsExperimentPlanRequestedDataSchema = z.object({
+  weekOf: z.string().optional(),
+});
+
+export const SnsExperimentCreatedDataSchema = z.object({
+  experimentIds: z.array(z.string()),
+});
+
+export const SnsRecommendRequestedDataSchema = z.object({
+  limit: z.number().int().positive().max(20).default(6),
+});
+
+export const SnsRecommendationsReadyDataSchema = z.object({
+  recommendationIds: z.array(z.string()),
+});
+
+export const SnsPostScoreRequestedDataSchema = z.object({
+  socialPostId: z.string(),
+});
+
+export const SnsFeedbackTickDataSchema = z.object({
+  windowHours: z.union([z.literal(24), z.literal(72), z.literal(168)]),
+  socialPostId: z.string().optional(),
+});
+
+export const SnsMetricsIngestRequestedDataSchema = z.object({
+  socialPostId: z.string(),
+  windowHours: z.union([z.literal(24), z.literal(72), z.literal(168)]),
+  source: z.enum(["manual", "official_api"]).default("manual"),
+  metrics: z.record(z.number().nonnegative().nullable()),
+});
+
+export const SnsLearningUpdatedDataSchema = z.object({
+  learningRecordIds: z.array(z.string()),
 });
 
 export function createEvent<T>(input: {

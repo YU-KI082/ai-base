@@ -418,19 +418,254 @@ model ArticleTranslation {
 }
 
 model SocialPost {
-  id          String   @id @default(cuid())
-  platform    String
-  status      String   @default("draft")
-  locale      Locale
-  content     String
-  mediaUrl    String?  @map("media_url")
-  toolId      String?  @map("tool_id")
-  publishedAt DateTime? @map("published_at")
-  createdAt   DateTime @default(now()) @map("created_at")
-  updatedAt   DateTime @updatedAt @map("updated_at")
+  id               String    @id @default(cuid())
+  platform         String
+  status           String    @default("draft")
+  locale           Locale
+  content          String
+  mediaUrl         String?   @map("media_url")
+  toolId           String?   @map("tool_id")
+  theme            String?
+  hook             String?
+  hookType         String?   @map("hook_type")
+  durationSec      Int?      @map("duration_sec")
+  cta              String?
+  format           String?
+  hashtags         String[]  @default([])
+  experimentId     String?   @map("experiment_id")
+  variantKey       String?   @map("variant_key")
+  recommendationId String?   @map("recommendation_id")
+  scoreTotal       Float?    @map("score_total")
+  scoreBreakdown   Json?     @map("score_breakdown")
+  riskFlags        String[]  @default([]) @map("risk_flags")
+  scheduledAt      DateTime? @map("scheduled_at")
+  externalPostId   String?   @map("external_post_id")
+  publishedAt      DateTime? @map("published_at")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+
+  experiment      SnsExperiment?      @relation(fields: [experimentId], references: [id], onDelete: SetNull)
+  recommendation  SnsRecommendation?  @relation(fields: [recommendationId], references: [id], onDelete: SetNull)
+  metrics         SnsPostMetrics[]
+  scores          SnsPostScore[]
 
   @@index([platform, status])
+  @@index([experimentId])
   @@map("social_posts")
+}
+
+/// Structural observation of trending content — never stores copied captions/media/audio.
+model SnsTrendObservation {
+  id                 String    @id @default(cuid())
+  platform           String
+  locale             Locale    @default(en)
+  category           String    @default("ai_tools")
+  theme              String?
+  hookPattern        String?   @map("hook_pattern")
+  durationSec        Int?      @map("duration_sec")
+  captionDensity     String?   @map("caption_density")
+  subtitleStructure  String?   @map("subtitle_structure")
+  sceneFlow          String?   @map("scene_flow")
+  format             String?
+  ctaPattern         String?   @map("cta_pattern")
+  hashtagPatterns    String[]  @default([]) @map("hashtag_patterns")
+  postedAtHour       Int?      @map("posted_at_hour")
+  commentTendency    String?   @map("comment_tendency")
+  plays              Int?
+  likes              Int?
+  saves              Int?
+  shares             Int?
+  comments           Int?
+  whyItMayWork       Json      @default("[]") @map("why_it_may_work")
+  sourceType         String    @map("source_type")
+  sourceRef          String?   @map("source_ref")
+  confidence         Float     @default(0.2)
+  status             String    @default("active")
+  humanNotes         String?   @map("human_notes")
+  observedAt         DateTime  @default(now()) @map("observed_at")
+  expiresAt          DateTime? @map("expires_at")
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
+
+  @@index([platform, locale, status])
+  @@index([observedAt])
+  @@map("sns_trend_observations")
+}
+
+model SnsViralPattern {
+  id                  String    @id @default(cuid())
+  platform            String
+  locale              Locale
+  category            String    @default("ai_tools")
+  patternType         String    @map("pattern_type")
+  title               String
+  summary             String
+  structure           Json      @default("{}")
+  analysisPeriodStart DateTime? @map("analysis_period_start")
+  analysisPeriodEnd   DateTime? @map("analysis_period_end")
+  sampleSize          Int       @default(0) @map("sample_size")
+  confidence          Float     @default(0)
+  evidence            Json      @default("[]")
+  validUntil          DateTime? @map("valid_until")
+  status              String    @default("active")
+  humanOverride       Json?     @map("human_override")
+  weight              Float     @default(1)
+  createdAt           DateTime  @default(now()) @map("created_at")
+  updatedAt           DateTime  @updatedAt @map("updated_at")
+
+  @@index([platform, locale, patternType, status])
+  @@map("sns_viral_patterns")
+}
+
+model SnsExperiment {
+  id              String    @id @default(cuid())
+  title           String
+  hypothesis      String
+  changeFactor    String    @map("change_factor")
+  fixedFactors    Json      @default("[]") @map("fixed_factors")
+  platform        String
+  locale          Locale    @default(en)
+  evaluationDays  Int       @default(7) @map("evaluation_days")
+  successMetric   String    @map("success_metric")
+  minSampleSize   Int       @default(2) @map("min_sample_size")
+  abortCondition  String?   @map("abort_condition")
+  status          String    @default("planned")
+  startedAt       DateTime? @map("started_at")
+  endedAt         DateTime? @map("ended_at")
+  resultSummary   String?   @map("result_summary")
+  humanNotes      String?   @map("human_notes")
+  createdAt       DateTime  @default(now()) @map("created_at")
+  updatedAt       DateTime  @updatedAt @map("updated_at")
+
+  variants SnsExperimentVariant[]
+  posts    SocialPost[]
+
+  @@index([platform, status])
+  @@map("sns_experiments")
+}
+
+model SnsExperimentVariant {
+  id           String @id @default(cuid())
+  experimentId String @map("experiment_id")
+  key          String
+  label        String
+  config       Json   @default("{}")
+
+  experiment SnsExperiment @relation(fields: [experimentId], references: [id], onDelete: Cascade)
+
+  @@unique([experimentId, key])
+  @@map("sns_experiment_variants")
+}
+
+/// Own-post metrics only. Missing platform fields stay null — never invent numbers.
+model SnsPostMetrics {
+  id              String   @id @default(cuid())
+  socialPostId    String   @map("social_post_id")
+  windowHours     Int      @map("window_hours")
+  capturedAt      DateTime @default(now()) @map("captured_at")
+  source          String   @default("manual")
+  plays           Int?
+  reach           Int?
+  avgWatchSec     Float?   @map("avg_watch_sec")
+  completionRate  Float?   @map("completion_rate")
+  hold3SecRate    Float?   @map("hold_3sec_rate")
+  likeRate        Float?   @map("like_rate")
+  commentRate     Float?   @map("comment_rate")
+  saveRate        Float?   @map("save_rate")
+  shareRate       Float?   @map("share_rate")
+  profileVisitRate Float?  @map("profile_visit_rate")
+  linkClickRate   Float?   @map("link_click_rate")
+  followRate      Float?   @map("follow_rate")
+  affiliateClicks Int?     @map("affiliate_clicks")
+  conversions     Int?
+  revenue         Float?
+
+  socialPost SocialPost @relation(fields: [socialPostId], references: [id], onDelete: Cascade)
+
+  @@index([socialPostId, windowHours])
+  @@map("sns_post_metrics")
+}
+
+model SnsPostScore {
+  id           String   @id @default(cuid())
+  socialPostId String   @map("social_post_id")
+  total        Float
+  breakdown    Json     @default("{}")
+  reasons      String[] @default([])
+  improvements String[] @default([])
+  riskLevel    String   @default("low") @map("risk_level")
+  blocked      Boolean  @default(false)
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  socialPost SocialPost @relation(fields: [socialPostId], references: [id], onDelete: Cascade)
+
+  @@index([socialPostId])
+  @@map("sns_post_scores")
+}
+
+model SnsRecommendation {
+  id               String   @id @default(cuid())
+  theme            String
+  platform         String
+  locale           Locale
+  audience         String?
+  recommendedHook  String?  @map("recommended_hook")
+  durationSec      Int?     @map("duration_sec")
+  postedAtHint     String?  @map("posted_at_hint")
+  cta              String?
+  toolId           String?  @map("tool_id")
+  affiliateLinkId  String?  @map("affiliate_link_id")
+  goal             String?
+  predictedScore   Float?   @map("predicted_score")
+  rationale        String
+  status           String   @default("proposed")
+  humanNotes       String?  @map("human_notes")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  posts SocialPost[]
+
+  @@index([platform, locale, status])
+  @@map("sns_recommendations")
+}
+
+model SnsLearningRecord {
+  id               String    @id @default(cuid())
+  kind             String
+  platform         String?
+  locale           Locale?
+  theme            String?
+  hookType         String?   @map("hook_type")
+  ctaType          String?   @map("cta_type")
+  title            String
+  content          String
+  metadata         Json      @default("{}")
+  evidencePostIds  String[]  @default([]) @map("evidence_post_ids")
+  importance       Float     @default(0.5)
+  decayHalfLifeDays Int      @default(21) @map("decay_half_life_days")
+  observedAt       DateTime  @default(now()) @map("observed_at")
+  validUntil       DateTime? @map("valid_until")
+  status           String    @default("active")
+  humanCorrection  String?   @map("human_correction")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+
+  @@index([kind, status])
+  @@index([platform, locale])
+  @@map("sns_learning_records")
+}
+
+model SnsImprovementLog {
+  id        String   @id @default(cuid())
+  agentKey  String   @map("agent_key")
+  summary   String
+  fromState Json?    @map("from_state")
+  toState   Json?    @map("to_state")
+  metadata  Json     @default("{}")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([agentKey, createdAt])
+  @@map("sns_improvement_logs")
 }
 
 model Agent {

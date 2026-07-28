@@ -10,6 +10,7 @@
     "@ai-base/i18n": "workspace:*",
     "@ai-base/llm": "workspace:*",
     "@ai-base/marketplace": "workspace:*",
+    "@ai-base/sns-learning": "workspace:*",
     "next": "^15.1.3",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",

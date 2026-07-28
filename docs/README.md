@@ -19,6 +19,7 @@ Canonical design docs (keep synchronized with code):
 | [SEO.md](./SEO.md) | SEO agent + public SEO |
 | [SCALE.md](./SCALE.md) | 10M PV / 1M users readiness |
 | [PUBLIC_MVP.md](./PUBLIC_MVP.md) | Public launch surface checklist |
+| [SNS_LEARNING.md](./SNS_LEARNING.md) | Instagram/TikTok continuous learning loop |
 | [ROADMAP.md](./ROADMAP.md) | Near / mid / long term |
 
 Legacy notes (superseded by the above; retained for history):

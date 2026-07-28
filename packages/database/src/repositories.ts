@@ -955,6 +955,36 @@ export class SocialPostRepository {
       where: status ? { status } : undefined,
       orderBy: { createdAt: "desc" },
       take: 100,
+      include: {
+        metrics: { orderBy: { capturedAt: "desc" }, take: 6 },
+        scores: { orderBy: { createdAt: "desc" }, take: 1 },
+      },
+    });
+  }
+
+  async findById(id: string) {
+    return this.db.socialPost.findUnique({
+      where: { id },
+      include: {
+        metrics: { orderBy: { capturedAt: "desc" } },
+        scores: { orderBy: { createdAt: "desc" } },
+      },
+    });
+  }
+
+  async listPublishedForFeedback(windowHours: number) {
+    const minAgeMs = windowHours * 60 * 60 * 1000;
+    const cutoff = new Date(Date.now() - minAgeMs);
+    return this.db.socialPost.findMany({
+      where: {
+        status: "published",
+        publishedAt: { lte: cutoff },
+      },
+      include: {
+        metrics: true,
+      },
+      take: 50,
+      orderBy: { publishedAt: "desc" },
     });
   }
 
@@ -966,6 +996,213 @@ export class SocialPostRepository {
         ...(status === "published" ? { publishedAt: new Date() } : {}),
       },
     });
+  }
+
+  async createDraft(data: Prisma.SocialPostCreateInput) {
+    return this.db.socialPost.create({ data });
+  }
+
+  async applyScore(
+    id: string,
+    input: {
+      scoreTotal: number;
+      scoreBreakdown: Prisma.InputJsonValue;
+      riskFlags: string[];
+      status?: string;
+    },
+  ) {
+    return this.db.socialPost.update({
+      where: { id },
+      data: {
+        scoreTotal: input.scoreTotal,
+        scoreBreakdown: input.scoreBreakdown,
+        riskFlags: input.riskFlags,
+        ...(input.status ? { status: input.status } : {}),
+      },
+    });
+  }
+}
+
+export class SnsLearningRepository {
+  constructor(private readonly db: Db = prisma) {}
+
+  async createObservation(data: Prisma.SnsTrendObservationCreateInput) {
+    return this.db.snsTrendObservation.create({ data });
+  }
+
+  async listObservations(input?: {
+    platform?: string;
+    locale?: Locale;
+    status?: string;
+  }) {
+    return this.db.snsTrendObservation.findMany({
+      where: {
+        platform: input?.platform,
+        locale: input?.locale,
+        status: input?.status ?? "active",
+      },
+      orderBy: { observedAt: "desc" },
+      take: 200,
+    });
+  }
+
+  async updateObservation(
+    id: string,
+    data: Prisma.SnsTrendObservationUpdateInput,
+  ) {
+    return this.db.snsTrendObservation.update({ where: { id }, data });
+  }
+
+  async createPattern(data: Prisma.SnsViralPatternCreateInput) {
+    return this.db.snsViralPattern.create({ data });
+  }
+
+  async listPatterns(status = "active") {
+    return this.db.snsViralPattern.findMany({
+      where: { status },
+      orderBy: [{ confidence: "desc" }, { updatedAt: "desc" }],
+      take: 200,
+    });
+  }
+
+  async updatePattern(id: string, data: Prisma.SnsViralPatternUpdateInput) {
+    return this.db.snsViralPattern.update({ where: { id }, data });
+  }
+
+  async createExperiment(input: {
+    data: Prisma.SnsExperimentCreateInput;
+    variants: Array<{ key: string; label: string; config: Prisma.InputJsonValue }>;
+  }) {
+    return this.db.snsExperiment.create({
+      data: {
+        ...input.data,
+        variants: {
+          create: input.variants.map((v) => ({
+            key: v.key,
+            label: v.label,
+            config: v.config,
+          })),
+        },
+      },
+      include: { variants: true },
+    });
+  }
+
+  async listExperiments() {
+    return this.db.snsExperiment.findMany({
+      include: { variants: true, posts: { take: 20 } },
+      orderBy: { createdAt: "desc" },
+      take: 100,
+    });
+  }
+
+  async updateExperiment(id: string, data: Prisma.SnsExperimentUpdateInput) {
+    return this.db.snsExperiment.update({ where: { id }, data });
+  }
+
+  async createMetrics(data: Prisma.SnsPostMetricsCreateInput) {
+    return this.db.snsPostMetrics.create({ data });
+  }
+
+  async listMetrics(socialPostId?: string) {
+    return this.db.snsPostMetrics.findMany({
+      where: socialPostId ? { socialPostId } : undefined,
+      orderBy: { capturedAt: "desc" },
+      take: 200,
+      include: { socialPost: true },
+    });
+  }
+
+  async createScore(data: Prisma.SnsPostScoreCreateInput) {
+    return this.db.snsPostScore.create({ data });
+  }
+
+  async createRecommendation(data: Prisma.SnsRecommendationCreateInput) {
+    return this.db.snsRecommendation.create({ data });
+  }
+
+  async listRecommendations(status?: string) {
+    return this.db.snsRecommendation.findMany({
+      where: status ? { status } : undefined,
+      orderBy: [{ predictedScore: "desc" }, { createdAt: "desc" }],
+      take: 100,
+    });
+  }
+
+  async updateRecommendation(
+    id: string,
+    data: Prisma.SnsRecommendationUpdateInput,
+  ) {
+    return this.db.snsRecommendation.update({ where: { id }, data });
+  }
+
+  async createLearning(data: Prisma.SnsLearningRecordCreateInput) {
+    return this.db.snsLearningRecord.create({ data });
+  }
+
+  async listLearning(input?: { kind?: string; status?: string }) {
+    return this.db.snsLearningRecord.findMany({
+      where: {
+        kind: input?.kind,
+        status: input?.status ?? "active",
+      },
+      orderBy: { observedAt: "desc" },
+      take: 200,
+    });
+  }
+
+  async updateLearning(id: string, data: Prisma.SnsLearningRecordUpdateInput) {
+    return this.db.snsLearningRecord.update({ where: { id }, data });
+  }
+
+  async logImprovement(data: Prisma.SnsImprovementLogCreateInput) {
+    return this.db.snsImprovementLog.create({ data });
+  }
+
+  async listImprovements() {
+    return this.db.snsImprovementLog.findMany({
+      orderBy: { createdAt: "desc" },
+      take: 100,
+    });
+  }
+
+  async dashboard() {
+    const [
+      observations,
+      patterns,
+      experiments,
+      recommendations,
+      learning,
+      improvements,
+      posts,
+      metrics,
+    ] = await Promise.all([
+      this.listObservations(),
+      this.listPatterns(),
+      this.listExperiments(),
+      this.listRecommendations(),
+      this.listLearning(),
+      this.listImprovements(),
+      this.db.socialPost.findMany({
+        orderBy: { createdAt: "desc" },
+        take: 100,
+        include: {
+          metrics: { orderBy: { capturedAt: "desc" }, take: 3 },
+          scores: { orderBy: { createdAt: "desc" }, take: 1 },
+        },
+      }),
+      this.listMetrics(),
+    ]);
+    return {
+      observations,
+      patterns,
+      experiments,
+      recommendations,
+      learning,
+      improvements,
+      posts,
+      metrics,
+    };
   }
 }
 
@@ -1531,6 +1768,7 @@ export class Repositories {
   readonly affiliates = new AffiliateRepository();
   readonly comparisons = new ComparisonRepository();
   readonly socialPosts = new SocialPostRepository();
+  readonly snsLearning = new SnsLearningRepository();
   readonly analytics = new AnalyticsRepository();
   readonly knowledgeNodes = new KnowledgeNodeRepository();
   readonly knowledgeEdges = new KnowledgeEdgeRepository();

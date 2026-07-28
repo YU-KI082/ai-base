@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  transpilePackages: [
+    transpilePackages: [
     "@ai-base/auth",
     "@ai-base/cache",
     "@ai-base/database",
@@ -9,6 +9,7 @@ const nextConfig: NextConfig = {
     "@ai-base/i18n",
     "@ai-base/llm",
     "@ai-base/marketplace",
+    "@ai-base/sns-learning",
   ],
   serverExternalPackages: ["@prisma/client", "ioredis"],
 };
