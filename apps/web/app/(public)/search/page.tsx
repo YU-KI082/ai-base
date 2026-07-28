@@ -36,47 +36,85 @@ export default async function SearchPage({
     ? await repos.tools.findPublished(locale, { q, take: 30 })
     : [];
 
+  const copy =
+    locale === "ja"
+      ? {
+          kicker: "検索",
+          title: "AIツールを探す",
+          subtitle: "名前や説明文から公開ツールを検索します。",
+          placeholder: "例: chatgpt, image, productivity",
+          submit: "検索",
+          hint: "キーワードを入力して検索してください。",
+          empty: "該当するツールがありません。",
+          browse: "一覧へ",
+        }
+      : {
+          kicker: "Search",
+          title: "Find AI tools",
+          subtitle: "Search published tools by name or description.",
+          placeholder: "e.g. chatgpt, image, productivity",
+          submit: "Search",
+          hint: "Enter a keyword to search published tools.",
+          empty: "No matching tools.",
+          browse: "Browse all",
+        };
+
   return (
-    <main className="container site-section">
-      <h1 style={{ fontFamily: "var(--font-display-loaded), serif", marginTop: 0 }}>
-        {locale === "ja" ? "検索" : "Search"}
-      </h1>
-      <form action="/search" method="get" style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
+    <main className="container site-section animate-in">
+      <div className="page-header">
+        <div>
+          <p className="page-kicker">{copy.kicker}</p>
+          <h1 className="page-title">{copy.title}</h1>
+          <p className="page-subtitle">{copy.subtitle}</p>
+        </div>
+      </div>
+
+      <form
+        action="/search"
+        method="get"
+        className="card-surface"
+        style={{
+          marginTop: "1.5rem",
+          padding: "0.85rem",
+          display: "flex",
+          gap: "0.5rem",
+          flexWrap: "wrap",
+          alignItems: "center",
+          maxWidth: 720,
+        }}
+      >
         {locale === "ja" ? <input type="hidden" name="locale" value="ja" /> : null}
         <input
           name="q"
           defaultValue={q}
-          placeholder={locale === "ja" ? "ツール名やキーワード" : "Tool name or keyword"}
+          placeholder={copy.placeholder}
+          aria-label={copy.submit}
           style={{
             flex: "1 1 240px",
             background: "var(--bg)",
             color: "var(--text)",
             border: "1px solid var(--border)",
-            borderRadius: 10,
-            padding: "0.7rem 0.85rem",
+            borderRadius: 999,
+            padding: "0.75rem 1rem",
           }}
         />
         <button className="btn btn-primary" type="submit">
-          {locale === "ja" ? "検索" : "Search"}
+          {copy.submit}
         </button>
       </form>
 
-      <ul style={{ listStyle: "none", padding: 0, marginTop: "1.5rem", display: "grid", gap: "0.75rem" }}>
-        {!q ? (
-          <li className="muted">
-            {locale === "ja"
-              ? "キーワードを入力して検索してください。"
-              : "Enter a keyword to search published tools."}
-          </li>
-        ) : items.length === 0 ? (
-          <li className="muted">
-            {locale === "ja" ? "該当するツールがありません。" : "No matching tools."}{" "}
-            <Link href={withLocale("/tools", locale)}>
-              {locale === "ja" ? "一覧へ" : "Browse all"}
-            </Link>
-          </li>
-        ) : (
-          items.map((tool) => {
+      {!q ? (
+        <p className="muted" style={{ marginTop: "1.25rem" }}>
+          {copy.hint}
+        </p>
+      ) : items.length === 0 ? (
+        <div className="empty-state" style={{ marginTop: "1.25rem" }}>
+          {copy.empty}{" "}
+          <Link href={withLocale("/tools", locale)}>{copy.browse}</Link>
+        </div>
+      ) : (
+        <ul className="tools-grid">
+          {items.map((tool) => {
             const t = tool.translations[0];
             return (
               <ToolCard
@@ -88,9 +126,9 @@ export default async function SearchPage({
                 pricingModel={tool.pricingModel}
               />
             );
-          })
-        )}
-      </ul>
+          })}
+        </ul>
+      )}
     </main>
   );
 }
