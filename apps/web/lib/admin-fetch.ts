@@ -1,4 +1,4 @@
-import { CSRF_COOKIE, CSRF_HEADER } from "@ai-base/auth/csrf";
+import { CSRF_COOKIE, CSRF_HEADER } from "@ai-base/auth/constants";
 
 export function readBrowserCookie(name: string): string | null {
   if (typeof document === "undefined") return null;

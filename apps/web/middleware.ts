@@ -1,15 +1,14 @@
 import { NextResponse, type NextRequest } from "next/server";
+import { CSRF_COOKIE } from "@ai-base/auth/constants";
+import { createCsrfTokenEdge } from "@ai-base/auth/csrf-edge";
 import {
-  CSRF_COOKIE,
-  createCsrfToken,
   isAdminDevBypassEnabled,
   isProductionRuntime,
-} from "@ai-base/auth";
+} from "@ai-base/auth/env";
 
 /**
  * Protects /admin UI routes.
- * - Production: require session cookie (fail closed until Supabase is wired).
- * - Non-production with ADMIN_DEV_BYPASS: allow + ensure CSRF cookie.
+ * Edge-safe: no Node crypto / Prisma imports.
  */
 export function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl;
@@ -33,7 +32,7 @@ export function middleware(request: NextRequest) {
 
   const response = NextResponse.next();
   if (!request.cookies.get(CSRF_COOKIE)?.value) {
-    response.cookies.set(CSRF_COOKIE, createCsrfToken(), {
+    response.cookies.set(CSRF_COOKIE, createCsrfTokenEdge(), {
       path: "/",
       sameSite: "strict",
       secure: isProductionRuntime(),

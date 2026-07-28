@@ -11,6 +11,7 @@ export {
   CSRF_COOKIE,
   CSRF_HEADER,
   createCsrfToken,
+  createCsrfTokenEdge,
   verifyCsrf,
   readCookie,
   csrfCookieHeader,

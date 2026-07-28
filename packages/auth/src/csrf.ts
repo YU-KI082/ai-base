@@ -1,16 +1,16 @@
-import { randomBytes, timingSafeEqual } from "node:crypto";
+import { timingSafeEqual, randomBytes } from "node:crypto";
+import { CSRF_COOKIE } from "./constants.js";
 
-export const CSRF_COOKIE = "aibase_csrf";
-export const CSRF_HEADER = "x-csrf-token";
+export { CSRF_COOKIE, CSRF_HEADER } from "./constants.js";
+export { createCsrfTokenEdge } from "./csrf-edge.js";
 
+/** Node/runtime token (API routes, Node server). */
 export function createCsrfToken(): string {
   return randomBytes(32).toString("base64url");
 }
 
 /**
  * Double-submit CSRF: cookie value must equal header token.
- * Cookie is intentionally readable by JS (not HttpOnly) so the SPA can
- * mirror it into `x-csrf-token`. SameSite=Strict mitigates cross-site sends.
  */
 export function verifyCsrf(input: {
   cookieToken?: string | null;

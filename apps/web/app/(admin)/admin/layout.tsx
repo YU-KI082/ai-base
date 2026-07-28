@@ -18,7 +18,6 @@ export default async function AdminLayout({
   const locale = resolveLocale(cookieStore.get("locale")?.value);
   const dict = getDictionary(locale);
 
-  // Defense in depth beyond middleware (RSC data gate).
   try {
     if (isProductionRuntime() && !cookieStore.get("aibase_session")?.value) {
       redirect("/login");
@@ -34,49 +33,74 @@ export default async function AdminLayout({
   const links: Array<{ href: string; label: string }> = [
     { href: "/admin", label: dict.admin.dashboard },
     { href: "/admin/drafts", label: dict.admin.drafts },
-    { href: "/admin/agents", label: dict.admin.agents },
-    { href: "/admin/marketplace", label: "Marketplace" },
-    { href: "/admin/workflows", label: dict.admin.workflows },
+    { href: "/admin/ingest", label: "Ingest" },
     { href: "/admin/tools", label: dict.admin.tools },
     { href: "/admin/affiliate", label: "Affiliate" },
     { href: "/admin/social", label: "Social" },
+    { href: "/admin/agents", label: dict.admin.agents },
+    { href: "/admin/workflows", label: dict.admin.workflows },
+    { href: "/admin/marketplace", label: "Marketplace" },
     { href: "/admin/logs", label: dict.admin.logs },
     { href: "/admin/settings", label: dict.admin.settings },
-    { href: "/admin/ingest", label: "Ingest" },
   ];
 
   return (
-    <div style={{ display: "grid", gridTemplateColumns: "240px 1fr", minHeight: "100vh" }}>
+    <div
+      style={{
+        display: "grid",
+        gridTemplateColumns: "240px 1fr",
+        minHeight: "100vh",
+        background: "var(--bg)",
+      }}
+    >
       <aside
         style={{
           borderRight: "1px solid var(--border)",
-          background: "var(--bg-soft)",
-          padding: "1.25rem",
+          background: "var(--bg-elevated)",
+          padding: "1.35rem 1rem",
         }}
       >
-        <div style={{ fontFamily: "var(--font-display-loaded), serif", fontSize: "1.4rem" }}>
+        <div
+          style={{
+            fontFamily: "var(--font-display-loaded), var(--font-display)",
+            fontSize: "1.3rem",
+            letterSpacing: "-0.03em",
+            padding: "0 0.4rem",
+          }}
+        >
           {dict.common.appName}
         </div>
-        <p className="muted" style={{ fontSize: 12, marginTop: 4 }}>Admin</p>
-        <nav style={{ display: "grid", gap: "0.35rem", marginTop: "1.5rem" }}>
+        <p className="muted" style={{ fontSize: 12, margin: "0.25rem 0 0", padding: "0 0.4rem" }}>
+          Admin
+        </p>
+        <nav style={{ display: "grid", gap: "0.2rem", marginTop: "1.5rem" }}>
           {links.map((link) => (
             <Link
               key={link.href}
               href={link.href}
+              className="chip"
               style={{
-                padding: "0.55rem 0.7rem",
+                justifyContent: "flex-start",
                 borderRadius: 10,
+                borderColor: "transparent",
+                background: "transparent",
+                padding: "0.55rem 0.7rem",
               }}
             >
               {link.label}
             </Link>
           ))}
         </nav>
-        <div style={{ marginTop: "2rem" }}>
+        <div style={{ marginTop: "2rem", padding: "0 0.4rem" }}>
           <LocaleSwitcher current={locale} />
+          <p style={{ marginTop: "1rem" }}>
+            <Link href="/" className="muted" style={{ fontSize: 13 }}>
+              ← Public site
+            </Link>
+          </p>
         </div>
       </aside>
-      <div style={{ padding: "1.5rem" }}>{children}</div>
+      <div style={{ padding: "1.75rem 1.75rem 2.5rem" }}>{children}</div>
     </div>
   );
 }
