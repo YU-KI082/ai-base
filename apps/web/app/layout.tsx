@@ -54,10 +54,10 @@ export default async function RootLayout({
 
   return (
     <html lang={locale}>
-      <body className={`${display.variable} ${body.variable}`}>
-        {children}
+      <head>
         <GoogleAnalytics />
-      </body>
+      </head>
+      <body className={`${display.variable} ${body.variable}`}>{children}</body>
     </html>
   );
 }
