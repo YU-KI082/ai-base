@@ -2,6 +2,10 @@ import type { MetadataRoute } from "next";
 import { repos } from "@ai-base/database";
 import { siteUrl } from "@/lib/site";
 
+/** Always render at request time — needs live DB; never prerender on Vercel build. */
+export const dynamic = "force-dynamic";
+export const revalidate = 60;
+
 export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const base = siteUrl();
   const [tools, comparisons, categories] = await Promise.all([

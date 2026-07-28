@@ -1,7 +1,5 @@
 import { PrismaClient } from "@prisma/client";
-import { PrismaNeon } from "@prisma/adapter-neon";
-import { neonConfig } from "@neondatabase/serverless";
-import ws from "ws";
+import { PrismaNeonHttp } from "@prisma/adapter-neon";
 
 const globalForPrisma = globalThis as unknown as {
   prisma?: PrismaClient;
@@ -9,10 +7,12 @@ const globalForPrisma = globalThis as unknown as {
 
 function createPrismaClient(): PrismaClient {
   const url = process.env.DATABASE_URL;
-  // Neon on Vercel: use serverless driver adapter (no native query engine binary).
+  // Neon on serverless: HTTP driver adapter (no native engine / no ws).
   if (url && /neon\.tech/i.test(url)) {
-    neonConfig.webSocketConstructor = ws;
-    const adapter = new PrismaNeon({ connectionString: url });
+    const adapter = new PrismaNeonHttp(url, {
+      arrayMode: false,
+      fullResults: true,
+    });
     return new PrismaClient({
       adapter,
       log: process.env.NODE_ENV === "development" ? ["error", "warn"] : ["error"],
