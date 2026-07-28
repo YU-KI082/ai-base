@@ -16,15 +16,17 @@ export function CompareFormClient({
   label: string;
 }) {
   const router = useRouter();
-  const [a, setA] = useState(initial[0] ?? "");
-  const [b, setB] = useState(initial[1] ?? "");
-  const [c, setC] = useState(initial[2] ?? "");
+  const [slots, setSlots] = useState<[string, string, string]>([
+    initial[0] ?? "",
+    initial[1] ?? "",
+    initial[2] ?? "",
+  ]);
 
   const options = useMemo(() => catalog, [catalog]);
 
   function submit(e: React.FormEvent) {
     e.preventDefault();
-    const tools = [a, b, c].filter(Boolean);
+    const tools = slots.filter(Boolean);
     const params = new URLSearchParams();
     if (locale === "ja") params.set("locale", "ja");
     if (tools.length) params.set("tools", tools.join(","));
@@ -32,21 +34,21 @@ export function CompareFormClient({
   }
 
   return (
-    <form onSubmit={submit} className="card-surface" style={{ padding: "1rem" }}>
-      <p className="muted" style={{ marginTop: 0 }}>
+    <form onSubmit={submit} className="card-surface" style={{ padding: "1.15rem 1.25rem" }}>
+      <p className="muted" style={{ marginTop: 0, marginBottom: "0.85rem" }}>
         {locale === "ja"
           ? "比較するツールを選ぶ（最大3）"
-          : "Pick tools to compare (up to 3)"}
+          : "Pick up to 3 tools to compare"}
       </p>
-      {[
-        [a, setA],
-        [b, setB],
-        [c, setC],
-      ].map(([value, setValue], i) => (
+      {slots.map((value, i) => (
         <select
           key={i}
-          value={value as string}
-          onChange={(e) => (setValue as (v: string) => void)(e.target.value)}
+          value={value}
+          onChange={(e) => {
+            const next = [...slots] as [string, string, string];
+            next[i] = e.target.value;
+            setSlots(next);
+          }}
           style={{
             display: "block",
             width: "100%",
@@ -54,8 +56,8 @@ export function CompareFormClient({
             background: "var(--bg)",
             color: "var(--text)",
             border: "1px solid var(--border)",
-            borderRadius: 10,
-            padding: "0.65rem 0.75rem",
+            borderRadius: 12,
+            padding: "0.7rem 0.85rem",
           }}
         >
           <option value="">
@@ -68,7 +70,7 @@ export function CompareFormClient({
           ))}
         </select>
       ))}
-      <button className="btn btn-primary" type="submit">
+      <button className="btn btn-primary" type="submit" style={{ marginTop: "0.35rem" }}>
         {label}
       </button>
     </form>
