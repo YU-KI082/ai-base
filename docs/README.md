@@ -20,6 +20,7 @@ Canonical design docs (keep synchronized with code):
 | [SCALE.md](./SCALE.md) | 10M PV / 1M users readiness |
 | [PUBLIC_MVP.md](./PUBLIC_MVP.md) | Public launch surface checklist |
 | [SNS_LEARNING.md](./SNS_LEARNING.md) | Instagram/TikTok continuous learning loop |
+| [AFFILIATE_INTELLIGENCE.md](./AFFILIATE_INTELLIGENCE.md) | Affiliate case workflow + ASP proposals |
 | [ROADMAP.md](./ROADMAP.md) | Near / mid / long term |
 
 Legacy notes (superseded by the above; retained for history):

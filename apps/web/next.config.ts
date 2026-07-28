@@ -10,6 +10,7 @@ const nextConfig: NextConfig = {
     "@ai-base/llm",
     "@ai-base/marketplace",
     "@ai-base/sns-learning",
+    "@ai-base/affiliate-intel",
   ],
   serverExternalPackages: ["@prisma/client", "ioredis"],
 };

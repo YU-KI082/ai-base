@@ -35,7 +35,7 @@ export default async function AdminLayout({
     { href: "/admin/drafts", label: dict.admin.drafts },
     { href: "/admin/ingest", label: "Ingest" },
     { href: "/admin/tools", label: dict.admin.tools },
-    { href: "/admin/affiliate", label: "Affiliate" },
+    { href: "/admin/affiliate", label: "Affiliate Intel" },
     { href: "/admin/social", label: "Social" },
     { href: "/admin/sns", label: "SNS Learning" },
     { href: "/admin/agents", label: dict.admin.agents },

@@ -45,7 +45,9 @@ type AiBaseEvent<T> = {
 | `content.pending_approval.v1` | seo | admin |
 | `content.approved.v1` | approval API | publisher |
 | `content.rejected.v1` | approval API | writer |
-| `content.published.v1` | publisher | social, analytics, planner |
+| `content.published.v1` | publisher | social, analytics, planner, **affiliate** |
+| `affiliate.intel.requested.v1` | admin | affiliate |
+| `affiliate.intel.registered.v1` | affiliate | observers |
 | `sns.trend.scout.requested.v1` | admin SNS | sns-trend-scout |
 | `sns.trend.observed.v1` | sns-trend-scout | sns-viral-analyzer |
 | `sns.patterns.analyze.requested.v1` | scout / admin | sns-viral-analyzer |

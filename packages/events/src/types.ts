@@ -38,6 +38,8 @@ export const EventTypes = {
   AgentRunStarted: "agent.run.started.v1",
   AgentRunCompleted: "agent.run.completed.v1",
   AgentRunFailed: "agent.run.failed.v1",
+  AffiliateIntelRequested: "affiliate.intel.requested.v1",
+  AffiliateIntelRegistered: "affiliate.intel.registered.v1",
   SnsTrendScoutRequested: "sns.trend.scout.requested.v1",
   SnsTrendObserved: "sns.trend.observed.v1",
   SnsPatternsAnalyzeRequested: "sns.patterns.analyze.requested.v1",
@@ -133,6 +135,18 @@ export const ContentPublishedDataSchema = z.object({
   workflowId: z.string(),
   toolId: z.string(),
   slug: z.string(),
+});
+
+export const AffiliateIntelRequestedDataSchema = z.object({
+  toolId: z.string().optional(),
+  backfillAll: z.boolean().default(false),
+});
+
+export const AffiliateIntelRegisteredDataSchema = z.object({
+  toolId: z.string(),
+  intelligenceId: z.string(),
+  leadCount: z.number().int().nonnegative(),
+  status: z.string(),
 });
 
 export const SnsTrendScoutRequestedDataSchema = z.object({

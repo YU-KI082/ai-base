@@ -226,9 +226,11 @@ model AiTool {
   media        AiToolMedia[]
   categories   AiToolCategory[]
   affiliateLinks AffiliateLink[]
+  affiliateIntel AffiliateIntelligence?
   reviews      Review[]
   comparisonItems ComparisonItem[]
   drafts       Draft[]
+  affiliateConversions AffiliateConversion[]
 
   @@index([status])
   @@index([externalId, sourceName])
@@ -297,10 +299,83 @@ model AffiliateLink {
   createdAt    DateTime @default(now()) @map("created_at")
   updatedAt    DateTime @updatedAt @map("updated_at")
 
-  tool AiTool @relation(fields: [toolId], references: [id], onDelete: Cascade)
+  tool     AiTool @relation(fields: [toolId], references: [id], onDelete: Cascade)
+  aspLeads AffiliateAspLead[]
+  conversions AffiliateConversion[]
 
   @@index([toolId])
   @@map("affiliate_links")
+}
+
+/// Per-tool affiliate intelligence — created as uninvestigated when a tool is published.
+model AffiliateIntelligence {
+  id              String   @id @default(cuid())
+  toolId          String   @unique @map("tool_id")
+  /// Overall case status: uninvestigated | investigating | available | applying | partnered | unavailable
+  status          String   @default("uninvestigated")
+  /// null = unknown / 未確認
+  hasAffiliate    Boolean? @map("has_affiliate")
+  homepageUrl     String?  @map("homepage_url")
+  notes           String?
+  lastReviewedAt  DateTime? @map("last_reviewed_at")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  tool AiTool @relation(fields: [toolId], references: [id], onDelete: Cascade)
+  leads AffiliateAspLead[]
+
+  @@index([status])
+  @@map("affiliate_intelligence")
+}
+
+/// AI-proposed ASP investigation targets (official / A8 / もしも / アクセストレード / バリューコマース).
+model AffiliateAspLead {
+  id               String    @id @default(cuid())
+  intelligenceId   String    @map("intelligence_id")
+  toolId           String    @map("tool_id")
+  /// official | a8 | moshimo | accesstrade | valuecommerce
+  aspKey           String    @map("asp_key")
+  aspLabel         String    @map("asp_label")
+  status           String    @default("uninvestigated")
+  rewardText       String?   @map("reward_text")
+  rewardAmount     Decimal?  @map("reward_amount") @db.Decimal(12, 2)
+  cookieDays       Int?      @map("cookie_days")
+  conversionTerms  String?   @map("conversion_terms")
+  appliedAt        DateTime? @map("applied_at")
+  approvedAt       DateTime? @map("approved_at")
+  affiliateLinkId  String?   @map("affiliate_link_id")
+  proposedBy       String    @default("agent") @map("proposed_by")
+  notes            String?
+  createdAt        DateTime  @default(now()) @map("created_at")
+  updatedAt        DateTime  @updatedAt @map("updated_at")
+
+  intelligence  AffiliateIntelligence @relation(fields: [intelligenceId], references: [id], onDelete: Cascade)
+  affiliateLink AffiliateLink? @relation(fields: [affiliateLinkId], references: [id], onDelete: SetNull)
+
+  @@unique([toolId, aspKey])
+  @@index([status])
+  @@index([aspKey])
+  @@map("affiliate_asp_leads")
+}
+
+/// Conversion / sale events for EPC・CVR analysis (never invent — ingest real ASP reports or manual).
+model AffiliateConversion {
+  id              String   @id @default(cuid())
+  toolId          String   @map("tool_id")
+  affiliateLinkId String?  @map("affiliate_link_id")
+  aspKey          String?  @map("asp_key")
+  amountUsd       Decimal  @map("amount_usd") @db.Decimal(12, 2)
+  occurredAt      DateTime @map("occurred_at")
+  source          String   @default("manual")
+  metadata        Json     @default("{}")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  tool          AiTool         @relation(fields: [toolId], references: [id], onDelete: Cascade)
+  affiliateLink AffiliateLink? @relation(fields: [affiliateLinkId], references: [id], onDelete: SetNull)
+
+  @@index([toolId, occurredAt])
+  @@index([occurredAt])
+  @@map("affiliate_conversions")
 }
 
 model Comparison {

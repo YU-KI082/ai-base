@@ -832,20 +832,175 @@ export class AffiliateRepository {
 
   async update(
     id: string,
-    input: Partial<{
-      label: string;
-      url: string;
-      network: string | null;
-      commission: string | null;
-      priority: number;
-      isHealthy: boolean;
-    }>,
+    data: {
+      label?: string;
+      url?: string;
+      network?: string | null;
+      commission?: string | null;
+      priority?: number;
+      isHealthy?: boolean;
+    },
   ) {
-    return this.db.affiliateLink.update({ where: { id }, data: input });
+    return this.db.affiliateLink.update({ where: { id }, data });
   }
 
   async remove(id: string) {
     return this.db.affiliateLink.delete({ where: { id } });
+  }
+}
+
+export class AffiliateIntelRepository {
+  constructor(private readonly db: Db = prisma) {}
+
+  async ensureForTool(input: {
+    toolId: string;
+    homepageUrl?: string | null;
+    leads: Array<{
+      aspKey: string;
+      aspLabel: string;
+      status?: string;
+      notes?: string;
+      proposedBy?: string;
+    }>;
+  }) {
+    const existing = await this.db.affiliateIntelligence.findUnique({
+      where: { toolId: input.toolId },
+      include: { leads: true },
+    });
+    if (existing) return existing;
+
+    return this.db.affiliateIntelligence.create({
+      data: {
+        toolId: input.toolId,
+        status: "uninvestigated",
+        hasAffiliate: null,
+        homepageUrl: input.homepageUrl ?? null,
+        notes: "アフィリエイト未確認 — AIが調査対象ASPを提案",
+        leads: {
+          create: input.leads.map((l) => ({
+            toolId: input.toolId,
+            aspKey: l.aspKey,
+            aspLabel: l.aspLabel,
+            status: l.status ?? "uninvestigated",
+            notes: l.notes,
+            proposedBy: l.proposedBy ?? "agent",
+          })),
+        },
+      },
+      include: { leads: true },
+    });
+  }
+
+  async listIntelligence() {
+    return this.db.affiliateIntelligence.findMany({
+      include: {
+        tool: {
+          include: {
+            translations: { where: { locale: "en" }, take: 1 },
+            affiliateLinks: { orderBy: { priority: "desc" } },
+          },
+        },
+        leads: { orderBy: { aspKey: "asc" } },
+      },
+      orderBy: { updatedAt: "desc" },
+    });
+  }
+
+  async updateIntelligence(
+    id: string,
+    data: Prisma.AffiliateIntelligenceUpdateInput,
+  ) {
+    return this.db.affiliateIntelligence.update({ where: { id }, data });
+  }
+
+  async updateLead(id: string, data: Prisma.AffiliateAspLeadUpdateInput) {
+    return this.db.affiliateAspLead.update({ where: { id }, data });
+  }
+
+  async findLead(id: string) {
+    return this.db.affiliateAspLead.findUnique({ where: { id } });
+  }
+
+  async createConversion(input: {
+    toolId: string;
+    amountUsd: number;
+    occurredAt: Date;
+    affiliateLinkId?: string | null;
+    aspKey?: string | null;
+    source?: string;
+    metadata?: Prisma.InputJsonValue;
+  }) {
+    return this.db.affiliateConversion.create({
+      data: {
+        toolId: input.toolId,
+        amountUsd: input.amountUsd,
+        occurredAt: input.occurredAt,
+        affiliateLinkId: input.affiliateLinkId ?? null,
+        aspKey: input.aspKey ?? null,
+        source: input.source ?? "manual",
+        metadata: input.metadata ?? {},
+      },
+    });
+  }
+
+  async listConversions(toolId?: string) {
+    return this.db.affiliateConversion.findMany({
+      where: toolId ? { toolId } : undefined,
+      orderBy: { occurredAt: "desc" },
+      take: 500,
+    });
+  }
+
+  async countClicks(toolId?: string) {
+    const events = await this.db.analyticsEvent.findMany({
+      where: { name: "affiliate.click" },
+      orderBy: { createdAt: "desc" },
+      take: 5000,
+    });
+    if (!toolId) return events.length;
+    return events.filter((e) => {
+      const props = e.properties as { toolId?: string } | null;
+      return props?.toolId === toolId;
+    }).length;
+  }
+
+  async performanceByTool() {
+    const [intel, conversions, clickEvents] = await Promise.all([
+      this.listIntelligence(),
+      this.listConversions(),
+      this.db.analyticsEvent.findMany({
+        where: { name: "affiliate.click" },
+        take: 5000,
+        orderBy: { createdAt: "desc" },
+      }),
+    ]);
+
+    const clicksByTool = new Map<string, number>();
+    for (const ev of clickEvents) {
+      const props = ev.properties as { toolId?: string } | null;
+      const id = props?.toolId;
+      if (!id) continue;
+      clicksByTool.set(id, (clicksByTool.get(id) ?? 0) + 1);
+    }
+
+    const convByTool = new Map<string, { count: number; revenue: number }>();
+    for (const c of conversions) {
+      const cur = convByTool.get(c.toolId) ?? { count: 0, revenue: 0 };
+      cur.count += 1;
+      cur.revenue += Number(c.amountUsd);
+      convByTool.set(c.toolId, cur);
+    }
+
+    return intel.map((row) => {
+      const clicks = clicksByTool.get(row.toolId) ?? 0;
+      const conv = convByTool.get(row.toolId) ?? { count: 0, revenue: 0 };
+      return {
+        intelligence: row,
+        clicks,
+        conversions: conv.count,
+        revenue: conv.revenue,
+      };
+    });
   }
 }
 
@@ -1766,6 +1921,7 @@ export class Repositories {
   readonly logs = new LogRepository();
   readonly categories = new CategoryRepository();
   readonly affiliates = new AffiliateRepository();
+  readonly affiliateIntel = new AffiliateIntelRepository();
   readonly comparisons = new ComparisonRepository();
   readonly socialPosts = new SocialPostRepository();
   readonly snsLearning = new SnsLearningRepository();
