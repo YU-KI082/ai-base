@@ -1,0 +1,976 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Locale {
+  en
+  ja
+}
+
+enum UserStatus {
+  active
+  disabled
+}
+
+enum AgentStatus {
+  active
+  disabled
+  degraded
+}
+
+enum AgentRunStatus {
+  pending
+  running
+  completed
+  failed
+  cancelled
+}
+
+enum WorkflowState {
+  started
+  reviewing
+  writing
+  designing
+  translating
+  seo
+  pending_approval
+  approved
+  rejected
+  publishing
+  published
+  failed
+}
+
+enum WorkflowStepStatus {
+  pending
+  running
+  completed
+  failed
+  skipped
+}
+
+enum DraftStatus {
+  building
+  pending_approval
+  approved
+  rejected
+  published
+}
+
+enum DraftKind {
+  tool_page
+  comparison
+  news
+  article
+}
+
+enum ApprovalDecision {
+  approved
+  rejected
+}
+
+enum ContentStatus {
+  draft
+  published
+  archived
+}
+
+enum PricingModel {
+  free
+  freemium
+  paid
+  enterprise
+  unknown
+}
+
+enum MediaType {
+  screenshot
+  video
+  logo
+  ogp
+  thumbnail
+}
+
+model User {
+  id        String     @id @default(cuid())
+  email     String     @unique
+  name      String?
+  status    UserStatus @default(active)
+  locale    Locale     @default(en)
+  createdAt DateTime   @default(now()) @map("created_at")
+  updatedAt DateTime   @updatedAt @map("updated_at")
+
+  roles     UserRole[]
+  approvals Approval[]
+  auditLogs AuditLog[]
+
+  @@map("users")
+}
+
+model Role {
+  id          String           @id @default(cuid())
+  key         String           @unique
+  name        String
+  description String?
+  createdAt   DateTime         @default(now()) @map("created_at")
+  updatedAt   DateTime         @updatedAt @map("updated_at")
+
+  permissions RolePermission[]
+  users       UserRole[]
+
+  @@map("roles")
+}
+
+model Permission {
+  id          String           @id @default(cuid())
+  key         String           @unique
+  description String?
+  createdAt   DateTime         @default(now()) @map("created_at")
+
+  roles RolePermission[]
+
+  @@map("permissions")
+}
+
+model RolePermission {
+  roleId       String @map("role_id")
+  permissionId String @map("permission_id")
+
+  role       Role       @relation(fields: [roleId], references: [id], onDelete: Cascade)
+  permission Permission @relation(fields: [permissionId], references: [id], onDelete: Cascade)
+
+  @@id([roleId, permissionId])
+  @@map("role_permissions")
+}
+
+model UserRole {
+  userId String @map("user_id")
+  roleId String @map("role_id")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  role Role @relation(fields: [roleId], references: [id], onDelete: Cascade)
+
+  @@id([userId, roleId])
+  @@map("user_roles")
+}
+
+model AuditLog {
+  id         String   @id @default(cuid())
+  actorId    String?  @map("actor_id")
+  action     String
+  resource   String
+  resourceId String?  @map("resource_id")
+  before     Json?
+  after      Json?
+  ip         String?
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  actor User? @relation(fields: [actorId], references: [id], onDelete: SetNull)
+
+  @@index([resource, resourceId])
+  @@index([createdAt])
+  @@map("audit_logs")
+}
+
+model Category {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  sortOrder Int      @default(0) @map("sort_order")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  translations CategoryTranslation[]
+  tools        AiToolCategory[]
+
+  @@map("categories")
+}
+
+model CategoryTranslation {
+  id          String @id @default(cuid())
+  categoryId  String @map("category_id")
+  locale      Locale
+  name        String
+  slug        String
+  description String?
+
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@unique([categoryId, locale])
+  @@unique([locale, slug])
+  @@map("category_translations")
+}
+
+model AiTool {
+  id              String       @id @default(cuid())
+  slug            String       @unique
+  status          ContentStatus @default(draft)
+  homepageUrl     String       @map("homepage_url")
+  logoUrl         String?      @map("logo_url")
+  pricingModel    PricingModel @default(unknown) @map("pricing_model")
+  hasFreePlan     Boolean      @default(false) @map("has_free_plan")
+  hasApi          Boolean      @default(false) @map("has_api")
+  commercialUse   Boolean?     @map("commercial_use")
+  sourceUrl       String?      @map("source_url")
+  sourceName      String?      @map("source_name")
+  externalId      String?      @map("external_id")
+  publishedAt     DateTime?    @map("published_at")
+  createdAt       DateTime     @default(now()) @map("created_at")
+  updatedAt       DateTime     @updatedAt @map("updated_at")
+
+  translations AiToolTranslation[]
+  media        AiToolMedia[]
+  categories   AiToolCategory[]
+  affiliateLinks AffiliateLink[]
+  reviews      Review[]
+  comparisonItems ComparisonItem[]
+  drafts       Draft[]
+
+  @@index([status])
+  @@index([externalId, sourceName])
+  @@index([homepageUrl])
+  @@index([status, publishedAt])
+  @@map("ai_tools")
+}
+
+model AiToolTranslation {
+  id              String @id @default(cuid())
+  toolId          String @map("tool_id")
+  locale          Locale
+  name            String
+  description     String
+  features        Json   @default("[]")
+  pros            Json   @default("[]")
+  cons            Json   @default("[]")
+  languageSupport Json   @default("[]") @map("language_support")
+  seoTitle        String? @map("seo_title")
+  seoDescription  String? @map("seo_description")
+  faq             Json    @default("[]")
+  schemaJson      Json?   @map("schema_json")
+
+  tool AiTool @relation(fields: [toolId], references: [id], onDelete: Cascade)
+
+  @@unique([toolId, locale])
+  @@index([locale, name])
+  @@map("ai_tool_translations")
+}
+
+model AiToolMedia {
+  id        String    @id @default(cuid())
+  toolId    String    @map("tool_id")
+  type      MediaType
+  url       String
+  alt       String?
+  sortOrder Int       @default(0) @map("sort_order")
+  createdAt DateTime  @default(now()) @map("created_at")
+
+  tool AiTool @relation(fields: [toolId], references: [id], onDelete: Cascade)
+
+  @@index([toolId, type])
+  @@map("ai_tool_media")
+}
+
+model AiToolCategory {
+  toolId     String @map("tool_id")
+  categoryId String @map("category_id")
+
+  tool     AiTool   @relation(fields: [toolId], references: [id], onDelete: Cascade)
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@id([toolId, categoryId])
+  @@map("ai_tool_categories")
+}
+
+model AffiliateLink {
+  id           String   @id @default(cuid())
+  toolId       String   @map("tool_id")
+  label        String
+  url          String
+  network      String?
+  commission   String?
+  isHealthy    Boolean  @default(true) @map("is_healthy")
+  priority     Int      @default(0)
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  tool AiTool @relation(fields: [toolId], references: [id], onDelete: Cascade)
+
+  @@index([toolId])
+  @@map("affiliate_links")
+}
+
+model Comparison {
+  id          String        @id @default(cuid())
+  slug        String        @unique
+  status      ContentStatus @default(draft)
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+
+  translations ComparisonTranslation[]
+  items        ComparisonItem[]
+
+  @@map("comparisons")
+}
+
+model ComparisonTranslation {
+  id             String @id @default(cuid())
+  comparisonId   String @map("comparison_id")
+  locale         Locale
+  title          String
+  summary        String
+  recommendation String?
+  featureMatrix  Json   @default("{}") @map("feature_matrix")
+
+  comparison Comparison @relation(fields: [comparisonId], references: [id], onDelete: Cascade)
+
+  @@unique([comparisonId, locale])
+  @@map("comparison_translations")
+}
+
+model ComparisonItem {
+  id           String @id @default(cuid())
+  comparisonId String @map("comparison_id")
+  toolId       String @map("tool_id")
+  side         String
+  sortOrder    Int    @default(0) @map("sort_order")
+
+  comparison Comparison @relation(fields: [comparisonId], references: [id], onDelete: Cascade)
+  tool       AiTool     @relation(fields: [toolId], references: [id], onDelete: Cascade)
+
+  @@unique([comparisonId, toolId])
+  @@map("comparison_items")
+}
+
+model Review {
+  id        String   @id @default(cuid())
+  toolId    String   @map("tool_id")
+  locale    Locale
+  rating    Int
+  title     String
+  body      String
+  author    String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  tool AiTool @relation(fields: [toolId], references: [id], onDelete: Cascade)
+
+  @@index([toolId, locale])
+  @@map("reviews")
+}
+
+model News {
+  id          String        @id @default(cuid())
+  slug        String        @unique
+  status      ContentStatus @default(draft)
+  publishedAt DateTime?     @map("published_at")
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+
+  translations NewsTranslation[]
+
+  @@map("news")
+}
+
+model NewsTranslation {
+  id      String @id @default(cuid())
+  newsId  String @map("news_id")
+  locale  Locale
+  title   String
+  summary String
+  body    String
+
+  news News @relation(fields: [newsId], references: [id], onDelete: Cascade)
+
+  @@unique([newsId, locale])
+  @@map("news_translations")
+}
+
+model Article {
+  id          String        @id @default(cuid())
+  slug        String        @unique
+  status      ContentStatus @default(draft)
+  publishedAt DateTime?     @map("published_at")
+  createdAt   DateTime      @default(now()) @map("created_at")
+  updatedAt   DateTime      @updatedAt @map("updated_at")
+
+  translations ArticleTranslation[]
+
+  @@map("articles")
+}
+
+model ArticleTranslation {
+  id             String  @id @default(cuid())
+  articleId      String  @map("article_id")
+  locale         Locale
+  title          String
+  summary        String
+  body           String
+  seoTitle       String? @map("seo_title")
+  seoDescription String? @map("seo_description")
+
+  article Article @relation(fields: [articleId], references: [id], onDelete: Cascade)
+
+  @@unique([articleId, locale])
+  @@map("article_translations")
+}
+
+model SocialPost {
+  id          String   @id @default(cuid())
+  platform    String
+  status      String   @default("draft")
+  locale      Locale
+  content     String
+  mediaUrl    String?  @map("media_url")
+  toolId      String?  @map("tool_id")
+  publishedAt DateTime? @map("published_at")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@index([platform, status])
+  @@map("social_posts")
+}
+
+model Agent {
+  id           String      @id @default(cuid())
+  key          String      @unique
+  name         String
+  version      String
+  status       AgentStatus @default(active)
+  config       Json        @default("{}")
+  capabilities String[]    @default([])
+  subscribe    String[]    @default([])
+  publish      String[]    @default([])
+  lastHeartbeatAt DateTime? @map("last_heartbeat_at")
+  /// Optional link to marketplace package version currently installed
+  packageVersionId String? @map("package_version_id")
+  createdAt    DateTime    @default(now()) @map("created_at")
+  updatedAt    DateTime    @updatedAt @map("updated_at")
+
+  plugins AgentPlugin[]
+  runs    AgentRun[]
+  packageVersion MarketplaceAgentVersion? @relation(fields: [packageVersionId], references: [id], onDelete: SetNull)
+  installation   MarketplaceInstallation?
+
+  @@map("agents")
+}
+
+model AgentPlugin {
+  id        String   @id @default(cuid())
+  agentId   String   @map("agent_id")
+  pluginKey String   @map("plugin_key")
+  version   String
+  enabled   Boolean  @default(true)
+  config    Json     @default("{}")
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  agent Agent @relation(fields: [agentId], references: [id], onDelete: Cascade)
+
+  @@unique([agentId, pluginKey])
+  @@map("agent_plugins")
+}
+
+model AgentRun {
+  id            String         @id @default(cuid())
+  agentKey      String         @map("agent_key")
+  agentId       String?        @map("agent_id")
+  correlationId String         @map("correlation_id")
+  causationId   String?        @map("causation_id")
+  eventId       String?        @map("event_id")
+  workflowId    String?        @map("workflow_id")
+  status        AgentRunStatus @default(pending)
+  input         Json?
+  output        Json?
+  error         String?
+  costUsd       Decimal?       @map("cost_usd") @db.Decimal(12, 6)
+  tokensIn      Int?           @map("tokens_in")
+  tokensOut     Int?           @map("tokens_out")
+  startedAt     DateTime?      @map("started_at")
+  finishedAt    DateTime?      @map("finished_at")
+  createdAt     DateTime       @default(now()) @map("created_at")
+
+  agent    Agent?    @relation(fields: [agentId], references: [id], onDelete: SetNull)
+  workflow Workflow? @relation(fields: [workflowId], references: [id], onDelete: SetNull)
+
+  @@index([agentKey, createdAt])
+  @@index([correlationId])
+  @@index([workflowId])
+  @@index([status])
+  @@map("agent_runs")
+}
+
+model Workflow {
+  id            String        @id @default(cuid())
+  type          String
+  entityType    String        @map("entity_type")
+  entityId      String?       @map("entity_id")
+  state         WorkflowState @default(started)
+  localeTargets Locale[]      @default([en, ja]) @map("locale_targets")
+  correlationId String        @unique @map("correlation_id")
+  metadata      Json          @default("{}")
+  createdAt     DateTime      @default(now()) @map("created_at")
+  updatedAt     DateTime      @updatedAt @map("updated_at")
+
+  workflowSteps WorkflowStep[]
+  drafts        Draft[]
+  agentRuns     AgentRun[]
+
+  @@index([state])
+  @@index([entityType, entityId])
+  @@map("workflows")
+}
+
+model WorkflowStep {
+  id         String             @id @default(cuid())
+  workflowId String             @map("workflow_id")
+  agentKey   String             @map("agent_key")
+  stepKey    String             @map("step_key")
+  status     WorkflowStepStatus @default(pending)
+  attempt    Int                @default(0)
+  lastError  String?            @map("last_error")
+  startedAt  DateTime?          @map("started_at")
+  finishedAt DateTime?          @map("finished_at")
+  createdAt  DateTime           @default(now()) @map("created_at")
+  updatedAt  DateTime           @updatedAt @map("updated_at")
+
+  workflow Workflow @relation(fields: [workflowId], references: [id], onDelete: Cascade)
+
+  @@unique([workflowId, stepKey])
+  @@index([workflowId, status])
+  @@map("workflow_steps")
+}
+
+model Draft {
+  id         String      @id @default(cuid())
+  kind       DraftKind
+  status     DraftStatus @default(building)
+  locale     Locale?
+  payload    Json
+  toolId     String?     @map("tool_id")
+  workflowId String?     @map("workflow_id")
+  version    Int         @default(1)
+  createdAt  DateTime    @default(now()) @map("created_at")
+  updatedAt  DateTime    @updatedAt @map("updated_at")
+
+  tool      AiTool?    @relation(fields: [toolId], references: [id], onDelete: SetNull)
+  workflow  Workflow?  @relation(fields: [workflowId], references: [id], onDelete: SetNull)
+  approvals Approval[]
+
+  @@index([status])
+  @@index([workflowId])
+  @@map("drafts")
+}
+
+model Approval {
+  id         String           @id @default(cuid())
+  draftId    String           @map("draft_id")
+  reviewerId String?          @map("reviewer_id")
+  decision   ApprovalDecision
+  comment    String?
+  decidedAt  DateTime         @default(now()) @map("decided_at")
+
+  draft    Draft @relation(fields: [draftId], references: [id], onDelete: Cascade)
+  reviewer User? @relation(fields: [reviewerId], references: [id], onDelete: SetNull)
+
+  @@index([draftId])
+  @@map("approvals")
+}
+
+model EventsOutbox {
+  id          String    @id
+  topic       String
+  payload     Json
+  headers     Json      @default("{}")
+  createdAt   DateTime  @default(now()) @map("created_at")
+  publishedAt DateTime? @map("published_at")
+  attempts    Int       @default(0)
+  lastError   String?   @map("last_error")
+
+  @@index([publishedAt, createdAt])
+  @@map("events_outbox")
+}
+
+model EventConsumption {
+  id            String   @id @default(cuid())
+  consumerGroup String   @map("consumer_group")
+  eventId       String   @map("event_id")
+  consumedAt    DateTime @default(now()) @map("consumed_at")
+
+  @@unique([consumerGroup, eventId])
+  @@map("event_consumptions")
+}
+
+model LogEntry {
+  id         String   @id @default(cuid())
+  level      String
+  source     String
+  message    String
+  context    Json     @default("{}")
+  correlationId String? @map("correlation_id")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  @@index([source, createdAt])
+  @@index([correlationId])
+  @@map("logs")
+}
+
+model Setting {
+  id        String   @id @default(cuid())
+  key       String   @unique
+  value     Json
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("settings")
+}
+
+model AnalyticsEvent {
+  id        String   @id @default(cuid())
+  name      String
+  properties Json    @default("{}")
+  locale    Locale?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  @@index([name, createdAt])
+  @@map("analytics")
+}
+
+model RevenueRecord {
+  id          String   @id @default(cuid())
+  source      String
+  amountUsd   Decimal  @map("amount_usd") @db.Decimal(12, 2)
+  toolId      String?  @map("tool_id")
+  occurredAt  DateTime @map("occurred_at")
+  metadata    Json     @default("{}")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  @@index([occurredAt])
+  @@map("revenue")
+}
+
+model ToolCandidate {
+  id          String   @id @default(cuid())
+  name        String
+  homepageUrl String   @map("homepage_url")
+  sourceName  String   @map("source_name")
+  sourceUrl   String?  @map("source_url")
+  externalId  String?  @map("external_id")
+  description String?
+  raw         Json     @default("{}")
+  fingerprint String   @unique
+  status      String   @default("new")
+  workflowId  String?  @map("workflow_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  @@index([status])
+  @@index([homepageUrl])
+  @@map("tool_candidates")
+}
+
+// ─── Agent Marketplace ─────────────────────────────────────────────────────
+
+enum MarketplaceVisibility {
+  free
+  paid
+  internal
+  community
+}
+
+enum MarketplaceListingStatus {
+  draft
+  published
+  archived
+  suspended
+}
+
+enum InstallationStatus {
+  installed
+  disabled
+  pending_update
+  uninstalled
+}
+
+/// Catalog entry — what can be discovered / sold / shared in the marketplace.
+model MarketplaceAgentPackage {
+  id           String                   @id @default(cuid())
+  key          String                   @unique
+  publisherId  String?                  @map("publisher_id")
+  visibility   MarketplaceVisibility    @default(internal)
+  listingStatus MarketplaceListingStatus @default(draft) @map("listing_status")
+  /// Display metadata (i18n JSON: { en, ja })
+  name         Json
+  description  Json                     @default("{}")
+  homepageUrl  String?                  @map("homepage_url")
+  priceUsd     Decimal?                 @map("price_usd") @db.Decimal(12, 2)
+  currency     String                   @default("USD")
+  tags         String[]                 @default([])
+  metadata     Json                     @default("{}")
+  createdAt    DateTime                 @default(now()) @map("created_at")
+  updatedAt    DateTime                 @updatedAt @map("updated_at")
+
+  versions       MarketplaceAgentVersion[]
+  permissions    MarketplaceAgentPermission[]
+  dependencies   MarketplaceAgentDependency[]
+  installations  MarketplaceInstallation[]
+
+  @@index([visibility, listingStatus])
+  @@map("marketplace_agent_packages")
+}
+
+/// Immutable-ish versioned release of a marketplace agent plugin.
+model MarketplaceAgentVersion {
+  id              String   @id @default(cuid())
+  packageId       String   @map("package_id")
+  version         String
+  /// Full AgentManifest snapshot (JSON)
+  manifest        Json
+  changelog       String?
+  requiredProviders Json   @default("{}") @map("required_providers")
+  permissions     String[] @default([])
+  isLatest        Boolean  @default(false) @map("is_latest")
+  publishedAt     DateTime @default(now()) @map("published_at")
+  createdAt       DateTime @default(now()) @map("created_at")
+
+  package        MarketplaceAgentPackage @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  agents         Agent[]
+  installations  MarketplaceInstallation[]
+
+  @@unique([packageId, version])
+  @@index([isLatest])
+  @@map("marketplace_agent_versions")
+}
+
+model MarketplaceAgentPermission {
+  id          String @id @default(cuid())
+  packageId   String @map("package_id")
+  permission  String
+  description String?
+
+  package MarketplaceAgentPackage @relation(fields: [packageId], references: [id], onDelete: Cascade)
+
+  @@unique([packageId, permission])
+  @@map("marketplace_agent_permissions")
+}
+
+model MarketplaceAgentDependency {
+  id              String @id @default(cuid())
+  packageId       String @map("package_id")
+  /// Target agent key (may reference runtime-only agents not yet listed)
+  dependsOnKey    String @map("depends_on_key")
+  /// Semver range, e.g. "^1.0.0" or ">=0.1.0"
+  versionRange    String @default("*") @map("version_range")
+  optional        Boolean @default(false)
+
+  package MarketplaceAgentPackage @relation(fields: [packageId], references: [id], onDelete: Cascade)
+
+  @@unique([packageId, dependsOnKey])
+  @@index([dependsOnKey])
+  @@map("marketplace_agent_dependencies")
+}
+
+/// Local installation of a marketplace package into the runtime Agent registry.
+model MarketplaceInstallation {
+  id               String             @id @default(cuid())
+  packageId        String             @map("package_id")
+  packageVersionId String             @map("package_version_id")
+  agentId          String             @unique @map("agent_id")
+  status           InstallationStatus @default(installed)
+  installedAt      DateTime           @default(now()) @map("installed_at")
+  updatedAt        DateTime           @updatedAt @map("updated_at")
+  installedById    String?            @map("installed_by_id")
+  metadata         Json               @default("{}")
+
+  package        MarketplaceAgentPackage @relation(fields: [packageId], references: [id], onDelete: Cascade)
+  packageVersion MarketplaceAgentVersion @relation(fields: [packageVersionId], references: [id], onDelete: Restrict)
+  agent          Agent                   @relation(fields: [agentId], references: [id], onDelete: Cascade)
+
+  @@index([status])
+  @@map("marketplace_installations")
+}
+
+// ─── Knowledge Graph + Memory + RAG metadata ───────────────────────────────
+
+enum KnowledgeNodeType {
+  tool
+  category
+  company
+  use_case
+  pricing
+  api
+  feature
+  persona
+  competitor_set
+  concept
+  document
+  other
+}
+
+enum KnowledgeEdgeType {
+  similar_to
+  competes_with
+  belongs_to
+  made_by
+  used_for
+  has_pricing
+  has_api
+  has_feature
+  alternative_to
+  related_to
+  mentions
+  derived_from
+}
+
+enum MemoryKind {
+  run_success
+  run_failure
+  improvement
+  observation
+  decision
+  feedback
+  fact
+}
+
+enum MemoryScope {
+  global
+  agent
+  workflow
+  tool
+  correlation
+}
+
+model KnowledgeNode {
+  id          String            @id @default(cuid())
+  type        KnowledgeNodeType
+  key         String
+  label       String
+  locale      Locale?
+  description String?
+  /// Soft link to domain entity (e.g. ai_tools.id, categories.key)
+  entityType  String?           @map("entity_type")
+  entityId    String?           @map("entity_id")
+  properties  Json              @default("{}")
+  createdAt   DateTime          @default(now()) @map("created_at")
+  updatedAt   DateTime          @updatedAt @map("updated_at")
+
+  edgesFrom KnowledgeEdge[] @relation("EdgeFrom")
+  edgesTo   KnowledgeEdge[] @relation("EdgeTo")
+  memories  AgentMemory[]
+  documents KnowledgeDocument[]
+
+  @@unique([type, key])
+  @@index([entityType, entityId])
+  @@index([type, label])
+  @@map("knowledge_nodes")
+}
+
+model KnowledgeEdge {
+  id         String            @id @default(cuid())
+  fromNodeId String            @map("from_node_id")
+  toNodeId   String            @map("to_node_id")
+  type       KnowledgeEdgeType
+  weight     Float             @default(1)
+  properties Json              @default("{}")
+  createdAt  DateTime          @default(now()) @map("created_at")
+  updatedAt  DateTime          @updatedAt @map("updated_at")
+
+  fromNode KnowledgeNode @relation("EdgeFrom", fields: [fromNodeId], references: [id], onDelete: Cascade)
+  toNode   KnowledgeNode @relation("EdgeTo", fields: [toNodeId], references: [id], onDelete: Cascade)
+
+  @@unique([fromNodeId, toNodeId, type])
+  @@index([type])
+  @@index([toNodeId, type])
+  @@map("knowledge_edges")
+}
+
+model AgentMemory {
+  id            String      @id @default(cuid())
+  kind          MemoryKind
+  scope         MemoryScope @default(agent)
+  agentKey      String?     @map("agent_key")
+  workflowId    String?     @map("workflow_id")
+  correlationId String?     @map("correlation_id")
+  toolId        String?     @map("tool_id")
+  nodeId        String?     @map("node_id")
+  title         String
+  content       String
+  /// Structured lesson / outcome payload
+  metadata      Json        @default("{}")
+  importance    Float       @default(0.5)
+  /// Decay / retrieval boost helpers
+  accessCount   Int         @default(0) @map("access_count")
+  lastAccessedAt DateTime?  @map("last_accessed_at")
+  createdAt     DateTime    @default(now()) @map("created_at")
+  updatedAt     DateTime    @updatedAt @map("updated_at")
+
+  node KnowledgeNode? @relation(fields: [nodeId], references: [id], onDelete: SetNull)
+
+  @@index([agentKey, kind, createdAt])
+  @@index([scope, createdAt])
+  @@index([correlationId])
+  @@index([toolId])
+  @@index([importance])
+  @@map("agent_memories")
+}
+
+model KnowledgeDocument {
+  id          String   @id @default(cuid())
+  nodeId      String?  @map("node_id")
+  sourceType  String   @map("source_type")
+  sourceId    String?  @map("source_id")
+  locale      Locale?
+  title       String
+  content     String
+  metadata    Json     @default("{}")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  node   KnowledgeNode?     @relation(fields: [nodeId], references: [id], onDelete: SetNull)
+  chunks KnowledgeChunk[]
+
+  @@index([sourceType, sourceId])
+  @@index([nodeId])
+  @@map("knowledge_documents")
+}
+
+/// Chunk metadata; vector payload lives in VectorStore (pgvector / Qdrant / Pinecone / memory).
+model KnowledgeChunk {
+  id           String   @id @default(cuid())
+  documentId   String   @map("document_id")
+  chunkIndex   Int      @map("chunk_index")
+  content      String
+  tokenCount   Int?     @map("token_count")
+  /// Opaque id in the active VectorStore
+  vectorId     String?  @unique @map("vector_id")
+  embeddingProvider String? @map("embedding_provider")
+  embeddingModel    String? @map("embedding_model")
+  dimensions   Int?
+  metadata     Json     @default("{}")
+  createdAt    DateTime @default(now()) @map("created_at")
+  updatedAt    DateTime @updatedAt @map("updated_at")
+
+  document KnowledgeDocument @relation(fields: [documentId], references: [id], onDelete: Cascade)
+
+  @@unique([documentId, chunkIndex])
+  @@index([vectorId])
+  @@map("knowledge_chunks")
+}
+
+/// Portable vector rows for the default Postgres-backed store (JSON float array).
+/// When VECTOR_BACKEND=pgvector, adapters may also use a real vector column via raw SQL.
+model VectorRecord {
+  id         String   @id
+  namespace  String   @default("default")
+  /// Float embedding as JSON array — backend-agnostic persistence
+  embedding  Json
+  dimensions Int
+  payload    Json     @default("{}")
+  createdAt  DateTime @default(now()) @map("created_at")
+  updatedAt  DateTime @updatedAt @map("updated_at")
+
+  @@index([namespace])
+  @@map("vector_records")
+}

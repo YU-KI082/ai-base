@@ -1,0 +1,32 @@
+{
+  "name": "@ai-base/agents-sdk",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "node --import tsx --test src/**/*.test.ts"
+  },
+  "dependencies": {
+    "@ai-base/database": "workspace:*",
+    "@ai-base/events": "workspace:*",
+    "@ai-base/i18n": "workspace:*",
+    "@ai-base/knowledge": "workspace:*",
+    "@ai-base/llm": "workspace:*",
+    "@ai-base/marketplace": "workspace:*"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.2",
+    "tsx": "^4.19.2",
+    "typescript": "5.7.2"
+  }
+}

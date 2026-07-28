@@ -1,0 +1,18 @@
+{
+  "extends": "../config/tsconfig.library.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "rootDir": "src",
+    "composite": true
+  },
+  "include": ["src/**/*"],
+  "exclude": ["src/**/*.test.ts"],
+  "references": [
+    { "path": "../database" },
+    { "path": "../events" },
+    { "path": "../i18n" },
+    { "path": "../knowledge" },
+    { "path": "../llm" },
+    { "path": "../marketplace" }
+  ]
+}

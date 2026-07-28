@@ -1,0 +1,16 @@
+node_modules
+.turbo
+dist
+.next
+.vercel
+.env
+.env.local
+.env.*.local
+*.log
+coverage
+.DS_Store
+.cursor
+packages/database/prisma/*.db
+packages/database/prisma/*.db-journal
+*.tsbuildinfo
+.pnpm-store

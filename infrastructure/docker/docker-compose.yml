@@ -1,0 +1,40 @@
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: aibase-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: aibase
+      POSTGRES_PASSWORD: aibase
+      POSTGRES_DB: aibase
+    ports:
+      - "5432:5432"
+    volumes:
+      - aibase_pg:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U aibase -d aibase"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: aibase-redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
+    volumes:
+      - aibase_redis:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  # Agent workers are intended to run via `pnpm agents:dev` locally
+  # or as separate container images built from agents/*/Dockerfile later.
+  # Infra dependencies above are the shared platform backbone.
+
+volumes:
+  aibase_pg:
+  aibase_redis:

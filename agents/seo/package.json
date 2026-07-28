@@ -1,0 +1,21 @@
+{
+  "name": "@ai-base/agent-seo",
+  "version": "0.1.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "dev": "tsx watch src/main.ts",
+    "start": "node dist/main.js",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  },
+  "dependencies": {
+    "@ai-base/agents-sdk": "workspace:*",
+    "@ai-base/database": "workspace:*",
+    "@ai-base/events": "workspace:*"
+  },
+  "devDependencies": {
+    "tsx": "^4.19.2",
+    "typescript": "5.7.2"
+  }
+}

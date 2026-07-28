@@ -1,0 +1,29 @@
+{
+  "name": "ai-base",
+  "private": true,
+  "version": "0.1.0",
+  "packageManager": "pnpm@9.15.0",
+  "scripts": {
+    "build": "turbo run build",
+    "dev": "turbo run dev --parallel",
+    "lint": "turbo run lint",
+    "test": "turbo run test",
+    "typecheck": "turbo run typecheck",
+    "db:generate": "pnpm --filter @ai-base/database generate",
+    "db:migrate": "pnpm --filter @ai-base/database migrate:dev",
+    "db:push": "pnpm --filter @ai-base/database push",
+    "db:seed": "pnpm --filter @ai-base/database seed",
+    "agents:dev": "turbo run dev --filter=./agents/*",
+    "outbox:dev": "pnpm --filter @ai-base/events outbox:dev",
+    "docker:up": "docker compose -f infrastructure/docker/docker-compose.yml up -d",
+    "docker:down": "docker compose -f infrastructure/docker/docker-compose.yml down"
+  },
+  "devDependencies": {
+    "pnpm": "9.15.0",
+    "turbo": "2.3.3",
+    "typescript": "5.7.2"
+  },
+  "engines": {
+    "node": ">=20"
+  }
+}
