@@ -21,6 +21,21 @@ pnpm --filter @ai-base/web dev
 
 Open http://localhost:3000 and http://localhost:3000/admin
 
+## Public MVP routes
+
+| Route | Purpose |
+|-------|---------|
+| `/tools` | Tool list |
+| `/tools/[slug]` | Detail + affiliate CTA |
+| `/compare`, `/compare/[slug]` | Side-by-side + curated |
+| `/search` | Keyword search |
+| `/admin` | Ops shell (drafts / affiliate / social) |
+| `/sitemap.xml`, `/robots.txt` | SEO crawl basics |
+
+## Deploy (Vercel)
+
+See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md). Import the GitHub repo, set Root Directory to `apps/web`, configure `DATABASE_URL` + `NEXT_PUBLIC_SITE_URL`, then deploy.
+
 ## Switch LLM provider
 
 ```bash
