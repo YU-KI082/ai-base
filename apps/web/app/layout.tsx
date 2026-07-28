@@ -17,7 +17,7 @@ export const metadata: Metadata = {
     process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000",
   ),
   title: {
-    default: "AI BASE",
+    default: "AI BASE — Discover AI tools",
     template: "%s",
   },
   description:
@@ -25,6 +25,12 @@ export const metadata: Metadata = {
   openGraph: {
     siteName: "AI BASE",
     type: "website",
+  },
+  twitter: {
+    card: "summary_large_image",
+    title: "AI BASE",
+    description:
+      "Discover, compare, and adopt AI tools — evaluated by agents, published with humans.",
   },
   robots: {
     index: true,

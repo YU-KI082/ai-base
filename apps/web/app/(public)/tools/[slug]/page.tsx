@@ -10,6 +10,11 @@ import {
   primaryAffiliate,
 } from "@/lib/tool-detail";
 import { absoluteUrl, resolvePublicLocale, withLocale } from "@/lib/site";
+import {
+  faqPageJsonLd,
+  localeAlternatesFor,
+  softwareApplicationJsonLd,
+} from "@/lib/seo";
 
 export const revalidate = 60;
 
@@ -38,13 +43,18 @@ export async function generateMetadata({
   return {
     title,
     description,
-    alternates: { canonical: url },
+    alternates: localeAlternatesFor(`/tools/${slug}`, locale),
     openGraph: {
       title,
       description,
       url,
       siteName: "AI BASE",
       type: "website",
+    },
+    twitter: {
+      card: "summary_large_image",
+      title,
+      description,
     },
   };
 }
@@ -79,22 +89,16 @@ export default async function ToolDetailPage({
     return { key: c.category.key, name: tr?.name ?? c.category.key };
   });
 
-  const jsonLd =
+  const pageUrl = absoluteUrl(withLocale(`/tools/${slug}`, locale));
+  const softwareLd =
     translation?.schemaJson && typeof translation.schemaJson === "object"
-      ? translation.schemaJson
-      : {
-          "@context": "https://schema.org",
-          "@type": "SoftwareApplication",
+      ? (translation.schemaJson as Record<string, unknown>)
+      : softwareApplicationJsonLd({
           name: translation?.name ?? tool.slug,
           description: translation?.description,
-          url: absoluteUrl(withLocale(`/tools/${slug}`, locale)),
-          applicationCategory: "BusinessApplication",
-          offers: {
-            "@type": "Offer",
-            price: "0",
-            priceCurrency: "USD",
-          },
-        };
+          url: pageUrl,
+        });
+  const faqLd = faqPageJsonLd(faq);
 
   const otherTools = (
     await repos.tools.findPublished(locale, { take: 40 })
@@ -110,8 +114,14 @@ export default async function ToolDetailPage({
     <main className="container site-section animate-in">
       <script
         type="application/ld+json"
-        dangerouslySetInnerHTML={{ __html: JSON.stringify(jsonLd) }}
+        dangerouslySetInnerHTML={{ __html: JSON.stringify(softwareLd) }}
       />
+      {faqLd ? (
+        <script
+          type="application/ld+json"
+          dangerouslySetInnerHTML={{ __html: JSON.stringify(faqLd) }}
+        />
+      ) : null}
 
       <Link className="muted" href={withLocale("/tools", locale)} style={{ fontSize: 14 }}>
         ← {locale === "ja" ? "ツール一覧" : "All tools"}

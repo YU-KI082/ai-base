@@ -4,6 +4,7 @@ import { repos } from "@ai-base/database";
 import { cachedJson } from "@ai-base/cache";
 import { ToolCard } from "@/components/tool-card";
 import { absoluteUrl, resolvePublicLocale, withLocale } from "@/lib/site";
+import { localeAlternatesFor } from "@/lib/seo";
 
 export const revalidate = 60;
 
@@ -21,7 +22,7 @@ export async function generateMetadata({
   return {
     title,
     description,
-    alternates: { canonical: absoluteUrl(withLocale("/tools", locale)) },
+    alternates: localeAlternatesFor("/tools", locale),
     openGraph: {
       title,
       description,

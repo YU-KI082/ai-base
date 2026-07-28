@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { absoluteUrl, resolvePublicLocale, withLocale } from "@/lib/site";
+import { localeAlternatesFor } from "@/lib/seo";
 
 export async function generateMetadata({
   searchParams,
@@ -16,7 +17,7 @@ export async function generateMetadata({
   return {
     title,
     description,
-    alternates: { canonical: absoluteUrl(withLocale("/", locale)) },
+    alternates: localeAlternatesFor("/", locale),
     openGraph: {
       title,
       description,
