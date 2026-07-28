@@ -1,6 +1,22 @@
 import type { NextConfig } from "next";
+import path from "node:path";
+import { fileURLToPath } from "node:url";
+
+const monorepoRoot = path.join(path.dirname(fileURLToPath(import.meta.url)), "../..");
 
 const nextConfig: NextConfig = {
+  // Monorepo: trace files from workspace root so Prisma engines are packaged.
+  outputFileTracingRoot: monorepoRoot,
+  outputFileTracingIncludes: {
+    "/**": [
+      "./node_modules/.prisma/client/**",
+      "./node_modules/@prisma/client/**",
+      "../../node_modules/.prisma/client/**",
+      "../../node_modules/@prisma/client/**",
+      "../../node_modules/.pnpm/@prisma+client@*/node_modules/.prisma/client/**",
+      "../../node_modules/.pnpm/@prisma+client@*/node_modules/@prisma/client/**",
+    ],
+  },
   transpilePackages: [
     "@ai-base/auth",
     "@ai-base/cache",

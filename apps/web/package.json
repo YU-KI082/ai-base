@@ -15,6 +15,7 @@
     "@ai-base/sns-auto-ops": "workspace:*",
     "@ai-base/sns-learning": "workspace:*",
     "@ai-base/sns-oauth": "workspace:*",
+    "@prisma/client": "6.19.3",
     "next": "^15.1.3",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
