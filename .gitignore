@@ -14,3 +14,4 @@ packages/database/prisma/*.db
 packages/database/prisma/*.db-journal
 *.tsbuildinfo
 .pnpm-store
+.env.production.local
