@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { getDictionary, tf } from "@ai-base/i18n";
 import { repos } from "@ai-base/database";
 import { cachedJson } from "@ai-base/cache";
 import { ToolCard } from "@/components/tool-card";
@@ -14,18 +15,15 @@ export async function generateMetadata({
   searchParams: Promise<{ locale?: string }>;
 }): Promise<Metadata> {
   const locale = resolvePublicLocale((await searchParams).locale);
-  const title = locale === "ja" ? "AIツール一覧 | AI BASE" : "AI Tools | AI BASE";
-  const description =
-    locale === "ja"
-      ? "エージェントが評価し、人が承認したAIツールを探す"
-      : "Discover AI tools evaluated by agents and approved by humans";
+  const t = getDictionary(locale).public;
+  const title = `${t.toolsTitle} | AI BASE`;
   return {
     title,
-    description,
+    description: t.toolsDescription,
     alternates: localeAlternatesFor("/tools", locale),
     openGraph: {
       title,
-      description,
+      description: t.toolsDescription,
       url: absoluteUrl(withLocale("/tools", locale)),
       siteName: "AI BASE",
     },
@@ -39,6 +37,7 @@ export default async function ToolsPage({
 }) {
   const params = await searchParams;
   const locale = resolvePublicLocale(params.locale);
+  const t = getDictionary(locale).public;
   const categoryKey = params.category?.trim() || undefined;
   const q = params.q?.trim() || undefined;
 
@@ -58,51 +57,30 @@ export default async function ToolsPage({
     ),
   ]);
 
-  const copy =
-    locale === "ja"
-      ? {
-          kicker: "カタログ",
-          title: "AIツール",
-          subtitle: "継続評価され、人が承認したツールだけを掲載しています。",
-          empty: "まだ公開されたツールがありません。",
-          all: "すべて",
-          search: "検索",
-          count: `${tools.length}件`,
-        }
-      : {
-          kicker: "Catalog",
-          title: "AI tools",
-          subtitle: "Only tools evaluated by agents and approved by humans.",
-          empty: "No published tools yet.",
-          all: "All",
-          search: "Search",
-          count: `${tools.length} tools`,
-        };
-
   return (
     <main className="container site-section">
       <div className="page-header">
         <div>
-          <p className="page-kicker">{copy.kicker}</p>
-          <h1 className="page-title">{copy.title}</h1>
-          <p className="page-subtitle">{copy.subtitle}</p>
+          <p className="page-kicker">{t.featured ?? t.toolsTitle}</p>
+          <h1 className="page-title">{t.navTools}</h1>
+          <p className="page-subtitle">{t.toolsDescription}</p>
         </div>
         <div style={{ display: "flex", gap: "0.5rem", alignItems: "center" }}>
           <span className="muted" style={{ fontSize: 13 }}>
-            {copy.count}
+            {tf(t.toolsCount, { n: tools.length })}
           </span>
           <Link className="btn btn-primary" href={withLocale("/search", locale)}>
-            {copy.search}
+            {t.navSearch}
           </Link>
         </div>
       </div>
 
-      <div className="filter-row" role="navigation" aria-label={locale === "ja" ? "カテゴリ" : "Categories"}>
+      <div className="filter-row" role="navigation" aria-label={t.navCategories}>
         <Link
           className={`chip ${!categoryKey ? "chip-active" : ""}`}
           href={withLocale("/tools", locale)}
         >
-          {copy.all}
+          {t.allCategories}
         </Link>
         {categories.map((cat) => {
           const name = cat.translations[0]?.name ?? cat.key;
@@ -121,23 +99,23 @@ export default async function ToolsPage({
 
       {tools.length === 0 ? (
         <div className="empty-state" style={{ marginTop: "1.5rem" }}>
-          {copy.empty}
+          {t.toolsEmpty}
         </div>
       ) : (
         <ul className="tools-grid">
           {tools.map((tool) => {
-            const t = tool.translations[0];
+            const tr = tool.translations[0];
             const categoryNames = tool.categories.map((c) => {
-              const tr = c.category.translations?.find((x) => x.locale === locale);
-              return tr?.name ?? c.category.key;
+              const ctr = c.category.translations?.find((x) => x.locale === locale);
+              return ctr?.name ?? c.category.key;
             });
             return (
               <ToolCard
                 key={tool.id}
                 locale={locale}
                 slug={tool.slug}
-                name={t?.name ?? tool.slug}
-                description={t?.description}
+                name={tr?.name ?? tool.slug}
+                description={tr?.description}
                 pricingModel={tool.pricingModel}
                 categoryNames={categoryNames}
               />

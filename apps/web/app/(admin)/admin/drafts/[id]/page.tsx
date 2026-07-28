@@ -1,7 +1,7 @@
 import { notFound } from "next/navigation";
 import { cookies } from "next/headers";
 import { repos } from "@ai-base/database";
-import { getDictionary, resolveLocale } from "@ai-base/i18n";
+import { getDictionary, resolveLocale, statusLabel } from "@ai-base/i18n";
 import { DraftActions } from "./draft-actions";
 
 export const dynamic = "force-dynamic";
@@ -33,7 +33,8 @@ export default async function DraftDetailPage({
         {payload.slug ?? draft.id}
       </h1>
       <p className="muted">
-        {draft.status} · workflow {draft.workflowId ?? "—"}
+        {statusLabel(locale, draft.status)} · {dict.admin.workflowLabel}{" "}
+        {draft.workflowId ?? "—"}
       </p>
       <p>
         <a href={payload.homepageUrl} target="_blank" rel="noreferrer">
@@ -42,12 +43,12 @@ export default async function DraftDetailPage({
       </p>
       <div className="grid-2" style={{ marginTop: "1rem" }}>
         <section className="card-surface" style={{ padding: "1rem" }}>
-          <h2>English</h2>
+          <h2>{dict.public.switchToEn}</h2>
           <h3>{payload.locales?.en?.name}</h3>
           <p>{payload.locales?.en?.description}</p>
         </section>
         <section className="card-surface" style={{ padding: "1rem" }}>
-          <h2>日本語</h2>
+          <h2>{dict.public.switchToJa}</h2>
           <h3>{payload.locales?.ja?.name}</h3>
           <p>{payload.locales?.ja?.description}</p>
         </section>

@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { repos } from "@ai-base/database";
 import { cookies } from "next/headers";
-import { getDictionary, resolveLocale } from "@ai-base/i18n";
+import { getDictionary, resolveLocale, tf } from "@ai-base/i18n";
 
 export const dynamic = "force-dynamic";
 
@@ -15,7 +15,7 @@ export default async function AdminDashboard() {
       repos.agentRuns.list({ status: "failed", take: 5 }),
       repos.agents.list(),
       repos.workflows.list(5),
-      repos.tools.findPublished("en", { take: 200 }),
+      repos.tools.findPublished(locale, { take: 200 }),
       repos.affiliates.list(),
       repos.socialPosts.list("draft"),
     ]);
@@ -32,12 +32,12 @@ export default async function AdminDashboard() {
       href: "/admin/tools",
     },
     {
-      label: "Affiliate links",
+      label: dict.admin.affiliateLinks,
       value: String(affiliates.length),
       href: "/admin/affiliate",
     },
     {
-      label: "Social drafts",
+      label: dict.admin.socialDrafts,
       value: String(social.length),
       href: "/admin/social",
     },
@@ -47,16 +47,12 @@ export default async function AdminDashboard() {
     <main className="animate-in">
       <div className="page-header">
         <div>
-          <p className="page-kicker">Ops</p>
+          <p className="page-kicker">{dict.admin.ops}</p>
           <h1 className="page-title">{dict.admin.dashboard}</h1>
-          <p className="page-subtitle">
-            {locale === "ja"
-              ? "承認・公開・アフィリエイト・SNS下書きをここから運用します。"
-              : "Approve, publish, manage affiliates, and review social drafts."}
-          </p>
+          <p className="page-subtitle">{dict.admin.dashboardSubtitle}</p>
         </div>
         <Link className="btn btn-primary" href="/admin/ingest">
-          Manual ingest
+          {dict.admin.manualIngest}
         </Link>
       </div>
 
@@ -103,7 +99,10 @@ export default async function AdminDashboard() {
         <section className="card-surface" style={{ padding: "1.15rem" }}>
           <h2 style={{ marginTop: 0, fontSize: "1.05rem" }}>{dict.admin.agents}</h2>
           <p className="muted" style={{ marginTop: 0 }}>
-            {agents.filter((a) => a.status === "active").length} active / {agents.length}
+            {tf(dict.admin.agentsActiveCount, {
+              active: agents.filter((a) => a.status === "active").length,
+              total: agents.length,
+            })}
           </p>
           <h2 style={{ fontSize: "1.05rem" }}>{dict.admin.workflows}</h2>
           <ul style={{ margin: 0, paddingLeft: "1.1rem" }}>
@@ -123,7 +122,9 @@ export default async function AdminDashboard() {
       </div>
 
       <section className="card-surface" style={{ padding: "1.15rem", marginTop: "1rem" }}>
-        <h2 style={{ marginTop: 0, fontSize: "1.05rem" }}>Failed runs</h2>
+        <h2 style={{ marginTop: 0, fontSize: "1.05rem" }}>
+          {dict.admin.failedRuns}
+        </h2>
         {failing.length === 0 ? (
           <p className="muted">{dict.admin.noItems}</p>
         ) : (

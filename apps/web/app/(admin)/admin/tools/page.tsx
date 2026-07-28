@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { repos } from "@ai-base/database";
 import { cookies } from "next/headers";
-import { getDictionary, resolveLocale } from "@ai-base/i18n";
+import { getDictionary, resolveLocale, statusLabel } from "@ai-base/i18n";
 
 export const dynamic = "force-dynamic";
 
@@ -20,7 +20,7 @@ export default async function AdminToolsPage() {
         {tools.map((tool) => (
           <li key={tool.id} className="card-surface" style={{ padding: "1rem" }}>
             <Link href={`/tools/${tool.slug}`}>{tool.slug}</Link>
-            <div className="muted">{tool.status}</div>
+            <div className="muted">{statusLabel(locale, tool.status)}</div>
           </li>
         ))}
       </ul>

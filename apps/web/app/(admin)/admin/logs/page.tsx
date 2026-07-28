@@ -1,6 +1,6 @@
 import { repos } from "@ai-base/database";
 import { cookies } from "next/headers";
-import { getDictionary, resolveLocale } from "@ai-base/i18n";
+import { formatDateTime, getDictionary, resolveLocale } from "@ai-base/i18n";
 
 export const dynamic = "force-dynamic";
 
@@ -19,7 +19,7 @@ export default async function LogsPage() {
         {logs.map((log) => (
           <article key={log.id} className="card-surface" style={{ padding: "0.75rem 1rem" }}>
             <div className="muted" style={{ fontSize: 12 }}>
-              {log.createdAt.toISOString()} · {log.level} · {log.source}
+              {formatDateTime(log.createdAt, locale)} · {log.level} · {log.source}
             </div>
             <div>{log.message}</div>
           </article>

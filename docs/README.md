@@ -20,6 +20,9 @@ Canonical design docs (keep synchronized with code):
 | [SCALE.md](./SCALE.md) | 10M PV / 1M users readiness |
 | [PUBLIC_MVP.md](./PUBLIC_MVP.md) | Public launch surface checklist |
 | [SNS_LEARNING.md](./SNS_LEARNING.md) | Instagram/TikTok continuous learning loop |
+| [SNS_OAUTH.md](./SNS_OAUTH.md) | Official OAuth, encrypted tokens, auto-refresh |
+| [SNS_AUTO_OPS.md](./SNS_AUTO_OPS.md) | Full-auto SNS ops, revenue dashboard, safety |
+| [SELF_HEALING.md](./SELF_HEALING.md) | Self-Healing Agent — safe auto-fix + approval gates |
 | [AFFILIATE_INTELLIGENCE.md](./AFFILIATE_INTELLIGENCE.md) | Affiliate case workflow + ASP proposals |
 | [ROADMAP.md](./ROADMAP.md) | Near / mid / long term |
 

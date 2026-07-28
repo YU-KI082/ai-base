@@ -1,9 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { getDictionary } from "@ai-base/i18n";
 import { repos } from "@ai-base/database";
 import { CompareFormClient } from "./compare-form";
 import { orderBySlug, parseCompareSlugs } from "@/lib/compare";
-import { absoluteUrl, resolvePublicLocale, withLocale } from "@/lib/site";
+import { resolvePublicLocale, withLocale } from "@/lib/site";
+import { localeAlternatesFor } from "@/lib/seo";
 
 export const revalidate = 60;
 
@@ -13,14 +15,11 @@ export async function generateMetadata({
   searchParams: Promise<{ locale?: string }>;
 }): Promise<Metadata> {
   const locale = resolvePublicLocale((await searchParams).locale);
-  const title = locale === "ja" ? "AIツール比較 | AI BASE" : "Compare AI tools | AI BASE";
+  const t = getDictionary(locale).public;
   return {
-    title,
-    description:
-      locale === "ja"
-        ? "2〜3のAIツールを並べて比較"
-        : "Compare two or three AI tools side by side",
-    alternates: { canonical: absoluteUrl(withLocale("/compare", locale)) },
+    title: `${t.compareTitle} | AI BASE`,
+    description: t.compareDescription,
+    alternates: localeAlternatesFor("/compare", locale),
   };
 }
 
@@ -31,6 +30,7 @@ export default async function ComparePage({
 }) {
   const sp = await searchParams;
   const locale = resolvePublicLocale(sp.locale);
+  const t = getDictionary(locale).public;
   const slugs = parseCompareSlugs(sp.tools);
 
   const [catalog, selected, curated] = await Promise.all([
@@ -43,57 +43,38 @@ export default async function ComparePage({
 
   const ordered = orderBySlug(selected, slugs);
 
-  const copy =
-    locale === "ja"
-      ? {
-          kicker: "比較",
-          title: "AIツール比較",
-          subtitle: "料金・機能・長所短所を横並びで確認できます。",
-          run: "比較する",
-          curated: "公開中の比較記事",
-          empty: "ツールを2つ以上選んでください。",
-          vs: "比較表",
-        }
-      : {
-          kicker: "Compare",
-          title: "Compare AI tools",
-          subtitle: "See pricing, features, and tradeoffs side by side.",
-          run: "Compare",
-          curated: "Published comparisons",
-          empty: "Select at least two tools.",
-          vs: "Comparison table",
-        };
-
   return (
     <main className="container site-section animate-in">
       <div className="page-header">
         <div>
-          <p className="page-kicker">{copy.kicker}</p>
-          <h1 className="page-title">{copy.title}</h1>
-          <p className="page-subtitle">{copy.subtitle}</p>
+          <p className="page-kicker">{t.navCompare}</p>
+          <h1 className="page-title">{t.compareTitle}</h1>
+          <p className="page-subtitle">{t.compareSubtitle}</p>
         </div>
       </div>
 
       <div style={{ marginTop: "1.5rem", maxWidth: 560 }}>
         <CompareFormClient
           locale={locale}
-          catalog={catalog.map((t) => ({
-            slug: t.slug,
-            name: t.translations[0]?.name ?? t.slug,
+          catalog={catalog.map((tool) => ({
+            slug: tool.slug,
+            name: tool.translations[0]?.name ?? tool.slug,
           }))}
           initial={slugs}
-          label={copy.run}
+          label={t.compareSubmit}
         />
       </div>
 
       {ordered.length >= 2 ? (
         <section style={{ marginTop: "2rem" }}>
-          <h2 style={{ fontSize: "1.15rem", letterSpacing: "-0.02em" }}>{copy.vs}</h2>
+          <h2 style={{ fontSize: "1.15rem", letterSpacing: "-0.02em" }}>
+            {t.compareTable}
+          </h2>
           <div className="card-surface" style={{ overflowX: "auto", padding: "0.25rem" }}>
             <table className="compare-table">
               <thead>
                 <tr>
-                  <th>{locale === "ja" ? "項目" : "Field"}</th>
+                  <th>{t.compareField}</th>
                   {ordered.map((tool) => (
                     <th key={tool.id}>
                       <Link href={withLocale(`/tools/${tool.slug}`, locale)}>
@@ -104,21 +85,36 @@ export default async function ComparePage({
                 </tr>
               </thead>
               <tbody>
-                <CompareRows locale={locale} tools={ordered} />
+                <CompareRows
+                  tools={ordered}
+                  labels={{
+                    pricing: t.pricing,
+                    freePlan: t.freePlan,
+                    api: t.api,
+                    summary: t.summary,
+                    features: t.features,
+                    pros: t.pros,
+                    cons: t.cons,
+                    cta: t.cta,
+                    available: t.available,
+                    unavailable: t.unavailable,
+                    visitShort: t.visitShort,
+                  }}
+                />
               </tbody>
             </table>
           </div>
         </section>
       ) : slugs.length > 0 ? (
         <p className="muted" style={{ marginTop: "1rem" }}>
-          {copy.empty}
+          {t.compareSelectMin}
         </p>
       ) : null}
 
       {curated.length > 0 ? (
         <section style={{ marginTop: "2.5rem" }}>
           <h2 style={{ fontSize: "1.15rem", letterSpacing: "-0.02em" }}>
-            {copy.curated}
+            {t.compareCurated}
           </h2>
           <ul className="tools-grid">
             {curated.map((c) => {
@@ -143,10 +139,9 @@ export default async function ComparePage({
 }
 
 function CompareRows({
-  locale,
   tools,
+  labels,
 }: {
-  locale: "en" | "ja";
   tools: Array<{
     slug: string;
     homepageUrl: string;
@@ -161,46 +156,58 @@ function CompareRows({
     }>;
     affiliateLinks: Array<{ id: string; label: string }>;
   }>;
+  labels: {
+    pricing: string;
+    freePlan: string;
+    api: string;
+    summary: string;
+    features: string;
+    pros: string;
+    cons: string;
+    cta: string;
+    available: string;
+    unavailable: string;
+    visitShort: string;
+  };
 }) {
+  const yn = (v: boolean) => (v ? labels.available : labels.unavailable);
   const rows: Array<{ label: string; values: string[] }> = [
     {
-      label: locale === "ja" ? "料金" : "Pricing",
-      values: tools.map((t) => t.pricingModel),
+      label: labels.pricing,
+      values: tools.map((tool) => tool.pricingModel),
     },
     {
-      label: locale === "ja" ? "無料プラン" : "Free plan",
-      values: tools.map((t) =>
-        t.hasFreePlan ? (locale === "ja" ? "あり" : "Yes") : locale === "ja" ? "なし" : "No",
+      label: labels.freePlan,
+      values: tools.map((tool) => yn(tool.hasFreePlan)),
+    },
+    {
+      label: labels.api,
+      values: tools.map((tool) => yn(tool.hasApi)),
+    },
+    {
+      label: labels.summary,
+      values: tools.map(
+        (tool) => tool.translations[0]?.description?.slice(0, 180) ?? "—",
       ),
     },
     {
-      label: "API",
-      values: tools.map((t) =>
-        t.hasApi ? (locale === "ja" ? "あり" : "Yes") : locale === "ja" ? "なし" : "No",
-      ),
-    },
-    {
-      label: locale === "ja" ? "概要" : "Summary",
-      values: tools.map((t) => t.translations[0]?.description?.slice(0, 180) ?? "—"),
-    },
-    {
-      label: locale === "ja" ? "主な機能" : "Features",
-      values: tools.map((t) => {
-        const f = (t.translations[0]?.features as string[]) ?? [];
+      label: labels.features,
+      values: tools.map((tool) => {
+        const f = (tool.translations[0]?.features as string[]) ?? [];
         return f.slice(0, 5).join(", ") || "—";
       }),
     },
     {
-      label: locale === "ja" ? "長所" : "Pros",
-      values: tools.map((t) => {
-        const f = (t.translations[0]?.pros as string[]) ?? [];
+      label: labels.pros,
+      values: tools.map((tool) => {
+        const f = (tool.translations[0]?.pros as string[]) ?? [];
         return f.slice(0, 4).join(", ") || "—";
       }),
     },
     {
-      label: locale === "ja" ? "短所" : "Cons",
-      values: tools.map((t) => {
-        const f = (t.translations[0]?.cons as string[]) ?? [];
+      label: labels.cons,
+      values: tools.map((tool) => {
+        const f = (tool.translations[0]?.cons as string[]) ?? [];
         return f.slice(0, 4).join(", ") || "—";
       }),
     },
@@ -217,12 +224,12 @@ function CompareRows({
         </tr>
       ))}
       <tr>
-        <th>CTA</th>
-        {tools.map((t) => {
-          const aff = t.affiliateLinks[0];
-          const href = aff ? `/go/${aff.id}` : t.homepageUrl;
+        <th>{labels.cta}</th>
+        {tools.map((tool) => {
+          const aff = tool.affiliateLinks[0];
+          const href = aff ? `/go/${aff.id}` : tool.homepageUrl;
           return (
-            <td key={t.slug}>
+            <td key={tool.slug}>
               <a
                 className="btn btn-primary"
                 href={href}
@@ -230,7 +237,7 @@ function CompareRows({
                 target="_blank"
                 style={{ padding: "0.4rem 0.8rem" }}
               >
-                {aff?.label || (locale === "ja" ? "公式へ" : "Visit")}
+                {aff?.label || labels.visitShort}
               </a>
             </td>
           );

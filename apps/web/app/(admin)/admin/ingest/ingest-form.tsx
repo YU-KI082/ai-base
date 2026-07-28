@@ -3,7 +3,18 @@
 import { adminMutationHeaders } from "@/lib/admin-fetch";
 import { useState } from "react";
 
-export function IngestForm() {
+export function IngestForm({
+  labels,
+}: {
+  labels: {
+    name: string;
+    homepageUrl: string;
+    description: string;
+    categoryHints: string;
+    submit: string;
+    error: string;
+  };
+}) {
   const [name, setName] = useState("");
   const [homepageUrl, setHomepageUrl] = useState("");
   const [description, setDescription] = useState("");
@@ -31,7 +42,7 @@ export function IngestForm() {
     });
     const body = await res.json().catch(() => ({}));
     if (!res.ok) {
-      setError(body.error ?? res.statusText);
+      setError(body.error ?? labels.error);
       return;
     }
     setResult(JSON.stringify(body, null, 2));
@@ -40,7 +51,7 @@ export function IngestForm() {
   return (
     <form onSubmit={(e) => void submit(e)} className="card-surface" style={{ padding: "1rem", maxWidth: 640 }}>
       <label>
-        Name
+        {labels.name}
         <input
           required
           value={name}
@@ -49,7 +60,7 @@ export function IngestForm() {
         />
       </label>
       <label>
-        Homepage URL
+        {labels.homepageUrl}
         <input
           required
           type="url"
@@ -59,7 +70,7 @@ export function IngestForm() {
         />
       </label>
       <label>
-        Description
+        {labels.description}
         <textarea
           value={description}
           onChange={(e) => setDescription(e.target.value)}
@@ -68,7 +79,7 @@ export function IngestForm() {
         />
       </label>
       <label>
-        Category hints (comma-separated)
+        {labels.categoryHints}
         <input
           value={categoryHints}
           onChange={(e) => setCategoryHints(e.target.value)}
@@ -76,7 +87,7 @@ export function IngestForm() {
         />
       </label>
       <button className="btn btn-primary" type="submit" style={{ marginTop: "0.75rem" }}>
-        Start pipeline
+        {labels.submit}
       </button>
       {error ? <p style={{ color: "var(--danger)" }}>{error}</p> : null}
       {result ? <pre style={{ whiteSpace: "pre-wrap" }}>{result}</pre> : null}

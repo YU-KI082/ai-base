@@ -52,6 +52,16 @@ export const EventTypes = {
   SnsFeedbackTick: "sns.feedback.tick.v1",
   SnsMetricsIngestRequested: "sns.metrics.ingest.requested.v1",
   SnsLearningUpdated: "sns.learning.updated.v1",
+  SnsOAuthRefreshTick: "sns.oauth.refresh.tick.v1",
+  SnsOAuthReauthRequired: "sns.oauth.reauth.required.v1",
+  SnsPostPublishRequested: "sns.post.publish.requested.v1",
+  SnsPostPublishedExternal: "sns.post.published.external.v1",
+  SnsAutoOpsTick: "sns.auto_ops.tick.v1",
+  SnsAutoOpsAlert: "sns.auto_ops.alert.v1",
+  SelfHealingTick: "self_healing.tick.v1",
+  SelfHealingErrorReported: "self_healing.error.reported.v1",
+  SelfHealingResolved: "self_healing.resolved.v1",
+  SelfHealingNeedsApproval: "self_healing.needs_approval.v1",
 } as const;
 
 export type EventType = (typeof EventTypes)[keyof typeof EventTypes];
@@ -204,6 +214,66 @@ export const SnsMetricsIngestRequestedDataSchema = z.object({
 
 export const SnsLearningUpdatedDataSchema = z.object({
   learningRecordIds: z.array(z.string()),
+});
+
+export const SnsOAuthRefreshTickDataSchema = z.object({
+  reason: z.enum(["cron", "manual", "pre_publish"]).default("cron"),
+  provider: z.enum(["instagram", "tiktok"]).optional(),
+});
+
+export const SnsOAuthReauthRequiredDataSchema = z.object({
+  provider: z.enum(["instagram", "tiktok"]),
+  reason: z.string(),
+});
+
+export const SnsPostPublishRequestedDataSchema = z.object({
+  socialPostId: z.string(),
+  platform: z.string(),
+  approvedBy: z.string().optional(),
+});
+
+export const SnsPostPublishedExternalDataSchema = z.object({
+  socialPostId: z.string(),
+  platform: z.string(),
+  externalPostId: z.string(),
+});
+
+export const SnsAutoOpsTickDataSchema = z.object({
+  reason: z.enum(["cron", "manual", "ramp"]).default("cron"),
+});
+
+export const SnsAutoOpsAlertDataSchema = z.object({
+  kind: z.string(),
+  title: z.string(),
+  message: z.string(),
+  provider: z.string().optional(),
+  socialPostId: z.string().optional(),
+});
+
+export const SelfHealingTickDataSchema = z.object({
+  reason: z.enum(["cron", "manual", "error"]).default("cron"),
+  incidentId: z.string().optional(),
+});
+
+export const SelfHealingErrorReportedDataSchema = z.object({
+  title: z.string().optional(),
+  message: z.string(),
+  kind: z.string().optional(),
+  location: z.string().optional(),
+  stack: z.string().optional(),
+  metadata: z.record(z.unknown()).optional(),
+});
+
+export const SelfHealingResolvedDataSchema = z.object({
+  incidentId: z.string(),
+  status: z.string(),
+  changedFiles: z.array(z.string()).default([]),
+});
+
+export const SelfHealingNeedsApprovalDataSchema = z.object({
+  incidentId: z.string(),
+  title: z.string(),
+  reason: z.string(),
 });
 
 export function createEvent<T>(input: {

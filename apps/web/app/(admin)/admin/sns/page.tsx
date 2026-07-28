@@ -1,23 +1,26 @@
+import { cookies } from "next/headers";
+import { getDictionary, resolveLocale } from "@ai-base/i18n";
 import { repos } from "@ai-base/database";
 import { SnsLearningClient } from "./sns-learning-client";
 
 export default async function SnsLearningAdminPage() {
+  const cookieStore = await cookies();
+  const locale = resolveLocale(cookieStore.get("locale")?.value);
+  const dict = getDictionary(locale);
   const data = await repos.snsLearning.dashboard();
 
   return (
     <main className="animate-in">
       <div className="page-header">
         <div>
-          <p className="page-kicker">Learning loop</p>
-          <h1 className="page-title">SNS continuous improvement</h1>
-          <p className="page-subtitle">
-            Structure-only trend analysis · own-post metrics as highest trust ·
-            human publish gate · no scraping / no content copying
-          </p>
+          <p className="page-kicker">{dict.admin.snsKicker}</p>
+          <h1 className="page-title">{dict.admin.snsTitle}</h1>
+          <p className="page-subtitle">{dict.admin.snsSubtitle}</p>
         </div>
       </div>
       <div style={{ marginTop: "1.5rem" }}>
         <SnsLearningClient
+          locale={locale}
           initial={{
             observations: data.observations.map((o) => ({
               id: o.id,

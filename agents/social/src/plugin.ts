@@ -9,7 +9,8 @@ import { scoreSocialDraft } from "@ai-base/sns-learning";
 
 /**
  * After tool publish: create Instagram/TikTok learning-aware drafts.
- * External auto-post stays disabled until official APIs are connected.
+ * External post runs only after admin approval + OAuth connection check
+ * (see @ai-base/sns-oauth / agents/sns-oauth).
  */
 export const socialPlugin: AgentPlugin = {
   manifest: {

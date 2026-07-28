@@ -8,10 +8,17 @@ export function MarketplaceActions({
   agentKey,
   enabled,
   installed,
+  labels,
 }: {
   agentKey: string;
   enabled: boolean;
   installed: boolean;
+  labels: {
+    enable: string;
+    disable: string;
+    update: string;
+    registerViaWorker: string;
+  };
 }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
@@ -49,14 +56,14 @@ export function MarketplaceActions({
       {installed ? (
         <>
           <button className="btn btn-ghost" disabled={busy} onClick={() => void toggle()}>
-            {enabled ? "Disable" : "Enable"}
+            {enabled ? labels.disable : labels.enable}
           </button>
           <button className="btn btn-primary" disabled={busy} onClick={() => void update()}>
-            Update
+            {labels.update}
           </button>
         </>
       ) : (
-        <span className="muted">Register via worker boot</span>
+        <span className="muted">{labels.registerViaWorker}</span>
       )}
     </div>
   );

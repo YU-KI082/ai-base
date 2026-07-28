@@ -1,12 +1,17 @@
 import { repos } from "@ai-base/database";
 import { computePerformance } from "@ai-base/affiliate-intel";
+import { cookies } from "next/headers";
+import { getDictionary, resolveLocale } from "@ai-base/i18n";
 import { AffiliateIntelClient } from "./affiliate-intel-client";
 
 export default async function AffiliateAdminPage() {
+  const cookieStore = await cookies();
+  const locale = resolveLocale(cookieStore.get("locale")?.value);
+  const dict = getDictionary(locale);
   const [rows, links, tools] = await Promise.all([
     repos.affiliateIntel.performanceByTool(),
     repos.affiliates.list(),
-    repos.tools.findPublished("en", { take: 200 }),
+    repos.tools.findPublished(locale, { take: 200 }),
   ]);
 
   const items = rows.map(({ intelligence, clicks, conversions, revenue }) => {
@@ -59,16 +64,14 @@ export default async function AffiliateAdminPage() {
     <main className="animate-in">
       <div className="page-header">
         <div>
-          <p className="page-kicker">Monetization</p>
-          <h1 className="page-title">Affiliate Intelligence</h1>
-          <p className="page-subtitle">
-            新規ツールは「アフィリエイト未確認」で登録。公式 / A8 / もしも /
-            アクセストレード / バリューコマースを調査提案。公開は人間ゲート、数値は実データのみ。
-          </p>
+          <p className="page-kicker">{dict.admin.affiliateKicker}</p>
+          <h1 className="page-title">{dict.admin.affiliateTitle}</h1>
+          <p className="page-subtitle">{dict.admin.affiliateSubtitle}</p>
         </div>
       </div>
       <div style={{ marginTop: "1.5rem" }}>
         <AffiliateIntelClient
+          locale={locale}
           initialItems={items}
           legacyLinks={links.map((l) => ({
             id: l.id,

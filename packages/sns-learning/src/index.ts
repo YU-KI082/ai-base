@@ -621,21 +621,21 @@ export function classifyOwnPostOutcome(input: {
   const revenue = input.revenue ?? 0;
 
   if (conversions > 0 || revenue > 0) {
-    return { kind: "success_pattern", title: "Converted to affiliate outcome" };
+    return { kind: "success_pattern", title: "成約・売上につながった投稿" };
   }
   if (plays >= 1000 && clicks === 0 && conversions === 0) {
     return {
       kind: "high_views_low_revenue",
-      title: "High plays without monetization",
+      title: "再生は多いが売上ゼロ — 高評価しない",
     };
   }
   if ((input.saveRate ?? 0) < 0.01 && plays > 0 && clicks === 0) {
-    return { kind: "ineffective", title: "Low save and no clicks" };
+    return { kind: "ineffective", title: "保存もクリックも弱い" };
   }
   if (plays > 0 && clicks === 0) {
-    return { kind: "failure_pattern", title: "Engagement without click intent" };
+    return { kind: "failure_pattern", title: "再生のみでクリック未発生" };
   }
-  return { kind: "ineffective", title: "Insufficient signal — do not overfit" };
+  return { kind: "ineffective", title: "信号不足 — 過学習しない" };
 }
 
 /**

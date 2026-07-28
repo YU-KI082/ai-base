@@ -10,6 +10,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
     repos.categories.list(),
   ]);
 
+  /** Bare URL = Japanese (default); ?locale=en = English */
   const staticRoutes: MetadataRoute.Sitemap = [
     "",
     "/tools",
@@ -23,7 +24,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: path === "" ? 1 : 0.8,
     },
     {
-      url: `${base}${path}?locale=ja`,
+      url: `${base}${path}?locale=en`,
       changeFrequency: "hourly",
       priority: 0.7,
     },
@@ -37,7 +38,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.9,
     },
     {
-      url: `${base}/tools/${t.slug}?locale=ja`,
+      url: `${base}/tools/${t.slug}?locale=en`,
       lastModified: t.updatedAt,
       changeFrequency: "daily" as const,
       priority: 0.85,
@@ -47,7 +48,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const categoryRoutes = categories.flatMap((c) => [
     { url: `${base}/categories/${c.key}`, changeFrequency: "weekly" as const, priority: 0.6 },
     {
-      url: `${base}/categories/${c.key}?locale=ja`,
+      url: `${base}/categories/${c.key}?locale=en`,
       changeFrequency: "weekly" as const,
       priority: 0.55,
     },
@@ -61,7 +62,7 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
       priority: 0.7,
     },
     {
-      url: `${base}/compare/${c.slug}?locale=ja`,
+      url: `${base}/compare/${c.slug}?locale=en`,
       lastModified: c.updatedAt,
       changeFrequency: "weekly" as const,
       priority: 0.65,

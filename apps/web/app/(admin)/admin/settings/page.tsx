@@ -1,13 +1,26 @@
 import { cookies } from "next/headers";
 import { getDictionary, resolveLocale } from "@ai-base/i18n";
 import { listLlmProviders } from "@ai-base/llm";
-import { isAdminDevBypassEnabled, isProductionRuntime } from "@ai-base/auth";
+import {
+  isAdminDevBypassEnabled,
+  isOpsAuthConfigured,
+  isProductionRuntime,
+} from "@ai-base/auth";
 
 export default async function SettingsPage() {
   const cookieStore = await cookies();
   const locale = resolveLocale(cookieStore.get("locale")?.value);
   const dict = getDictionary(locale);
   const providers = listLlmProviders();
+  const authMode = isProductionRuntime()
+    ? isOpsAuthConfigured()
+      ? dict.admin.authOpsSecret
+      : dict.admin.authUnconfigured
+    : isAdminDevBypassEnabled()
+      ? dict.admin.authDevBypass
+      : isOpsAuthConfigured()
+        ? dict.admin.authOpsSecret
+        : dict.admin.authUnconfigured;
 
   return (
     <main>
@@ -15,25 +28,16 @@ export default async function SettingsPage() {
         {dict.admin.settings}
       </h1>
       <section className="card-surface" style={{ padding: "1rem" }}>
-        <p>Locales: en, ja</p>
+        <p>{dict.admin.settingsLocales}</p>
         <p>
-          Active LLM provider (env): <code>{process.env.LLM_PROVIDER ?? "openai"}</code>
+          {dict.admin.activeLlmProvider}:{" "}
+          <code>{process.env.LLM_PROVIDER ?? "openai"}</code>
         </p>
         <p>
-          Auth mode:{" "}
-          <code>
-            {isProductionRuntime()
-              ? "production (session/bearer)"
-              : isAdminDevBypassEnabled()
-                ? "dev_bypass"
-                : "unconfigured"}
-          </code>
+          {dict.admin.authMode}: <code>{authMode}</code>
         </p>
-        <p className="muted">
-          Agents are LLM-vendor agnostic. Switch via <code>LLM_PROVIDER</code> or per-agent{" "}
-          <code>config.llmProvider</code>. Secrets must never be written into agent config JSON.
-        </p>
-        <p>Registered providers:</p>
+        <p className="muted">{dict.admin.llmVendorHint}</p>
+        <p>{dict.admin.registeredProviders}:</p>
         <ul>
           {providers.map((id) => (
             <li key={id}>
@@ -41,9 +45,7 @@ export default async function SettingsPage() {
             </li>
           ))}
         </ul>
-        <p className="muted">
-          API keys live only in the environment / secret manager. The UI lists reference names only.
-        </p>
+        <p className="muted">{dict.admin.apiKeysHint}</p>
         <ul className="muted">
           <li>OPENAI_API_KEY / ANTHROPIC_API_KEY / GEMINI_API_KEY / GROK_API_KEY</li>
           <li>LOCAL_LLM_BASE_URL (Ollama / vLLM)</li>

@@ -13,7 +13,7 @@ export async function GET(request: Request) {
   }
 
   const { searchParams } = new URL(request.url);
-  const locale = searchParams.get("locale") === "ja" ? "ja" : "en";
+  const locale = searchParams.get("locale") === "en" ? "en" : "ja";
   const take = Math.min(Number(searchParams.get("take") ?? 50), 200);
   const skip = Math.max(Number(searchParams.get("skip") ?? 0), 0);
   const categoryKey = searchParams.get("category") ?? undefined;

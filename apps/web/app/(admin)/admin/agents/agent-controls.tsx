@@ -7,9 +7,11 @@ import { useState } from "react";
 export function AgentControls({
   agentKey,
   enabled,
+  labels,
 }: {
   agentKey: string;
   enabled: boolean;
+  labels: { enable: string; disable: string };
 }) {
   const router = useRouter();
   const [busy, setBusy] = useState(false);
@@ -30,7 +32,7 @@ export function AgentControls({
 
   return (
     <button className="btn btn-ghost" disabled={busy} onClick={() => void toggle()}>
-      {enabled ? "Disable" : "Enable"}
+      {enabled ? labels.disable : labels.enable}
     </button>
   );
 }

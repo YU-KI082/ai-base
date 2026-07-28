@@ -4,6 +4,11 @@ import {
   isLocalDevRequest,
   isProductionRuntime,
 } from "./env.js";
+import {
+  extractOpsCredential,
+  isOpsAuthConfigured,
+  verifyOpsSessionToken,
+} from "./ops-session.js";
 import { AuthError, type AuthUser } from "./types.js";
 
 async function loadUserByEmail(email: string): Promise<AuthUser> {
@@ -35,11 +40,25 @@ async function loadUserByEmail(email: string): Promise<AuthUser> {
   };
 }
 
+async function tryOpsAuth(request?: Request): Promise<AuthUser | null> {
+  if (!isOpsAuthConfigured()) return null;
+  const credential = extractOpsCredential(request);
+  const secret = process.env.ADMIN_OPS_SECRET?.trim();
+  if (
+    credential &&
+    secret &&
+    (credential === secret || verifyOpsSessionToken(credential))
+  ) {
+    return loadUserByEmail("admin@ai-base.local");
+  }
+  return null;
+}
+
 /**
  * Resolves the admin actor.
  *
  * Local/dev: `ADMIN_DEV_BYPASS=true` maps to seeded admin — NEVER in production.
- * Production: Bearer JWT via Supabase (port reserved; fails closed until configured).
+ * Production MVP: `ADMIN_OPS_SECRET` via cookie `aibase_session` or Bearer token.
  */
 export async function requireAdmin(request?: Request): Promise<AuthUser> {
   if (isAdminDevBypassEnabled()) {
@@ -52,26 +71,24 @@ export async function requireAdmin(request?: Request): Promise<AuthUser> {
     return loadUserByEmail("admin@ai-base.local");
   }
 
-  if (
-    process.env.ADMIN_DEV_BYPASS === "true" &&
-    isProductionRuntime()
-  ) {
+  const opsUser = await tryOpsAuth(request);
+  if (opsUser) return opsUser;
+
+  if (process.env.ADMIN_DEV_BYPASS === "true" && isProductionRuntime()) {
     throw new AuthError(
-      "ADMIN_DEV_BYPASS is ignored in production. Configure Supabase auth.",
+      "ADMIN_DEV_BYPASS is ignored in production. Set ADMIN_OPS_SECRET and sign in at /login.",
       401,
     );
   }
 
-  const authHeader = request?.headers.get("authorization");
-  if (!authHeader?.startsWith("Bearer ")) {
-    throw new AuthError("Unauthorized", 401);
+  if (!isOpsAuthConfigured()) {
+    throw new AuthError(
+      "Admin auth not configured. Set ADMIN_OPS_SECRET (16+ chars) for production.",
+      401,
+    );
   }
 
-  // Placeholder for Supabase JWT verification — keep port stable; fail closed.
-  throw new AuthError(
-    "Supabase auth not configured. Use ADMIN_DEV_BYPASS=true only in non-production.",
-    401,
-  );
+  throw new AuthError("Unauthorized", 401);
 }
 
 export async function tryRequireAdmin(

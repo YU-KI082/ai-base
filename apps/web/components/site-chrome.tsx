@@ -2,53 +2,47 @@
 
 import Link from "next/link";
 import { usePathname, useSearchParams } from "next/navigation";
+import { getDictionary, type Locale } from "@ai-base/i18n";
 import type { PublicLocale } from "@/lib/site";
-
-const labels = {
-  en: {
-    tools: "Tools",
-    categories: "Categories",
-    compare: "Compare",
-    search: "Search",
-  },
-  ja: {
-    tools: "ツール",
-    categories: "カテゴリ",
-    compare: "比較",
-    search: "検索",
-  },
-} as const;
 
 function withLocalePath(path: string, locale: PublicLocale): string {
   const safe = path || "/";
   const [pathname, hash = ""] = safe.split("#");
   const [base, query = ""] = (pathname ?? "/").split("?");
   const params = new URLSearchParams(query);
-  if (locale === "ja") params.set("locale", "ja");
+  if (locale === "en") params.set("locale", "en");
   else params.delete("locale");
   const qs = params.toString();
   return `${base || "/"}${qs ? `?${qs}` : ""}${hash ? `#${hash}` : ""}`;
 }
 
+function resolveChromeLocale(searchParams: URLSearchParams): PublicLocale {
+  return searchParams.get("locale") === "en" ? "en" : "ja";
+}
+
+function persistLocaleCookie(locale: Locale) {
+  document.cookie = `locale=${locale}; path=/; max-age=31536000; samesite=lax`;
+}
+
 export function SiteHeader() {
   const pathname = usePathname() || "/";
   const searchParams = useSearchParams();
-  const locale: PublicLocale = searchParams.get("locale") === "ja" ? "ja" : "en";
-  const t = labels[locale];
+  const locale = resolveChromeLocale(searchParams);
+  const t = getDictionary(locale).public;
   const current = `${pathname}${searchParams.toString() ? `?${searchParams}` : ""}`;
   const links = [
-    { href: withLocalePath("/tools", locale), label: t.tools, match: "/tools" },
+    { href: withLocalePath("/tools", locale), label: t.navTools, match: "/tools" },
     {
       href: withLocalePath("/categories", locale),
-      label: t.categories,
+      label: t.navCategories,
       match: "/categories",
     },
     {
       href: withLocalePath("/compare", locale),
-      label: t.compare,
+      label: t.navCompare,
       match: "/compare",
     },
-    { href: withLocalePath("/search", locale), label: t.search, match: "/search" },
+    { href: withLocalePath("/search", locale), label: t.navSearch, match: "/search" },
   ];
 
   return (
@@ -109,8 +103,9 @@ export function SiteHeader() {
             className="chip"
             href={withLocalePath(current, locale === "ja" ? "en" : "ja")}
             style={{ padding: "0.4rem 0.75rem" }}
+            onClick={() => persistLocaleCookie(locale === "ja" ? "en" : "ja")}
           >
-            {locale === "ja" ? "EN" : "JA"}
+            {locale === "ja" ? t.switchToEn : t.switchToJa}
           </Link>
         </nav>
       </div>
@@ -119,6 +114,7 @@ export function SiteHeader() {
 }
 
 export function SiteFooter({ locale }: { locale: PublicLocale }) {
+  const t = getDictionary(locale).public;
   return (
     <footer
       style={{
@@ -130,9 +126,7 @@ export function SiteFooter({ locale }: { locale: PublicLocale }) {
       <div className="container muted" style={{ fontSize: 13, lineHeight: 1.5 }}>
         <strong style={{ color: "var(--text)" }}>AI BASE</strong>
         {" — "}
-        {locale === "ja"
-          ? "エージェントが継続評価し、人が承認して公開するAIツールメディア"
-          : "AI tools continuously evaluated by agents, published with human approval"}
+        {t.footerTagline}
       </div>
     </footer>
   );

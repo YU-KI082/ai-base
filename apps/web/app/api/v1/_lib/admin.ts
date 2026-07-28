@@ -69,7 +69,9 @@ export async function withAdmin(
   }
 }
 
-/** Expose bypass status for diagnostics without leaking secrets. */
-export function adminAuthMode(): "dev_bypass" | "bearer" {
-  return isAdminDevBypassEnabled() ? "dev_bypass" : "bearer";
+/** Expose auth mode for diagnostics without leaking secrets. */
+export function adminAuthMode(): "dev_bypass" | "ops_secret" | "unconfigured" {
+  if (isAdminDevBypassEnabled()) return "dev_bypass";
+  if (process.env.ADMIN_OPS_SECRET?.trim()) return "ops_secret";
+  return "unconfigured";
 }

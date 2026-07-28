@@ -7,11 +7,11 @@ export function localeAlternates(
   const en = absoluteUrl(withLocale(path, "en"));
   const ja = absoluteUrl(withLocale(path, "ja"));
   return {
-    canonical: en,
+    canonical: ja,
     languages: {
-      en,
       ja,
-      "x-default": en,
+      en,
+      "x-default": ja,
     },
   };
 }
@@ -25,9 +25,9 @@ export function localeAlternatesFor(
   return {
     canonical: absoluteUrl(withLocale(path, locale)),
     languages: {
-      en,
       ja,
-      "x-default": en,
+      en,
+      "x-default": ja,
     },
   };
 }

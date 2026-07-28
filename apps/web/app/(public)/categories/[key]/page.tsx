@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
+import { getDictionary } from "@ai-base/i18n";
 import { repos } from "@ai-base/database";
 import { ToolCard } from "@/components/tool-card";
 import { absoluteUrl, resolvePublicLocale, withLocale } from "@/lib/site";
@@ -16,8 +17,9 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const { key } = await params;
   const locale = resolvePublicLocale((await searchParams).locale);
+  const t = getDictionary(locale).public;
   const category = await repos.categories.findByKey(key, locale);
-  if (!category) return { title: "Not found | AI BASE" };
+  if (!category) return { title: `${t.notFound} | AI BASE` };
   const name = category.translations[0]?.name ?? key;
   const title = `${name} | AI BASE`;
   return {
@@ -36,6 +38,7 @@ export default async function CategoryDetailPage({
 }) {
   const { key } = await params;
   const locale = resolvePublicLocale((await searchParams).locale);
+  const t = getDictionary(locale).public;
   const category = await repos.categories.findByKey(key, locale);
   if (!category) notFound();
   const tools = await repos.tools.findPublished(locale, {
@@ -47,25 +50,23 @@ export default async function CategoryDetailPage({
   return (
     <main className="container site-section">
       <Link className="muted" href={withLocale("/categories", locale)}>
-        ← {locale === "ja" ? "カテゴリ" : "Categories"}
+        ← {t.navCategories}
       </Link>
       <h1 style={{ fontFamily: "var(--font-display-loaded), serif" }}>{name}</h1>
       <p className="muted">{category.translations[0]?.description}</p>
       <ul style={{ listStyle: "none", padding: 0, marginTop: "1.25rem", display: "grid", gap: "0.75rem" }}>
         {tools.length === 0 ? (
-          <li className="muted">
-            {locale === "ja" ? "このカテゴリの公開ツールはまだありません。" : "No published tools in this category yet."}
-          </li>
+          <li className="muted">{t.categoryToolsEmpty}</li>
         ) : (
           tools.map((tool) => {
-            const t = tool.translations[0];
+            const tr = tool.translations[0];
             return (
               <ToolCard
                 key={tool.id}
                 locale={locale}
                 slug={tool.slug}
-                name={t?.name ?? tool.slug}
-                description={t?.description}
+                name={tr?.name ?? tool.slug}
+                description={tr?.description}
                 pricingModel={tool.pricingModel}
               />
             );

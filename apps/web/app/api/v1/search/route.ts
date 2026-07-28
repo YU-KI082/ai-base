@@ -11,7 +11,7 @@ export async function GET(request: Request) {
 
   const { searchParams } = new URL(request.url);
   const q = (searchParams.get("q") ?? "").trim();
-  const locale = searchParams.get("locale") === "ja" ? "ja" : "en";
+  const locale = searchParams.get("locale") === "en" ? "en" : "ja";
   if (!q) return jsonOk({ items: [] });
 
   const items = await repos.tools.findPublished(locale, { q, take: 20 });

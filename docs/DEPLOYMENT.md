@@ -46,9 +46,11 @@ See `.env.example`. Critical:
 | `REDIS_URL` | Optional for MVP if `CACHE_BACKEND=memory` |
 | `CACHE_BACKEND` | `memory` for single-region MVP; `redis` when multi-instance |
 | `NEXT_PUBLIC_SITE_URL` | Canonical site URL, e.g. `https://your-domain.vercel.app` |
-| `LLM_PROVIDER` | Prefer a real provider in production; `mock` is blocked when `NODE_ENV=production` unless explicitly allowed by package rules |
-| `ADMIN_DEV_BYPASS` | **Do not set** in Production (ignored when `NODE_ENV=production` anyway) |
-| Supabase JWT vars | Required for real admin auth (`NEXT_PUBLIC_SUPABASE_URL`, `NEXT_PUBLIC_SUPABASE_ANON_KEY`, …) |
+| `NEXT_PUBLIC_DEFAULT_LOCALE` | `ja` |
+| `ADMIN_OPS_SECRET` | **Required for production admin** — 16+ char secret used at `/login` |
+| `COOKIE_SECURE` | Optional `true` to force Secure cookies; on Vercel HTTPS is automatic |
+| `ADMIN_DEV_BYPASS` | **Do not set** in Production |
+| `LLM_PROVIDER` | Needed only when running agents/outbox for new article generation |
 
 Build uses `pnpm` (not `turbo run`) so paths with spaces work; `apps/web/vercel.json` is the source of truth when Root Directory is `apps/web`.
 
@@ -56,10 +58,12 @@ Build uses `pnpm` (not `turbo run`) so paths with spaces work; `apps/web/vercel.
 
 ```bash
 DATABASE_URL=... pnpm db:push   # or pnpm db:migrate for versioned migrations
-DATABASE_URL=... pnpm db:seed   # demo content only
+DATABASE_URL=... pnpm db:seed   # publishes demo tools + JA CTAs
 ```
 
-6. Agents / outbox are **not** hosted on Vercel — run them on Docker/K8s or skip until content ingestion is needed (seeded tools are enough for public browse).
+6. Open `/login`, enter `ADMIN_OPS_SECRET`, then manage affiliates at `/admin/affiliate`.
+7. Replace seed `direct` (公式サイト) URLs with real ASP partner links for monetization.
+8. Agents / outbox are **not** hosted on Vercel — run them on Docker/K8s when you need live AI draft→publish. Seeded tools are enough for public browse + `/go` tracking.
 
 ## Production posture (target)
 

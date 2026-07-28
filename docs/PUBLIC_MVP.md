@@ -19,23 +19,27 @@ Public launch MVP scope — ship feedback loop, not more domains.
 
 | Route | Purpose |
 |-------|---------|
+| `/login` | Production admin sign-in (`ADMIN_OPS_SECRET`) |
 | `/admin/drafts` | Human publish gate |
-| `/admin/affiliate` | Affiliate link CRUD |
+| `/admin/affiliate` | Affiliate Intelligence + `/go` link CRUD |
 | `/admin/social` | SNS draft review (manual publish mark) |
-| `/admin/ingest` | Start pipeline |
+| `/admin/ingest` | Start pipeline (requires agents/outbox) |
 
 ## Seed
 
-`pnpm db:seed` creates demo published tools (ChatGPT, Notion AI, Midjourney), affiliate links, and one comparison so the public site is reviewable immediately.
+`pnpm db:seed` creates demo published tools (ChatGPT, Notion AI, Midjourney), JA「公式サイト」affiliate links, and one comparison so the public site is reviewable immediately.
 
 ## Env
 
 - `NEXT_PUBLIC_SITE_URL` — canonical / sitemap / OG base
+- `NEXT_PUBLIC_DEFAULT_LOCALE=ja`
+- `ADMIN_OPS_SECRET` — production admin login (16+ chars)
 
 ## Explicitly deferred
 
 - Live SNS network posting APIs
 - Marketplace billing
-- Full AuthN for public accounts
+- Full AuthN for public accounts / Supabase JWT (ops secret covers MVP)
 - OpenSearch / trigram search
 - Cache invalidation on publish event
+- Hosting agents/outbox on Vercel (run separately when generating new articles)

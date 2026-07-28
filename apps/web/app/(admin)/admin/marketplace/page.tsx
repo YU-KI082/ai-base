@@ -1,10 +1,15 @@
 import Link from "next/link";
+import { cookies } from "next/headers";
+import { getDictionary, resolveLocale } from "@ai-base/i18n";
 import { createAgentRegistry } from "@ai-base/marketplace";
 import { MarketplaceActions } from "./marketplace-actions";
 
 export const dynamic = "force-dynamic";
 
 export default async function MarketplacePage() {
+  const cookieStore = await cookies();
+  const locale = resolveLocale(cookieStore.get("locale")?.value);
+  const dict = getDictionary(locale);
   const registry = createAgentRegistry();
   const [catalog, installations] = await Promise.all([
     registry.listCatalog(),
@@ -17,25 +22,24 @@ export default async function MarketplacePage() {
   return (
     <main>
       <h1 style={{ fontFamily: "var(--font-display-loaded), serif", marginTop: 0 }}>
-        Agent Marketplace
+        {dict.admin.marketplace}
       </h1>
-      <p className="muted">
-        Discover, install, enable/disable, and update agent plugins. Visibility:
-        free / paid / internal / community.
-      </p>
+      <p className="muted">{dict.admin.marketplaceSubtitle}</p>
 
       <div style={{ display: "grid", gap: "0.75rem", marginTop: "1.25rem" }}>
         {catalog.length === 0 ? (
-          <p className="muted">
-            No packages yet. Start agent workers to auto-register builtin plugins.
-          </p>
+          <p className="muted">{dict.admin.marketplaceEmpty}</p>
         ) : (
           catalog.map((pkg) => {
             const latest = pkg.versions[0];
             const installation = installedByKey.get(pkg.key);
             const name =
               typeof pkg.name === "object" && pkg.name && "en" in (pkg.name as object)
-                ? String((pkg.name as { en?: string }).en ?? pkg.key)
+                ? String(
+                    (pkg.name as { ja?: string; en?: string })[locale] ??
+                      (pkg.name as { en?: string }).en ??
+                      pkg.key,
+                  )
                 : pkg.key;
             return (
               <article key={pkg.id} className="card-surface" style={{ padding: "1rem" }}>
@@ -49,12 +53,13 @@ export default async function MarketplacePage() {
                       {pkg.listingStatus}
                       {installation
                         ? ` · ${installation.status} @ runtime ${installation.agent.version}`
-                        : " · not installed"}
+                        : ` · ${dict.admin.notInstalled}`}
                     </div>
                     <div className="muted" style={{ fontSize: 12, marginTop: 6 }}>
-                      perms: {pkg.permissions.map((p) => p.permission).join(", ") || "—"}
+                      {dict.admin.permissionsShort}:{" "}
+                      {pkg.permissions.map((p) => p.permission).join(", ") || "—"}
                       {" · "}
-                      deps:{" "}
+                      {dict.admin.depsShort}:{" "}
                       {pkg.dependencies
                         .map((d) => `${d.dependsOnKey}@${d.versionRange}`)
                         .join(", ") || "—"}
@@ -64,6 +69,12 @@ export default async function MarketplacePage() {
                     agentKey={pkg.key}
                     enabled={installation?.agent.status === "active"}
                     installed={Boolean(installation)}
+                    labels={{
+                      enable: dict.admin.enable,
+                      disable: dict.admin.disable,
+                      update: dict.admin.update,
+                      registerViaWorker: dict.admin.registerViaWorker,
+                    }}
                   />
                 </div>
               </article>

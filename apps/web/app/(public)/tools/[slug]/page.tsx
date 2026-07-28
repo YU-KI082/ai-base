@@ -15,6 +15,7 @@ import {
   localeAlternatesFor,
   softwareApplicationJsonLd,
 } from "@/lib/seo";
+import { getDictionary } from "@ai-base/i18n";
 
 export const revalidate = 60;
 
@@ -30,15 +31,16 @@ export async function generateMetadata({
   const tool = await cachedJson(`page:tool:${slug}`, 60, () =>
     repos.tools.findBySlug(slug),
   );
+  const pub = getDictionary(locale).public;
   if (!tool || tool.status !== "published") {
-    return { title: "Not found | AI BASE" };
+    return { title: `${pub.notFound} | AI BASE` };
   }
   const translation = pickTranslation(tool.translations, locale);
   const title = translation?.seoTitle || `${translation?.name ?? slug} | AI BASE`;
   const description =
     translation?.seoDescription ||
     translation?.description?.slice(0, 155) ||
-    "AI tool on AI BASE";
+    pub.toolFallbackDescription;
   const url = absoluteUrl(withLocale(`/tools/${slug}`, locale));
   return {
     title,
@@ -68,6 +70,7 @@ export default async function ToolDetailPage({
 }) {
   const { slug } = await params;
   const locale = resolvePublicLocale((await searchParams).locale);
+  const t = getDictionary(locale).public;
   const tool = await cachedJson(`page:tool:${slug}`, 60, () =>
     repos.tools.findBySlug(slug),
   );
@@ -80,9 +83,7 @@ export default async function ToolDetailPage({
   const faq = normalizeFaq(translation?.faq);
   const affiliate = primaryAffiliate(tool.affiliateLinks);
   const ctaHref = affiliate ? `/go/${affiliate.id}` : tool.homepageUrl;
-  const ctaLabel =
-    affiliate?.label ||
-    (locale === "ja" ? "公式サイトを開く" : "Visit website");
+  const ctaLabel = affiliate?.label || t.visitWebsite;
 
   const categoryLinks = tool.categories.map((c) => {
     const tr = pickTranslation(c.category.translations, locale);
@@ -106,8 +107,8 @@ export default async function ToolDetailPage({
 
   const metaBits = [
     tool.pricingModel !== "unknown" ? tool.pricingModel : null,
-    tool.hasFreePlan ? (locale === "ja" ? "無料プランあり" : "Free plan") : null,
-    tool.hasApi ? "API" : null,
+    tool.hasFreePlan ? t.freePlan : null,
+    tool.hasApi ? t.api : null,
   ].filter(Boolean);
 
   return (
@@ -124,7 +125,7 @@ export default async function ToolDetailPage({
       ) : null}
 
       <Link className="muted" href={withLocale("/tools", locale)} style={{ fontSize: 14 }}>
-        ← {locale === "ja" ? "ツール一覧" : "All tools"}
+        ← {t.backToTools}
       </Link>
 
       <div className="page-header" style={{ marginTop: "1rem", alignItems: "start" }}>
@@ -152,7 +153,7 @@ export default async function ToolDetailPage({
               locale,
             )}
           >
-            {locale === "ja" ? "比較する" : "Compare"}
+            {t.navCompare}
           </Link>
         </div>
       </div>
@@ -186,11 +187,11 @@ export default async function ToolDetailPage({
       <div className="grid-2" style={{ marginTop: "1.75rem" }}>
         <section className="card-surface" style={{ padding: "1.15rem 1.25rem" }}>
           <h2 style={{ marginTop: 0, fontSize: "1.05rem", letterSpacing: "-0.02em" }}>
-            {locale === "ja" ? "機能" : "Features"}
+            {t.features}
           </h2>
           <ul style={{ margin: 0, paddingLeft: "1.1rem", lineHeight: 1.65 }}>
             {features.length === 0 ? (
-              <li className="muted">{locale === "ja" ? "未掲載" : "Not listed"}</li>
+              <li className="muted">{t.toolsEmpty}</li>
             ) : (
               features.map((f) => <li key={f}>{f}</li>)
             )}
@@ -198,10 +199,10 @@ export default async function ToolDetailPage({
         </section>
         <section className="card-surface" style={{ padding: "1.15rem 1.25rem" }}>
           <h2 style={{ marginTop: 0, fontSize: "1.05rem", letterSpacing: "-0.02em" }}>
-            {locale === "ja" ? "長所 / 短所" : "Pros / Cons"}
+            {`${t.pros} / ${t.cons}`}
           </h2>
           <p style={{ marginBottom: 0.35, fontWeight: 600, fontSize: 14 }}>
-            {locale === "ja" ? "長所" : "Pros"}
+            {t.pros}
           </p>
           <ul style={{ marginTop: 0, paddingLeft: "1.1rem", lineHeight: 1.65 }}>
             {pros.length === 0 ? (
@@ -211,7 +212,7 @@ export default async function ToolDetailPage({
             )}
           </ul>
           <p style={{ marginBottom: 0.35, fontWeight: 600, fontSize: 14 }}>
-            {locale === "ja" ? "短所" : "Cons"}
+            {t.cons}
           </p>
           <ul style={{ marginTop: 0, paddingLeft: "1.1rem", lineHeight: 1.65 }}>
             {cons.length === 0 ? (
@@ -226,7 +227,7 @@ export default async function ToolDetailPage({
       {faq.length > 0 ? (
         <section style={{ marginTop: "2rem" }}>
           <h2 style={{ fontSize: "1.15rem", letterSpacing: "-0.02em" }}>
-            {locale === "ja" ? "よくある質問" : "FAQ"}
+            {t.faq}
           </h2>
           <div style={{ display: "grid", gap: "0.65rem" }}>
             {faq.map((item, i) => (
@@ -250,16 +251,17 @@ export default async function ToolDetailPage({
       {otherTools.length > 0 ? (
         <section style={{ marginTop: "2.25rem" }}>
           <h2 style={{ fontSize: "1.15rem", letterSpacing: "-0.02em" }}>
-            {locale === "ja" ? "ほかのツールと比較" : "Compare with another tool"}
+            {t.compareWith}
           </h2>
           <div style={{ display: "flex", flexWrap: "wrap", gap: "0.4rem" }}>
-            {otherTools.slice(0, 8).map((t) => (
+            {otherTools.slice(0, 8).map((other) => (
               <Link
-                key={t.id}
+                key={other.id}
                 className="chip"
-                href={withLocale(`/compare?tools=${slug},${t.slug}`, locale)}
+                href={withLocale(`/compare?tools=${slug},${other.slug}`, locale)}
               >
-                vs {t.translations[0]?.name ?? t.slug}
+                {t.vsPrefix}
+                {other.translations[0]?.name ?? other.slug}
               </Link>
             ))}
           </div>

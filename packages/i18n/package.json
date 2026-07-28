@@ -8,13 +8,15 @@
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
+      "import": "./dist/index.js",
+      "require": "./dist/index.js",
+      "default": "./dist/index.js"
     }
   },
   "scripts": {
     "build": "tsc -p tsconfig.json",
     "typecheck": "tsc -p tsconfig.json --noEmit",
-    "test": "node --import tsx --test src/**/*.test.ts"
+    "test": "NEXT_PUBLIC_DEFAULT_LOCALE=ja node --import tsx --test src/**/*.test.ts"
   },
   "devDependencies": {
     "@types/node": "^22.10.2",

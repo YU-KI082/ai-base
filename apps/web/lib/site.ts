@@ -1,3 +1,5 @@
+import { type Locale } from "@ai-base/i18n";
+
 export function siteUrl(): string {
   return (
     process.env.NEXT_PUBLIC_SITE_URL?.replace(/\/$/, "") ||
@@ -11,15 +13,17 @@ export function absoluteUrl(path: string): string {
   return `${base}${path}`;
 }
 
-export type PublicLocale = "en" | "ja";
+export type PublicLocale = Locale;
 
+/** Japanese-first: bare URLs are JA; only explicit en switches. */
 export function resolvePublicLocale(value?: string | null): PublicLocale {
-  return value === "ja" ? "ja" : "en";
+  return value === "en" ? "en" : "ja";
 }
 
+/** JA = bare path; EN = ?locale=en */
 export function withLocale(path: string, locale: PublicLocale): string {
   const url = new URL(path, "http://local.invalid");
-  if (locale === "ja") url.searchParams.set("locale", "ja");
+  if (locale === "en") url.searchParams.set("locale", "en");
   else url.searchParams.delete("locale");
   const qs = url.searchParams.toString();
   return `${url.pathname}${qs ? `?${qs}` : ""}`;

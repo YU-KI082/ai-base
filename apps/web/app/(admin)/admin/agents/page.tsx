@@ -1,7 +1,7 @@
 import { repos } from "@ai-base/database";
 import Link from "next/link";
 import { cookies } from "next/headers";
-import { getDictionary, resolveLocale } from "@ai-base/i18n";
+import { formatDateTime, getDictionary, resolveLocale } from "@ai-base/i18n";
 import { AgentControls } from "./agent-controls";
 
 export const dynamic = "force-dynamic";
@@ -19,7 +19,7 @@ export default async function AgentsPage() {
       </h1>
       <div style={{ display: "grid", gap: "0.75rem" }}>
         {agents.length === 0 ? (
-          <p className="muted">No agents registered yet. Start workers to register.</p>
+          <p className="muted">{dict.admin.agentsEmpty}</p>
         ) : (
           agents.map((agent) => (
             <article key={agent.id} className="card-surface" style={{ padding: "1rem" }}>
@@ -31,14 +31,21 @@ export default async function AgentsPage() {
                   <div className="muted">
                     v{agent.version} · {agent.status}
                     {agent.lastHeartbeatAt
-                      ? ` · heartbeat ${agent.lastHeartbeatAt.toISOString()}`
+                      ? ` · ${dict.admin.heartbeat} ${formatDateTime(agent.lastHeartbeatAt, locale)}`
                       : ""}
                   </div>
                   <div className="muted" style={{ fontSize: 13, marginTop: 6 }}>
-                    sub: {agent.subscribe.join(", ") || "—"}
+                    {dict.admin.subscribeLabel}: {agent.subscribe.join(", ") || "—"}
                   </div>
                 </div>
-                <AgentControls agentKey={agent.key} enabled={agent.status === "active"} />
+                <AgentControls
+                  agentKey={agent.key}
+                  enabled={agent.status === "active"}
+                  labels={{
+                    enable: dict.admin.enable,
+                    disable: dict.admin.disable,
+                  }}
+                />
               </div>
             </article>
           ))

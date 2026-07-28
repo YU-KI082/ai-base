@@ -513,6 +513,9 @@ model SocialPost {
   scoreTotal       Float?    @map("score_total")
   scoreBreakdown   Json?     @map("score_breakdown")
   riskFlags        String[]  @default([]) @map("risk_flags")
+  contentHash      String?   @map("content_hash")
+  autoDecision     Json?     @map("auto_decision")
+  publishAttempts  Int       @default(0) @map("publish_attempts")
   scheduledAt      DateTime? @map("scheduled_at")
   externalPostId   String?   @map("external_post_id")
   publishedAt      DateTime? @map("published_at")
@@ -526,7 +529,35 @@ model SocialPost {
 
   @@index([platform, status])
   @@index([experimentId])
+  @@index([contentHash])
   @@map("social_posts")
+}
+
+/// Official OAuth connection for Instagram / TikTok.
+/// Never stores passwords — only encrypted access/refresh tokens from OAuth.
+model SnsOAuthConnection {
+  id                    String    @id @default(cuid())
+  provider              String
+  /// Display status: connected | auto_refreshing | reauth_required | disconnected
+  status                String    @default("disconnected")
+  externalAccountId     String?   @map("external_account_id")
+  accountLabel          String?   @map("account_label")
+  scopes                String[]  @default([])
+  accessTokenCipher     String?   @map("access_token_cipher")
+  refreshTokenCipher    String?   @map("refresh_token_cipher")
+  accessTokenExpiresAt  DateTime? @map("access_token_expires_at")
+  refreshTokenExpiresAt DateTime? @map("refresh_token_expires_at")
+  lastRefreshedAt       DateTime? @map("last_refreshed_at")
+  lastValidatedAt       DateTime? @map("last_validated_at")
+  lastError             String?   @map("last_error")
+  reauthRequiredAt      DateTime? @map("reauth_required_at")
+  metadata              Json?
+  createdAt             DateTime  @default(now()) @map("created_at")
+  updatedAt             DateTime  @updatedAt @map("updated_at")
+
+  @@unique([provider])
+  @@index([status])
+  @@map("sns_oauth_connections")
 }
 
 /// Structural observation of trending content — never stores copied captions/media/audio.
@@ -937,6 +968,25 @@ model Setting {
   @@map("settings")
 }
 
+/// Critical operator alerts only — no noise for normal auto-ops.
+model OpsAlert {
+  id          String    @id @default(cuid())
+  severity    String    @default("critical")
+  kind        String
+  title       String
+  message     String
+  provider    String?
+  socialPostId String?  @map("social_post_id")
+  toolId      String?   @map("tool_id")
+  acknowledgedAt DateTime? @map("acknowledged_at")
+  metadata    Json      @default("{}")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  @@index([acknowledgedAt, createdAt])
+  @@index([kind, createdAt])
+  @@map("ops_alerts")
+}
+
 model AnalyticsEvent {
   id        String   @id @default(cuid())
   name      String
@@ -1283,4 +1333,55 @@ model VectorRecord {
 
   @@index([namespace])
   @@map("vector_records")
+}
+
+/// Self-Healing Agent incident + audit trail (never mutates production directly).
+model SelfHealingIncident {
+  id                String    @id @default(cuid())
+  fingerprint       String
+  title             String
+  message           String
+  kind              String
+  severity          String    @default("medium")
+  location          String?
+  cause             String?
+  status            String    @default("detected")
+  attemptCount      Int       @default(0) @map("attempt_count")
+  maxAttempts       Int       @default(3) @map("max_attempts")
+  requiresApproval  Boolean   @default(false) @map("requires_approval")
+  proposedFix       Json?     @map("proposed_fix")
+  changedFiles      String[]  @default([]) @map("changed_files")
+  testResults       Json?     @map("test_results")
+  rollbackResult    Json?     @map("rollback_result")
+  diffBefore        Json?     @map("diff_before")
+  metadata          Json      @default("{}")
+  healedAt          DateTime? @map("healed_at")
+  acknowledgedAt    DateTime? @map("acknowledged_at")
+  createdAt         DateTime  @default(now()) @map("created_at")
+  updatedAt         DateTime  @updatedAt @map("updated_at")
+
+  attempts SelfHealingAttempt[]
+
+  @@index([fingerprint, createdAt])
+  @@index([status, createdAt])
+  @@index([requiresApproval, createdAt])
+  @@map("self_healing_incidents")
+}
+
+model SelfHealingAttempt {
+  id            String   @id @default(cuid())
+  incidentId    String   @map("incident_id")
+  attemptNumber Int      @map("attempt_number")
+  action        String
+  success       Boolean  @default(false)
+  changedFiles  String[] @default([]) @map("changed_files")
+  diff          Json?
+  testResults   Json?    @map("test_results")
+  errorMessage  String?  @map("error_message")
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  incident SelfHealingIncident @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+
+  @@index([incidentId, attemptNumber])
+  @@map("self_healing_attempts")
 }

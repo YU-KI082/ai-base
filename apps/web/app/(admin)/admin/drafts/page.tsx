@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { repos } from "@ai-base/database";
 import { cookies } from "next/headers";
-import { getDictionary, resolveLocale } from "@ai-base/i18n";
+import { getDictionary, resolveLocale, statusLabel } from "@ai-base/i18n";
 
 export const dynamic = "force-dynamic";
 
@@ -24,7 +24,7 @@ export default async function DraftsPage({
       <div style={{ display: "flex", gap: "0.5rem", marginBottom: "1rem", flexWrap: "wrap" }}>
         {["pending_approval", "building", "approved", "rejected", "published"].map((status) => (
           <Link key={status} className="btn btn-ghost" href={`/admin/drafts?status=${status}`}>
-            {status}
+            {statusLabel(locale, status)}
           </Link>
         ))}
       </div>
@@ -43,7 +43,7 @@ export default async function DraftsPage({
               >
                 <strong>{payload.slug ?? draft.id}</strong>
                 <div className="muted">
-                  {draft.status} · {draft.kind}
+                  {statusLabel(locale, draft.status)} · {draft.kind}
                 </div>
               </Link>
             );

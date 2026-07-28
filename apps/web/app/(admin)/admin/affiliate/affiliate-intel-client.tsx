@@ -9,6 +9,7 @@ import {
   isAffiliateStatus,
   type AffiliateStatus,
 } from "@ai-base/affiliate-intel";
+import { formatCurrency, formatPercent, getDictionary } from "@ai-base/i18n";
 import { adminMutationHeaders } from "@/lib/admin-fetch";
 
 type Lead = {
@@ -64,10 +65,12 @@ const STATUSES: AffiliateStatus[] = [
 ];
 
 export function AffiliateIntelClient({
+  locale,
   initialItems,
   legacyLinks,
   tools,
 }: {
+  locale: "ja" | "en";
   initialItems: Item[];
   legacyLinks: Array<{
     id: string;
@@ -83,11 +86,13 @@ export function AffiliateIntelClient({
   tools: Array<{ id: string; slug: string; name: string }>;
 }) {
   const router = useRouter();
+  const dict = getDictionary(locale);
+  const a = dict.admin;
   const [busy, setBusy] = useState(false);
   const [filter, setFilter] = useState<string>("all");
   const [message, setMessage] = useState<string | null>(null);
   const [toolId, setToolId] = useState(tools[0]?.id ?? "");
-  const [label, setLabel] = useState("Visit website");
+  const [label, setLabel] = useState(dict.public.visitWebsite);
   const [url, setUrl] = useState("https://");
   const [network, setNetwork] = useState("official");
   const [priority, setPriority] = useState(10);
@@ -177,11 +182,11 @@ export function AffiliateIntelClient({
   }
 
   async function addConversion(toolIdValue: string) {
-    const amount = window.prompt("報酬額 / 売上 (USD, 実数値のみ)");
+    const amount = window.prompt(a.rewardPrompt);
     if (amount == null || amount === "") return;
     const n = Number(amount);
     if (!Number.isFinite(n) || n < 0) {
-      setMessage("無効な金額です");
+      setMessage(a.invalidAmount);
       return;
     }
     setBusy(true);
@@ -228,10 +233,10 @@ export function AffiliateIntelClient({
     <div style={{ display: "grid", gap: "1.25rem" }}>
       <div style={{ display: "flex", gap: "0.5rem", flexWrap: "wrap" }}>
         <button className="btn btn-primary" disabled={busy} type="button" onClick={() => void syncNow()}>
-          既存ツールを今すぐ同期
+          {a.syncNow}
         </button>
         <button className="btn btn-ghost" disabled={busy} type="button" onClick={() => void backfill()}>
-          エージェント経由で再スキャン
+          {a.rescanAgents}
         </button>
         {message ? <span className="pill">{message}</span> : null}
       </div>
@@ -244,19 +249,21 @@ export function AffiliateIntelClient({
         }}
       >
         {[
-          ["案件", initialItems.length],
-          ["クリック", totals.clicks],
-          ["CV", totals.conversions],
-          ["売上/報酬", totals.sales.toFixed(2)],
+          [a.cases, initialItems.length],
+          [a.clicks, totals.clicks],
+          [a.conversions, totals.conversions],
+          [a.salesReward, formatCurrency(totals.sales, locale, locale === "ja" ? "JPY" : "USD")],
           [
-            "全体CVR",
+            a.overallCvr,
             totals.clicks > 0
-              ? `${((totals.conversions / totals.clicks) * 100).toFixed(2)}%`
+              ? formatPercent(totals.conversions / totals.clicks, locale)
               : "—",
           ],
           [
-            "全体EPC",
-            totals.clicks > 0 ? (totals.sales / totals.clicks).toFixed(3) : "—",
+            a.overallEpc,
+            totals.clicks > 0
+              ? formatCurrency(totals.sales / totals.clicks, locale, locale === "ja" ? "JPY" : "USD")
+              : "—",
           ],
         ].map(([k, v]) => (
           <div key={String(k)} className="card-surface" style={{ padding: "0.9rem" }}>
@@ -274,7 +281,7 @@ export function AffiliateIntelClient({
           className={`btn ${filter === "all" ? "btn-primary" : "btn-ghost"}`}
           onClick={() => setFilter("all")}
         >
-          すべて
+          {dict.common.all}
         </button>
         {STATUSES.map((s) => (
           <StatusChip
@@ -312,23 +319,22 @@ export function AffiliateIntelClient({
                       </span>
                     </strong>
                     <StatusBadge status={item.status} />
-                    <span className="pill">アフィリエイト: {hasAffiliateLabel(item.hasAffiliate)}</span>
+                    <span className="pill">{a.hasAffiliate}: {hasAffiliateLabel(item.hasAffiliate)}</span>
                   </div>
                   <p className="muted" style={{ margin: "0.35rem 0" }}>
-                    公式:{" "}
+                    {a.officialSite}:{" "}
                     <a href={item.homepageUrl} target="_blank" rel="noreferrer">
                       {item.homepageUrl}
                     </a>
                   </p>
                   <p style={{ margin: "0.25rem 0", fontSize: 13 }}>
-                    クリック {item.metrics.clicks} · CV {item.metrics.conversions} · 売上{" "}
-                    {item.metrics.sales.toFixed(2)} · CVR{" "}
-                    {item.metrics.cvr == null
-                      ? "—"
-                      : `${(item.metrics.cvr * 100).toFixed(2)}%`}{" "}
+                    {a.clicks} {item.metrics.clicks} · {a.conversions} {item.metrics.conversions} · {a.salesReward}{" "}
+                    {formatCurrency(item.metrics.sales, locale, locale === "ja" ? "JPY" : "USD")} · CVR{" "}
+                    {formatPercent(item.metrics.cvr, locale)}{" "}
                     · EPC{" "}
-                    {item.metrics.epc == null ? "—" : item.metrics.epc.toFixed(3)} · 報酬{" "}
-                    {item.metrics.rewardAmount.toFixed(2)}
+                    {item.metrics.epc == null
+                      ? "—"
+                      : formatCurrency(item.metrics.epc, locale, locale === "ja" ? "JPY" : "USD")}
                   </p>
                 </div>
                 <div style={{ display: "flex", gap: "0.35rem", flexWrap: "wrap" }}>
@@ -360,7 +366,7 @@ export function AffiliateIntelClient({
                     type="button"
                     onClick={() => void addConversion(item.toolId)}
                   >
-                    CV/売上を記録
+                    {a.recordConversion}
                   </button>
                 </div>
               </div>
@@ -370,12 +376,12 @@ export function AffiliateIntelClient({
                   <thead>
                     <tr className="muted">
                       <th style={th}>ASP</th>
-                      <th style={th}>状況</th>
-                      <th style={th}>報酬</th>
-                      <th style={th}>Cookie</th>
-                      <th style={th}>成果条件</th>
-                      <th style={th}>申請</th>
-                      <th style={th}>承認</th>
+                      <th style={th}>{dict.common.status}</th>
+                      <th style={th}>{a.reward}</th>
+                      <th style={th}>{a.cookie}</th>
+                      <th style={th}>{a.conversionTerms}</th>
+                      <th style={th}>{a.appliedAt}</th>
+                      <th style={th}>{a.approvedAt}</th>
                       <th style={th} />
                     </tr>
                   </thead>
@@ -453,9 +459,9 @@ export function AffiliateIntelClient({
         className="card-surface"
         style={{ padding: "1rem", maxWidth: 640 }}
       >
-        <h2 style={{ marginTop: 0 }}>公開トラッキングリンク追加</h2>
+        <h2 style={{ marginTop: 0 }}>{a.addTrackingLink}</h2>
         <label className="muted">
-          Tool
+          {a.fieldTool}
           <select
             value={toolId}
             onChange={(e) => setToolId(e.target.value)}
@@ -470,19 +476,19 @@ export function AffiliateIntelClient({
           </select>
         </label>
         <label className="muted">
-          Label
+          {a.fieldLabel}
           <input value={label} onChange={(e) => setLabel(e.target.value)} required style={inputStyle} />
         </label>
         <label className="muted">
-          URL
+          {a.fieldUrl}
           <input value={url} onChange={(e) => setUrl(e.target.value)} required style={inputStyle} />
         </label>
         <label className="muted">
-          ASP / network
+          {a.fieldNetwork}
           <input value={network} onChange={(e) => setNetwork(e.target.value)} style={inputStyle} />
         </label>
         <label className="muted">
-          Priority
+          {a.fieldPriority}
           <input
             type="number"
             value={priority}
@@ -491,7 +497,7 @@ export function AffiliateIntelClient({
           />
         </label>
         <button className="btn btn-primary" disabled={busy} type="submit">
-          Add /go link
+          {a.addGoLink}
         </button>
         {legacyLinks.length > 0 ? (
           <p className="muted" style={{ fontSize: 12 }}>

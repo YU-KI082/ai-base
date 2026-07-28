@@ -1176,6 +1176,453 @@ export class SocialPostRepository {
       },
     });
   }
+
+  async markExternalPublished(
+    id: string,
+    input: { externalPostId: string; publishedAt?: Date },
+  ) {
+    return this.db.socialPost.update({
+      where: { id },
+      data: {
+        status: "published",
+        externalPostId: input.externalPostId,
+        publishedAt: input.publishedAt ?? new Date(),
+      },
+    });
+  }
+
+  async saveAutoDecision(
+    id: string,
+    input: { contentHash: string; autoDecision: Prisma.InputJsonValue },
+  ) {
+    return this.db.socialPost.update({
+      where: { id },
+      data: {
+        contentHash: input.contentHash,
+        autoDecision: input.autoDecision,
+      },
+    });
+  }
+
+  async listDraftsForAutoOps(take = 30) {
+    return this.db.socialPost.findMany({
+      where: {
+        status: { in: ["draft", "ready"] },
+        platform: { in: ["instagram", "tiktok"] },
+      },
+      orderBy: [{ scoreTotal: "desc" }, { createdAt: "asc" }],
+      take,
+    });
+  }
+
+  async countPublishedSince(since: Date) {
+    return this.db.socialPost.count({
+      where: {
+        status: "published",
+        publishedAt: { gte: since },
+      },
+    });
+  }
+
+  async lastPublishedAt(platform: string) {
+    const row = await this.db.socialPost.findFirst({
+      where: { platform, status: "published", publishedAt: { not: null } },
+      orderBy: { publishedAt: "desc" },
+      select: { publishedAt: true },
+    });
+    return row?.publishedAt ?? null;
+  }
+
+  async listRecentContents(take = 40) {
+    return this.db.socialPost.findMany({
+      where: { status: { in: ["published", "ready", "draft"] } },
+      orderBy: { createdAt: "desc" },
+      take,
+      select: { id: true, content: true, contentHash: true },
+    });
+  }
+
+  async incrementPublishAttempts(id: string) {
+    return this.db.socialPost.update({
+      where: { id },
+      data: { publishAttempts: { increment: 1 } },
+    });
+  }
+
+  async findByExternalPostId(externalPostId: string) {
+    return this.db.socialPost.findFirst({ where: { externalPostId } });
+  }
+}
+
+export class SettingsRepository {
+  constructor(private readonly db: Db = prisma) {}
+
+  async getJson(key: string): Promise<unknown | null> {
+    const row = await this.db.setting.findUnique({ where: { key } });
+    return row?.value ?? null;
+  }
+
+  async upsertJson(key: string, value: Prisma.InputJsonValue) {
+    return this.db.setting.upsert({
+      where: { key },
+      create: { key, value },
+      update: { value },
+    });
+  }
+}
+
+export class OpsAlertRepository {
+  constructor(private readonly db: Db = prisma) {}
+
+  async create(input: {
+    severity?: string;
+    kind: string;
+    title: string;
+    message: string;
+    provider?: string;
+    socialPostId?: string;
+    toolId?: string;
+    metadata?: Prisma.InputJsonValue;
+  }) {
+    return this.db.opsAlert.create({
+      data: {
+        severity: input.severity ?? "critical",
+        kind: input.kind,
+        title: input.title,
+        message: input.message,
+        provider: input.provider,
+        socialPostId: input.socialPostId,
+        toolId: input.toolId,
+        metadata: input.metadata ?? {},
+      },
+    });
+  }
+
+  async listOpen(take = 20) {
+    return this.db.opsAlert.findMany({
+      where: { acknowledgedAt: null },
+      orderBy: { createdAt: "desc" },
+      take,
+    });
+  }
+
+  async acknowledge(id: string) {
+    return this.db.opsAlert.update({
+      where: { id },
+      data: { acknowledgedAt: new Date() },
+    });
+  }
+}
+
+export class SelfHealingRepository {
+  constructor(private readonly db: Db = prisma) {}
+
+  async createIncident(input: {
+    fingerprint: string;
+    title: string;
+    message: string;
+    kind: string;
+    severity?: string;
+    location?: string;
+    cause?: string;
+    requiresApproval?: boolean;
+    maxAttempts?: number;
+    metadata?: Prisma.InputJsonValue;
+  }) {
+    return this.db.selfHealingIncident.create({
+      data: {
+        fingerprint: input.fingerprint,
+        title: input.title,
+        message: input.message,
+        kind: input.kind,
+        severity: input.severity ?? "medium",
+        location: input.location,
+        cause: input.cause,
+        requiresApproval: input.requiresApproval ?? false,
+        maxAttempts: input.maxAttempts ?? 3,
+        metadata: input.metadata ?? {},
+        status: "detected",
+      },
+    });
+  }
+
+  async getById(id: string) {
+    return this.db.selfHealingIncident.findUnique({
+      where: { id },
+      include: { attempts: { orderBy: { attemptNumber: "asc" } } },
+    });
+  }
+
+  async findOpenByFingerprint(fingerprint: string) {
+    return this.db.selfHealingIncident.findFirst({
+      where: {
+        fingerprint,
+        status: { notIn: ["healed", "failed", "stopped"] },
+        acknowledgedAt: null,
+      },
+      orderBy: { createdAt: "desc" },
+      include: { attempts: { orderBy: { attemptNumber: "asc" } } },
+    });
+  }
+
+  async updateIncident(
+    id: string,
+    data: {
+      status?: string;
+      cause?: string;
+      attemptCount?: number;
+      requiresApproval?: boolean;
+      proposedFix?: Prisma.InputJsonValue;
+      changedFiles?: string[];
+      testResults?: Prisma.InputJsonValue;
+      rollbackResult?: Prisma.InputJsonValue;
+      diffBefore?: Prisma.InputJsonValue;
+      healedAt?: Date | null;
+      acknowledgedAt?: Date | null;
+      metadata?: Prisma.InputJsonValue;
+    },
+  ) {
+    return this.db.selfHealingIncident.update({ where: { id }, data });
+  }
+
+  async addAttempt(input: {
+    incidentId: string;
+    attemptNumber: number;
+    action: string;
+    success: boolean;
+    changedFiles?: string[];
+    diff?: Prisma.InputJsonValue;
+    testResults?: Prisma.InputJsonValue;
+    errorMessage?: string;
+  }) {
+    return this.db.selfHealingAttempt.create({
+      data: {
+        incidentId: input.incidentId,
+        attemptNumber: input.attemptNumber,
+        action: input.action,
+        success: input.success,
+        changedFiles: input.changedFiles ?? [],
+        diff: input.diff,
+        testResults: input.testResults,
+        errorMessage: input.errorMessage,
+      },
+    });
+  }
+
+  async listOpen(take = 50) {
+    return this.db.selfHealingIncident.findMany({
+      where: { status: { notIn: ["healed"] }, acknowledgedAt: null },
+      orderBy: { createdAt: "desc" },
+      take,
+      include: { attempts: { orderBy: { attemptNumber: "asc" } } },
+    });
+  }
+
+  async listHistory(take = 30) {
+    return this.db.selfHealingIncident.findMany({
+      orderBy: { updatedAt: "desc" },
+      take,
+      include: { attempts: { orderBy: { attemptNumber: "asc" } } },
+    });
+  }
+
+  async acknowledge(id: string) {
+    return this.db.selfHealingIncident.update({
+      where: { id },
+      data: { acknowledgedAt: new Date() },
+    });
+  }
+}
+
+export class OpsMetricsRepository {
+  constructor(private readonly db: Db = prisma) {}
+
+  async salesSummary() {
+    const now = new Date();
+    const startToday = new Date(now);
+    startToday.setHours(0, 0, 0, 0);
+    const startMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+
+    const [todayConv, monthConv, monthRows] = await Promise.all([
+      this.db.affiliateConversion.aggregate({
+        where: { occurredAt: { gte: startToday } },
+        _sum: { amountUsd: true },
+        _count: true,
+      }),
+      this.db.affiliateConversion.aggregate({
+        where: { occurredAt: { gte: startMonth } },
+        _sum: { amountUsd: true },
+        _count: true,
+      }),
+      this.db.affiliateConversion.groupBy({
+        by: ["toolId"],
+        where: { occurredAt: { gte: startMonth } },
+        _sum: { amountUsd: true },
+        _count: true,
+      }),
+    ]);
+
+    const allRecent = [...monthRows].sort(
+      (a, b) => Number(b._sum.amountUsd ?? 0) - Number(a._sum.amountUsd ?? 0),
+    );
+
+    const topToolId = allRecent[0]?.toolId ?? null;
+    let topToolName: string | null = null;
+    if (topToolId) {
+      const tool = await this.db.aiTool.findUnique({
+        where: { id: topToolId },
+        include: { translations: { where: { locale: "ja" }, take: 1 } },
+      });
+      topToolName = tool?.translations[0]?.name ?? tool?.slug ?? topToolId;
+    }
+
+    const topPost = await this.db.socialPost.findFirst({
+      where: {
+        status: "published",
+        metrics: { some: { OR: [{ revenue: { gt: 0 } }, { conversions: { gt: 0 } }] } },
+      },
+      include: {
+        metrics: { orderBy: { capturedAt: "desc" }, take: 1 },
+      },
+      orderBy: { publishedAt: "desc" },
+    });
+
+    // Prefer post with highest revenue in metrics
+    const postsWithRev = await this.db.snsPostMetrics.findMany({
+      where: { revenue: { not: null } },
+      orderBy: { revenue: "desc" },
+      take: 1,
+      include: { socialPost: true },
+    });
+
+    const monthRevenue = Number(monthConv._sum.amountUsd ?? 0);
+    // Profit placeholder: revenue * 0.7 until cost model exists
+    const monthProfit = monthRevenue * 0.7;
+
+    return {
+      todaySales: Number(todayConv._sum.amountUsd ?? 0),
+      monthSales: monthRevenue,
+      monthProfit,
+      conversionsMonth: monthConv._count,
+      conversionsToday: todayConv._count,
+      topToolId,
+      topToolName,
+      topPost: postsWithRev[0]
+        ? {
+            id: postsWithRev[0].socialPostId,
+            platform: postsWithRev[0].socialPost.platform,
+            revenue: Number(postsWithRev[0].revenue ?? 0),
+            content: postsWithRev[0].socialPost.content.slice(0, 120),
+          }
+        : topPost
+          ? {
+              id: topPost.id,
+              platform: topPost.platform,
+              revenue: Number(topPost.metrics[0]?.revenue ?? 0),
+              content: topPost.content.slice(0, 120),
+            }
+          : null,
+    };
+  }
+}
+
+export class SnsOAuthConnectionRepository {
+  constructor(private readonly db: Db = prisma) {}
+
+  async list() {
+    return this.db.snsOAuthConnection.findMany({
+      orderBy: { provider: "asc" },
+    });
+  }
+
+  async findByProvider(provider: string) {
+    return this.db.snsOAuthConnection.findUnique({ where: { provider } });
+  }
+
+  async upsertConnection(
+    provider: string,
+    data: Prisma.SnsOAuthConnectionUncheckedUpdateInput & {
+      accessTokenCipher?: string | null;
+      refreshTokenCipher?: string | null;
+    },
+  ) {
+    return this.db.snsOAuthConnection.upsert({
+      where: { provider },
+      create: {
+        provider,
+        status: String(data.status ?? "connected"),
+        externalAccountId: (data.externalAccountId as string | null) ?? null,
+        accountLabel: (data.accountLabel as string | null) ?? null,
+        scopes: (data.scopes as string[]) ?? [],
+        accessTokenCipher: data.accessTokenCipher ?? null,
+        refreshTokenCipher: data.refreshTokenCipher ?? null,
+        accessTokenExpiresAt: (data.accessTokenExpiresAt as Date | null) ?? null,
+        refreshTokenExpiresAt: (data.refreshTokenExpiresAt as Date | null) ?? null,
+        lastRefreshedAt: (data.lastRefreshedAt as Date | null) ?? null,
+        lastValidatedAt: (data.lastValidatedAt as Date | null) ?? null,
+        lastError: (data.lastError as string | null) ?? null,
+        reauthRequiredAt: (data.reauthRequiredAt as Date | null) ?? null,
+        metadata: (data.metadata as Prisma.InputJsonValue) ?? undefined,
+      },
+      update: data,
+    });
+  }
+
+  async markReauthRequired(provider: string, error: string) {
+    return this.db.snsOAuthConnection.update({
+      where: { provider },
+      data: {
+        status: "reauth_required",
+        lastError: error.slice(0, 2000),
+        reauthRequiredAt: new Date(),
+        accessTokenCipher: null,
+        refreshTokenCipher: null,
+      },
+    });
+  }
+
+  async markStatus(provider: string, status: string) {
+    return this.db.snsOAuthConnection.update({
+      where: { provider },
+      data: { status },
+    });
+  }
+
+  async disconnect(provider: string) {
+    return this.db.snsOAuthConnection.upsert({
+      where: { provider },
+      create: {
+        provider,
+        status: "disconnected",
+      },
+      update: {
+        status: "disconnected",
+        accessTokenCipher: null,
+        refreshTokenCipher: null,
+        accessTokenExpiresAt: null,
+        refreshTokenExpiresAt: null,
+        lastError: null,
+        reauthRequiredAt: null,
+        externalAccountId: null,
+        accountLabel: null,
+        scopes: [],
+      },
+    });
+  }
+
+  async listNeedingRefresh(withinMs: number) {
+    const threshold = new Date(Date.now() + withinMs);
+    return this.db.snsOAuthConnection.findMany({
+      where: {
+        status: { in: ["connected", "auto_refreshing"] },
+        accessTokenCipher: { not: null },
+        OR: [
+          { accessTokenExpiresAt: { lte: threshold } },
+          { accessTokenExpiresAt: null },
+        ],
+      },
+    });
+  }
 }
 
 export class SnsLearningRepository {
@@ -1924,7 +2371,12 @@ export class Repositories {
   readonly affiliateIntel = new AffiliateIntelRepository();
   readonly comparisons = new ComparisonRepository();
   readonly socialPosts = new SocialPostRepository();
+  readonly snsOAuth = new SnsOAuthConnectionRepository();
   readonly snsLearning = new SnsLearningRepository();
+  readonly settings = new SettingsRepository();
+  readonly opsAlerts = new OpsAlertRepository();
+  readonly selfHealing = new SelfHealingRepository();
+  readonly opsMetrics = new OpsMetricsRepository();
   readonly analytics = new AnalyticsRepository();
   readonly knowledgeNodes = new KnowledgeNodeRepository();
   readonly knowledgeEdges = new KnowledgeEdgeRepository();

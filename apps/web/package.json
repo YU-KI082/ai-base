@@ -3,6 +3,7 @@
   "version": "0.1.0",
   "private": true,
   "dependencies": {
+    "@ai-base/affiliate-intel": "workspace:*",
     "@ai-base/auth": "workspace:*",
     "@ai-base/cache": "workspace:*",
     "@ai-base/database": "workspace:*",
@@ -10,8 +11,10 @@
     "@ai-base/i18n": "workspace:*",
     "@ai-base/llm": "workspace:*",
     "@ai-base/marketplace": "workspace:*",
+    "@ai-base/self-healing": "workspace:*",
+    "@ai-base/sns-auto-ops": "workspace:*",
     "@ai-base/sns-learning": "workspace:*",
-    "@ai-base/affiliate-intel": "workspace:*",
+    "@ai-base/sns-oauth": "workspace:*",
     "next": "^15.1.3",
     "react": "^19.0.0",
     "react-dom": "^19.0.0",
@@ -23,14 +26,17 @@
     "start": "next start",
     "typecheck": "tsc -p tsconfig.json --noEmit",
     "lint": "next lint",
-    "test": "node --import tsx --test lib/**/*.test.ts",
+    "test": "NEXT_PUBLIC_DEFAULT_LOCALE=ja node --import tsx --test lib/**/*.test.ts",
     "test:e2e": "playwright test"
   },
   "devDependencies": {
+    "@eslint/eslintrc": "3.2.0",
     "@playwright/test": "^1.49.1",
     "@types/node": "^22.10.2",
     "@types/react": "^19.0.2",
     "@types/react-dom": "^19.0.2",
+    "eslint": "9.17.0",
+    "eslint-config-next": "15.5.22",
     "tsx": "^4.19.2",
     "typescript": "5.7.2"
   }

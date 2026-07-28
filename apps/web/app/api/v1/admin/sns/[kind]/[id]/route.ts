@@ -12,7 +12,7 @@ export async function PATCH(
       status?: string;
       humanNotes?: string;
       humanCorrection?: string;
-      humanOverride?: Record<string, unknown>;
+      humanOverride?: unknown;
       title?: string;
       content?: string;
       summary?: string;
@@ -29,7 +29,10 @@ export async function PATCH(
     if (kind === "patterns") {
       const row = await repos.snsLearning.updatePattern(id, {
         status: body.status,
-        humanOverride: body.humanOverride,
+        humanOverride:
+          body.humanOverride === undefined
+            ? undefined
+            : (body.humanOverride as object),
         summary: body.summary ?? body.humanCorrection,
         title: body.title,
       });

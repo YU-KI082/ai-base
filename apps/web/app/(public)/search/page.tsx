@@ -1,8 +1,10 @@
 import type { Metadata } from "next";
 import Link from "next/link";
+import { getDictionary } from "@ai-base/i18n";
 import { repos } from "@ai-base/database";
 import { ToolCard } from "@/components/tool-card";
-import { absoluteUrl, resolvePublicLocale, withLocale } from "@/lib/site";
+import { resolvePublicLocale, withLocale } from "@/lib/site";
+import { localeAlternatesFor } from "@/lib/seo";
 
 export const revalidate = 30;
 
@@ -13,14 +15,11 @@ export async function generateMetadata({
 }): Promise<Metadata> {
   const sp = await searchParams;
   const locale = resolvePublicLocale(sp.locale);
-  const title = locale === "ja" ? "AIツール検索 | AI BASE" : "Search AI tools | AI BASE";
+  const t = getDictionary(locale).public;
   return {
-    title,
-    description:
-      locale === "ja"
-        ? "名前や説明からAIツールを検索"
-        : "Search AI tools by name or description",
-    alternates: { canonical: absoluteUrl(withLocale("/search", locale)) },
+    title: `${t.searchTitle} | AI BASE`,
+    description: t.searchDescription,
+    alternates: localeAlternatesFor("/search", locale),
   };
 }
 
@@ -31,41 +30,19 @@ export default async function SearchPage({
 }) {
   const sp = await searchParams;
   const locale = resolvePublicLocale(sp.locale);
+  const t = getDictionary(locale).public;
   const q = (sp.q ?? "").trim();
   const items = q
     ? await repos.tools.findPublished(locale, { q, take: 30 })
     : [];
 
-  const copy =
-    locale === "ja"
-      ? {
-          kicker: "検索",
-          title: "AIツールを探す",
-          subtitle: "名前や説明文から公開ツールを検索します。",
-          placeholder: "例: chatgpt, image, productivity",
-          submit: "検索",
-          hint: "キーワードを入力して検索してください。",
-          empty: "該当するツールがありません。",
-          browse: "一覧へ",
-        }
-      : {
-          kicker: "Search",
-          title: "Find AI tools",
-          subtitle: "Search published tools by name or description.",
-          placeholder: "e.g. chatgpt, image, productivity",
-          submit: "Search",
-          hint: "Enter a keyword to search published tools.",
-          empty: "No matching tools.",
-          browse: "Browse all",
-        };
-
   return (
     <main className="container site-section animate-in">
       <div className="page-header">
         <div>
-          <p className="page-kicker">{copy.kicker}</p>
-          <h1 className="page-title">{copy.title}</h1>
-          <p className="page-subtitle">{copy.subtitle}</p>
+          <p className="page-kicker">{t.searchTitle}</p>
+          <h1 className="page-title">{t.searchTitle}</h1>
+          <p className="page-subtitle">{t.searchDescription}</p>
         </div>
       </div>
 
@@ -83,12 +60,12 @@ export default async function SearchPage({
           maxWidth: 720,
         }}
       >
-        {locale === "ja" ? <input type="hidden" name="locale" value="ja" /> : null}
+        {locale === "en" ? <input type="hidden" name="locale" value="en" /> : null}
         <input
           name="q"
           defaultValue={q}
-          placeholder={copy.placeholder}
-          aria-label={copy.submit}
+          placeholder={t.searchPlaceholder}
+          aria-label={t.searchSubmit}
           style={{
             flex: "1 1 240px",
             background: "var(--bg)",
@@ -99,30 +76,30 @@ export default async function SearchPage({
           }}
         />
         <button className="btn btn-primary" type="submit">
-          {copy.submit}
+          {t.searchSubmit}
         </button>
       </form>
 
       {!q ? (
         <p className="muted" style={{ marginTop: "1.25rem" }}>
-          {copy.hint}
+          {t.searchPlaceholder}
         </p>
       ) : items.length === 0 ? (
         <div className="empty-state" style={{ marginTop: "1.25rem" }}>
-          {copy.empty}{" "}
-          <Link href={withLocale("/tools", locale)}>{copy.browse}</Link>
+          {t.searchEmpty}{" "}
+          <Link href={withLocale("/tools", locale)}>{t.browseTools}</Link>
         </div>
       ) : (
         <ul className="tools-grid">
           {items.map((tool) => {
-            const t = tool.translations[0];
+            const tr = tool.translations[0];
             return (
               <ToolCard
                 key={tool.id}
                 locale={locale}
                 slug={tool.slug}
-                name={t?.name ?? tool.slug}
-                description={t?.description}
+                name={tr?.name ?? tool.slug}
+                description={tr?.description}
                 pricingModel={tool.pricingModel}
               />
             );
