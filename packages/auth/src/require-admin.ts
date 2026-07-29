@@ -83,7 +83,7 @@ export async function requireAdmin(request?: Request): Promise<AuthUser> {
 
   if (!isOpsAuthConfigured()) {
     throw new AuthError(
-      "Admin auth not configured. Set ADMIN_OPS_SECRET (16+ chars) for production.",
+      "Admin auth not configured. Set ADMIN_OPS_SECRET (8+ chars) for production.",
       401,
     );
   }

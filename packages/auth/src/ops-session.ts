@@ -6,7 +6,7 @@ export { SESSION_COOKIE };
 
 function opsSecret(): string | null {
   const secret = process.env.ADMIN_OPS_SECRET?.trim();
-  return secret && secret.length >= 16 ? secret : null;
+  return secret && secret.length >= 8 ? secret : null;
 }
 
 /** Create a signed ops session token for ADMIN_OPS_SECRET. */
