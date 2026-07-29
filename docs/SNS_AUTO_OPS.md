@@ -1,74 +1,73 @@
-# SNS 完全自動運用
+# SNS 完全自動運用（企画→動画→投稿→分析→改善）
+
+管理者は **初回 OAuth・API 設定のみ**。以降は承認なしで AI BASE が自動実行する。
+
+## 対応 SNS
+
+| SNS | 投稿 | 備考 |
+|-----|------|------|
+| TikTok | Content Posting API (`PULL_FROM_URL`) | 公開可能な MP4 URL 必須 |
+| Instagram | Content Publishing API (Reels) | `INSTAGRAM_BUSINESS_ACCOUNT_ID` + 動画 URL |
+| X | API v2 tweets | OAuth 2.0 |
+| Threads | Threads API | Meta OAuth |
+| note | Provider | 公式 API 未設定時は **投稿待ちキュー**（下書き保存）。`NOTE_API_*` で差し替え可 |
+
+**禁止:** ID/パスワードのブラウザ自動ログイン。公式 OAuth のみ。
+
+## フルオート パイプライン
+
+1. **テーマ自動選定** — 新着ツール / ニュース / 比較 / ランキング / 使い方 / 事例 / トレンド / 過去実績
+2. **コンテンツ生成** — 投稿文・タイトル・フック・ナレーション・字幕・ハッシュタグ・CTA・サムネ文言（SNS別）
+3. **動画制作** (`@ai-base/video-render`) — 9:16 / 15·30·60秒。Provider 差し替え可:
+   - `ffmpeg`（デフォルト）
+   - `remotion`（`REMOTION_ENABLED=1`）
+   - `external_api`（`VIDEO_API_URL`）
+4. **ポリシーチェック** — 誇大・虚偽・著作権リスク・禁止表現
+5. **自動投稿** — OAuth トークン暗号化保存・自動 refresh
+6. **分析** — 再生・視聴維持・いいね等 + クリック/CV/売上（学習優先は利益）
+7. **改善** — `learningSignals` を次回テーマ・フック・尺・時間・CTA へ反映
+8. **自動停止** — 認証失敗・権限失効・連続失敗・ポリシー・コスト異常・重複大量
 
 ## モード
 
 | mode | 動作 |
 |------|------|
-| `draft_only` | 下書き・採点のみ（デフォルト・安全） |
-| `approval` | 品質条件を満たすと「準備完了」まで自動昇格。公開は人 |
-| `full_auto` | 品質・提携・OAuth・重複・上限をすべて満たせば自動投稿キュー |
+| `draft_only` | 生成のみ |
+| `approval` | 準備完了まで。公開は人 |
+| `full_auto` | **承認不要**で投稿キュー（推奨本番） |
 
-`emergencyStop=true` の間はどのモードでも外部投稿しない。
+`emergencyStop=true` の間は外部投稿しない。
 
-## 自動公開条件（すべて必須）
+## Cron
 
-- 総合品質スコア ≥ 80
-- 著作権・規約・誇大リスクが低い（フラグなし）
-- 事実確認済み
-- 紹介先URL有効
-- アフィリエイト健全リンクあり
-- 重複率 ≤ 基準
-- 禁止表現なし
-- SNS OAuth 接続正常
-- 1日上限・投稿間隔を満たす
-- 緊急停止OFF・mode=`full_auto`
+`GET /api/v1/cron/sns-auto-ops`（`vercel.json` で 4 時間ごと）  
+Header: `Authorization: Bearer $CRON_SECRET`
 
-## 人間へ通知するケースのみ
+手動: `pnpm --filter @ai-base/agent-sns-auto-ops` または管理画面「フルオート 1 サイクル」
 
-- SNS連携切れ / 権限失効
-- 投稿連続失敗
-- 著作権・規約リスク高
-- （拡張）売上急減・異常クリック等
-
-通常の成功投稿では通知しない。
-
-## 学習優先順位
-
-利益 → アフィリエイト報酬 → 成約 → CVR → EPC → … → 再生数（最下位）
-
-再生が多くても売上ゼロは高評価しない。
-
-## 初回ランプ
-
-1日1投稿 × 7日 → 問題なければ `afterTestDailyLimit` へ。
-
-## 画面
-
-- `/admin/ops` — 売上中心ダッシュボード + 緊急停止 + モード切替
-- 詳細は `/admin/affiliate` `/admin/social` `/admin/sns`
-
-## エージェント
+## E2E（ローカル）
 
 ```bash
-pnpm --filter @ai-base/agent-sns-auto-ops dev
-# あわせて outbox / sns-oauth / social publish / learning 系も常時起動
+# ffmpeg 必須（PATH または FFMPEG_PATH）
+pnpm exec tsx scripts/sns-full-auto-e2e.ts
 ```
 
-イベント: `sns.auto_ops.tick.v1`
+公開テスト投稿は各 SNS の OAuth が `/admin/social` で「正常」かつ `SNS_AUTO_OPS_MODE=full_auto` のとき実行。
 
-## 完全自動運用を開始するための初回設定（人間のみ）
+## 管理画面
 
-1. **本番 DB・基盤** — `DATABASE_URL` / `REDIS_URL` を設定し、`pnpm db:push`（または migrate）を実行する  
-2. **管理画面ログイン** — `ADMIN_OPS_SECRET`（16文字以上）を設定し、`/login` で入れることを確認する  
-3. **サイトURL** — `NEXT_PUBLIC_SITE_URL` を本番ドメインに合わせる（OAuth コールバック・計測リンクの基準）  
-4. **トークン暗号化** — `TOKEN_ENCRYPTION_KEY`（32文字以上）を設定する（SNS OAuth トークン保存用）  
-5. **Instagram 公式アプリ** — Meta でアプリ作成 → `INSTAGRAM_APP_ID` / `INSTAGRAM_APP_SECRET` → コールバック URL を登録  
-6. **TikTok 公式アプリ** — `TIKTOK_CLIENT_KEY` / `TIKTOK_CLIENT_SECRET` → コールバック URL を登録  
-7. **SNS 連携** — `/admin/social` で Instagram・TikTok を公式 OAuth のみで接続し、状態が「正常」になるまで確認する（ID/パスワードのブラウザ自動操作は使わない）  
-8. **アフィリエイト案件** — `/admin/affiliate` で紹介する AI ツールの提携・リンクを登録し、リンクが有効であることを確認する（未提携は投稿されない）  
-9. **エージェント常時起動** — 少なくとも `agent-sns-auto-ops`・OAuth 更新・投稿配信・学習／実績取得・outbox ワーカーを本番で動かしておく  
-10. **運用ダッシュボード** — `/admin/ops` を開き、初期は `下書きのみ` + **緊急停止 ON** であることを確認する  
-11. **テスト開始** — 緊急停止を解除し、モードを `全自動`、**1日1投稿**、ランプ **7日** に設定して保存する（問題なければ自動で上限が段階上昇）  
-12. **通知の受け口** — 重大異常（連携切れ・連続失敗・アカウント警告など）だけ見られるよう、管理画面の異常一覧を日常確認先にする（通常投稿の成功通知は送られない）
+- `/admin/social` — 接続状態・本日予定・生成中・投稿済・失敗・再生/CV/売上・緊急停止
+- `/admin/ops` — 売上・利益・重大エラー中心
 
-上記以外の日常投稿確認は不要。以降は売上・成約・利益・重大異常だけを `/admin/ops` で見る。
+通常投稿の成功通知は送らない。3 回失敗または重大エラーのみ管理者へ。
+
+## 初回セットアップ（人間のみ）
+
+1. `DATABASE_URL` / `TOKEN_ENCRYPTION_KEY` / `NEXT_PUBLIC_SITE_URL` / `ADMIN_OPS_SECRET`
+2. TikTok / Instagram / X / Threads の公式アプリとコールバック登録
+3. `/admin/social` で各 SNS を OAuth 接続
+4. （任意）`VIDEO_PUBLIC_BASE_URL` を本番オリジンに（TikTok/IG が動画を取得できる URL）
+5. `/admin/ops` で緊急停止 OFF・`full_auto`・日次上限を設定
+6. `CRON_SECRET` を Vercel に設定
+
+以降の日常確認は売上・利益・重大エラーのみ。

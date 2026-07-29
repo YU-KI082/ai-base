@@ -8,27 +8,33 @@
   "exports": {
     ".": {
       "types": "./dist/index.d.ts",
-      "import": "./dist/index.js"
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
     },
     "./csrf": {
       "types": "./dist/csrf.d.ts",
-      "import": "./dist/csrf.js"
+      "import": "./dist/csrf.js",
+      "default": "./dist/csrf.js"
     },
     "./env": {
       "types": "./dist/env.d.ts",
-      "import": "./dist/env.js"
+      "import": "./dist/env.js",
+      "default": "./dist/env.js"
     },
     "./constants": {
       "types": "./dist/constants.d.ts",
-      "import": "./dist/constants.js"
+      "import": "./dist/constants.js",
+      "default": "./dist/constants.js"
     },
     "./csrf-edge": {
       "types": "./dist/csrf-edge.d.ts",
-      "import": "./dist/csrf-edge.js"
+      "import": "./dist/csrf-edge.js",
+      "default": "./dist/csrf-edge.js"
     },
     "./rate-limit": {
       "types": "./dist/rate-limit.d.ts",
-      "import": "./dist/rate-limit.js"
+      "import": "./dist/rate-limit.js",
+      "default": "./dist/rate-limit.js"
     }
   },
   "scripts": {

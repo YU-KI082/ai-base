@@ -1,0 +1,28 @@
+{
+  "provider": "ffmpeg",
+  "planId": "tiktok-ms5o9thk",
+  "durationSec": 30,
+  "title": "今日知らないと置いていかれるAIニュース",
+  "scenes": [
+    {
+      "durationSec": 2,
+      "text": "今日知らないと置いていかれるAIニュース"
+    },
+    {
+      "durationSec": 12,
+      "text": "Granola をチェック"
+    },
+    {
+      "durationSec": 8,
+      "text": "保存推奨"
+    },
+    {
+      "durationSec": 8,
+      "text": "AI BASEで比較 →"
+    }
+  ],
+  "fps": 30,
+  "totalFrames": 900,
+  "copyrightSafe": true,
+  "createdAt": "2026-07-29T05:56:57.099Z"
+}

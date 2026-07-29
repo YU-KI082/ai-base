@@ -11,22 +11,33 @@ import {
   classifyOwnPostOutcome,
   decayWeight,
 } from "@ai-base/sns-learning";
+import {
+  getAccessToken,
+  getProvider,
+  oauthProviderForPlatform,
+} from "@ai-base/sns-oauth";
 
 /**
  * Records own-post metrics only. Never invents numbers.
- * Writes learning records with time decay metadata.
+ * TikTok: attempts official video.query when scopes allow; otherwise waits for ingest.
+ * Writes learning records with time decay (revenue-first for next TikTok drafts).
  */
 export const snsPerformancePlugin: AgentPlugin = {
   manifest: {
     key: "sns-performance",
-    version: "0.1.0",
+    version: "0.2.0",
     displayName: {
       en: "SNS Performance Analytics",
       ja: "SNSパフォーマンス分析",
     },
     subscribe: [EventTypes.SnsFeedbackTick, EventTypes.SnsMetricsIngestRequested],
     publish: [EventTypes.SnsLearningUpdated, EventTypes.SnsRecommendRequested],
-    capabilities: ["own_post_metrics", "learning_memory", "no_fabricated_stats"],
+    capabilities: [
+      "own_post_metrics",
+      "learning_memory",
+      "no_fabricated_stats",
+      "tiktok_metrics_pull",
+    ],
   },
   async handle(ctx, event) {
     if (event.type === EventTypes.SnsMetricsIngestRequested) {
@@ -39,6 +50,7 @@ export const snsPerformancePlugin: AgentPlugin = {
         plays: num(data.metrics.plays),
         reach: num(data.metrics.reach),
         avgWatchSec: num(data.metrics.avgWatchSec),
+        watchRetentionRate: num(data.metrics.watchRetentionRate),
         completionRate: num(data.metrics.completionRate),
         hold3SecRate: num(data.metrics.hold3SecRate),
         likeRate: num(data.metrics.likeRate),
@@ -48,6 +60,11 @@ export const snsPerformancePlugin: AgentPlugin = {
         profileVisitRate: num(data.metrics.profileVisitRate),
         linkClickRate: num(data.metrics.linkClickRate),
         followRate: num(data.metrics.followRate),
+        likesCount: num(data.metrics.likesCount ?? data.metrics.likes),
+        commentsCount: num(data.metrics.commentsCount ?? data.metrics.comments),
+        sharesCount: num(data.metrics.sharesCount ?? data.metrics.shares),
+        savesCount: num(data.metrics.savesCount ?? data.metrics.saves),
+        profileVisits: num(data.metrics.profileVisits),
         affiliateClicks: num(data.metrics.affiliateClicks),
         conversions: num(data.metrics.conversions),
         revenue: num(data.metrics.revenue),
@@ -64,7 +81,20 @@ export const snsPerformancePlugin: AgentPlugin = {
     const learningIds: string[] = [];
     for (const post of posts) {
       if (!post) continue;
-      const existing = post.metrics?.find((m) => m.windowHours === tick.windowHours);
+
+      if (post.platform === "tiktok" && post.externalPostId) {
+        await tryPullTikTokMetrics(
+          ctx,
+          post.id,
+          post.externalPostId,
+          tick.windowHours,
+        );
+      }
+
+      const refreshed = await ctx.repos.socialPosts.findById(post.id);
+      const existing = refreshed?.metrics?.find(
+        (m) => m.windowHours === tick.windowHours,
+      );
       if (!existing) {
         await ctx.logger.info(
           "Feedback tick: no real metrics yet — skipping fabrication",
@@ -102,6 +132,63 @@ export const snsPerformancePlugin: AgentPlugin = {
 
 function num(v: number | null | undefined): number | null {
   return typeof v === "number" ? v : null;
+}
+
+async function tryPullTikTokMetrics(
+  ctx: Parameters<AgentPlugin["handle"]>[0],
+  socialPostId: string,
+  externalPostId: string,
+  windowHours: number,
+) {
+  try {
+    const provider = oauthProviderForPlatform("tiktok");
+    if (!provider) return;
+    const port = getProvider(provider);
+    if (!port.fetchVideoMetrics) return;
+    const token = await getAccessToken(provider);
+    if (!token) return;
+    const metrics = await port.fetchVideoMetrics({
+      accessToken: token,
+      externalPostId,
+    });
+    if (!metrics) return;
+    assertNoFabricatedMetrics(metrics);
+    await ctx.repos.snsLearning.createMetrics({
+      socialPost: { connect: { id: socialPostId } },
+      windowHours,
+      source: "tiktok_api",
+      plays: num(metrics.plays),
+      reach: num(metrics.reach),
+      avgWatchSec: num(metrics.avgWatchSec),
+      watchRetentionRate: num(metrics.watchRetentionRate),
+      completionRate: num(metrics.completionRate),
+      hold3SecRate: num(metrics.hold3SecRate),
+      likeRate: num(metrics.likeRate),
+      commentRate: num(metrics.commentRate),
+      saveRate: num(metrics.saveRate),
+      shareRate: num(metrics.shareRate),
+      profileVisitRate: num(metrics.profileVisitRate),
+      linkClickRate: num(metrics.linkClickRate),
+      followRate: num(metrics.followRate),
+      likesCount: num(metrics.likesCount),
+      commentsCount: num(metrics.commentsCount),
+      sharesCount: num(metrics.sharesCount),
+      savesCount: num(metrics.savesCount),
+      profileVisits: num(metrics.profileVisits),
+      affiliateClicks: num(metrics.affiliateClicks),
+      conversions: num(metrics.conversions),
+      revenue: num(metrics.revenue),
+    });
+    await ctx.logger.info("Pulled TikTok metrics from official API", {
+      socialPostId,
+      plays: metrics.plays,
+    });
+  } catch (error) {
+    await ctx.logger.info(
+      `TikTok metrics pull skipped: ${error instanceof Error ? error.message : String(error)}`,
+      { socialPostId },
+    );
+  }
 }
 
 async function learnFromPost(
@@ -142,12 +229,30 @@ async function learnFromPost(
       `Latest metrics window=${latest.windowHours}h source=${latest.source}.`,
       `Decay weight=${weight.toFixed(3)} (half-life ${halfLife}d).`,
       "Own-post outcomes outrank third-party structure seeds.",
+      "Optimize for AI BASE clicks + affiliate CV over raw plays.",
     ].join(" "),
     metadata: {
       socialPostId: post.id,
       metricsId: latest.id,
       decayWeight: weight,
       causationId,
+      contentKind: post.contentKind,
+      durationSec: post.durationSec,
+      subtitleDensity: post.subtitleDensity,
+      hook: post.hook,
+      publishedHour: post.publishedAt?.getHours() ?? null,
+      hold3SecRate: latest.hold3SecRate,
+      completionRate: latest.completionRate,
+      avgWatchSec: latest.avgWatchSec,
+      watchRetentionRate: latest.watchRetentionRate,
+      profileVisits: latest.profileVisits,
+      affiliateClicks: latest.affiliateClicks,
+      conversions: latest.conversions,
+      revenue: latest.revenue,
+      likesCount: latest.likesCount,
+      commentsCount: latest.commentsCount,
+      sharesCount: latest.sharesCount,
+      savesCount: latest.savesCount,
     },
     evidencePostIds: [post.id],
     importance: outcome.kind === "success_pattern" ? 0.9 : 0.7,

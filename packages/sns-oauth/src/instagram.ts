@@ -145,4 +145,84 @@ export const instagramProvider: OAuthProviderPort = {
       reason: json.error?.message ?? `HTTP ${res.status}`,
     };
   },
+
+  /**
+   * Instagram Reels / video publish via Content Publishing API.
+   * Requires mediaUrl (public HTTPS). Containers need IG user id in metadata.
+   */
+  async publish(input) {
+    if (!input.mediaUrl) {
+      const err = new Error(
+        "Instagram publish requires mediaUrl (9:16 video)",
+      ) as Error & { code?: string };
+      err.code = "awaiting_assets";
+      throw err;
+    }
+
+    // Prefer IG user id from connection metadata / env
+    const igUserId =
+      process.env.INSTAGRAM_BUSINESS_ACCOUNT_ID?.trim() ||
+      process.env.INSTAGRAM_USER_ID?.trim();
+    if (!igUserId) {
+      const err = new Error(
+        "INSTAGRAM_BUSINESS_ACCOUNT_ID required for Content Publishing API",
+      ) as Error & { code?: string };
+      err.code = "awaiting_api_review";
+      throw err;
+    }
+
+    const caption = input.content.slice(0, 2200);
+    const createUrl = new URL(`https://graph.facebook.com/v21.0/${igUserId}/media`);
+    createUrl.searchParams.set("media_type", "REELS");
+    createUrl.searchParams.set("video_url", input.mediaUrl);
+    createUrl.searchParams.set("caption", caption);
+    createUrl.searchParams.set("access_token", input.accessToken);
+
+    const createRes = await fetch(createUrl, { method: "POST" });
+    const created = (await createRes.json()) as {
+      id?: string;
+      error?: { message?: string; code?: number };
+    };
+    if (!createRes.ok || !created.id) {
+      const msg =
+        created.error?.message ||
+        `Instagram media container failed HTTP ${createRes.status}`;
+      const err = new Error(msg) as Error & { code?: string };
+      if (/permission|oauth|session/i.test(msg) || createRes.status === 401) {
+        err.code = "reauth_required";
+      } else if (/not.*(approved|available)|unpublished/i.test(msg)) {
+        err.code = "awaiting_api_review";
+      }
+      throw err;
+    }
+
+    // Poll briefly for FINISHED (best-effort)
+    for (let i = 0; i < 8; i++) {
+      await new Promise((r) => setTimeout(r, 2000));
+      const stRes = await fetch(
+        `https://graph.facebook.com/v21.0/${created.id}?fields=status_code&access_token=${encodeURIComponent(input.accessToken)}`,
+      );
+      const st = (await stRes.json()) as { status_code?: string };
+      if (st.status_code === "FINISHED") break;
+      if (st.status_code === "ERROR") {
+        throw new Error("Instagram media processing ERROR");
+      }
+    }
+
+    const pubUrl = new URL(`https://graph.facebook.com/v21.0/${igUserId}/media_publish`);
+    pubUrl.searchParams.set("creation_id", created.id);
+    pubUrl.searchParams.set("access_token", input.accessToken);
+    const pubRes = await fetch(pubUrl, { method: "POST" });
+    const published = (await pubRes.json()) as {
+      id?: string;
+      error?: { message?: string };
+    };
+    if (!pubRes.ok || !published.id) {
+      throw new Error(
+        published.error?.message ||
+          `Instagram publish failed HTTP ${pubRes.status}`,
+      );
+    }
+    return { externalPostId: published.id };
+  },
 };

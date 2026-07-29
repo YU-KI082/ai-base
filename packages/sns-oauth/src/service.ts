@@ -3,6 +3,8 @@ import { openSecret, sealSecret } from "@ai-base/auth";
 import { repos } from "@ai-base/database";
 import { instagramProvider } from "./instagram.js";
 import { tiktokProvider } from "./tiktok.js";
+import { xProvider } from "./x.js";
+import { threadsProvider } from "./threads.js";
 import {
   OAUTH_PROVIDERS,
   REFRESH_SKEW_MS,
@@ -18,6 +20,8 @@ import {
 const providers: Record<OAuthProvider, OAuthProviderPort> = {
   instagram: instagramProvider,
   tiktok: tiktokProvider,
+  x: xProvider,
+  threads: threadsProvider,
 };
 
 export function getProvider(provider: OAuthProvider): OAuthProviderPort {
@@ -272,6 +276,10 @@ export async function validateConnection(provider: OAuthProvider) {
 
 /** Ensure OAuth connection is healthy before external publish. */
 export async function ensureReadyForPublish(platform: string) {
+  // note uses draft-queue provider — no OAuth required
+  if (platform === "note") {
+    return { ok: true as const, provider: null };
+  }
   const provider = oauthProviderForPlatform(platform);
   if (!provider) {
     return {

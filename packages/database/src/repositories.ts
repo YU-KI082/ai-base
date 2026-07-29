@@ -539,6 +539,22 @@ export class ToolRepository {
     });
   }
 
+  async findById(id: string) {
+    return this.db.aiTool.findUnique({
+      where: { id },
+      select: {
+        id: true,
+        slug: true,
+        homepageUrl: true,
+        affiliateLinks: {
+          where: { isHealthy: true },
+          orderBy: { priority: "desc" },
+          take: 3,
+        },
+      },
+    });
+  }
+
   async findPublished(
     locale?: Locale,
     options?: {
@@ -1487,6 +1503,29 @@ export class SocialPostRepository {
         status: "published",
         externalPostId: input.externalPostId,
         publishedAt: input.publishedAt ?? new Date(),
+        lastPublishError: null,
+      },
+    });
+  }
+
+  async markPublishOutcome(
+    id: string,
+    input: {
+      status: string;
+      lastPublishError?: string | null;
+      externalPostId?: string | null;
+    },
+  ) {
+    return this.db.socialPost.update({
+      where: { id },
+      data: {
+        status: input.status,
+        ...(input.lastPublishError !== undefined
+          ? { lastPublishError: input.lastPublishError }
+          : {}),
+        ...(input.externalPostId !== undefined
+          ? { externalPostId: input.externalPostId }
+          : {}),
       },
     });
   }
@@ -1507,10 +1546,21 @@ export class SocialPostRepository {
   async listDraftsForAutoOps(take = 30) {
     return this.db.socialPost.findMany({
       where: {
-        status: { in: ["draft", "ready"] },
-        platform: { in: ["instagram", "tiktok"] },
+        status: { in: ["draft", "pending_approval", "ready", "retry", "scheduled"] },
+        platform: { in: ["instagram", "tiktok", "x", "threads", "note"] },
       },
       orderBy: [{ scoreTotal: "desc" }, { createdAt: "asc" }],
+      take,
+    });
+  }
+
+  async listTikTokPublishedForLearning(take = 40) {
+    return this.db.socialPost.findMany({
+      where: { platform: "tiktok", status: "published" },
+      include: {
+        metrics: { orderBy: { capturedAt: "desc" }, take: 3 },
+      },
+      orderBy: { publishedAt: "desc" },
       take,
     });
   }
@@ -1546,6 +1596,20 @@ export class SocialPostRepository {
     return this.db.socialPost.update({
       where: { id },
       data: { publishAttempts: { increment: 1 } },
+    });
+  }
+
+  async updateMedia(id: string, mediaUrl: string | null) {
+    return this.db.socialPost.update({
+      where: { id },
+      data: { mediaUrl },
+    });
+  }
+
+  async setScheduledAt(id: string, scheduledAt: Date | null) {
+    return this.db.socialPost.update({
+      where: { id },
+      data: { scheduledAt, ...(scheduledAt ? { status: "scheduled" } : {}) },
     });
   }
 

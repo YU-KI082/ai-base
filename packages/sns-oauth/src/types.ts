@@ -1,5 +1,13 @@
-export const OAUTH_PROVIDERS = ["instagram", "tiktok"] as const;
+export const OAUTH_PROVIDERS = [
+  "instagram",
+  "tiktok",
+  "x",
+  "threads",
+] as const;
 export type OAuthProvider = (typeof OAUTH_PROVIDERS)[number];
+
+/** Draft-queue only today (note). Never password automation. */
+export const FUTURE_OAUTH_PLATFORMS = ["note", "linkedin"] as const;
 
 export function isOAuthProvider(value: string): value is OAuthProvider {
   return (OAUTH_PROVIDERS as readonly string[]).includes(value);
@@ -9,6 +17,8 @@ export function isOAuthProvider(value: string): value is OAuthProvider {
 export function oauthProviderForPlatform(platform: string): OAuthProvider | null {
   if (platform === "instagram") return "instagram";
   if (platform === "tiktok") return "tiktok";
+  if (platform === "x" || platform === "twitter") return "x";
+  if (platform === "threads") return "threads";
   return null;
 }
 
@@ -69,6 +79,15 @@ export type OAuthProviderPort = {
     content: string;
     mediaUrl?: string | null;
   }): Promise<{ externalPostId: string }>;
+  /** Optional official analytics pull — must never invent numbers. */
+  fetchVideoMetrics?(input: {
+    accessToken: string;
+    externalPostId: string;
+  }): Promise<Record<string, number | null> | null>;
+  queryPublishStatus?(input: {
+    accessToken: string;
+    publishId: string;
+  }): Promise<{ status: string; failReason?: string } | null>;
 };
 
 /** Refresh when access token expires within this window. */

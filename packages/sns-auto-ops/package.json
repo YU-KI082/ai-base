@@ -21,6 +21,7 @@
     "@ai-base/database": "workspace:*",
     "@ai-base/sns-learning": "workspace:*",
     "@ai-base/sns-oauth": "workspace:*",
+    "@ai-base/video-render": "workspace:*",
     "zod": "^3.24.1"
   },
   "devDependencies": {

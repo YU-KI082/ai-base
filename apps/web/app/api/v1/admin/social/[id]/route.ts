@@ -13,7 +13,18 @@ import {
 } from "@ai-base/sns-oauth";
 
 const PatchSchema = z.object({
-  status: z.enum(["draft", "ready", "published", "rejected"]),
+  status: z.enum([
+    "draft",
+    "pending_approval",
+    "ready",
+    "scheduled",
+    "published",
+    "failed",
+    "retry",
+    "rejected",
+  ]),
+  scheduledAt: z.string().datetime().optional(),
+  mediaUrl: z.string().url().optional().nullable(),
 });
 
 export async function PATCH(
@@ -33,12 +44,17 @@ export async function PATCH(
     if (!existing) return jsonError("Not found", 404);
 
     // External SNS publish only after human approval + live OAuth check.
-    if (body.status === "published") {
+    if (body.status === "published" || body.status === "scheduled") {
       const provider = oauthProviderForPlatform(existing.platform);
-      if (provider) {
-        if (existing.status !== "ready" && existing.status !== "published") {
+      if (provider && body.status === "published") {
+        if (
+          existing.status !== "ready" &&
+          existing.status !== "scheduled" &&
+          existing.status !== "retry" &&
+          existing.status !== "published"
+        ) {
           return jsonError(
-            "外部投稿は「準備完了」承認後のみ実行できます",
+            "外部投稿は「準備完了/予約/再試行」承認後のみ実行できます",
             400,
           );
         }
@@ -50,6 +66,9 @@ export async function PATCH(
           );
         }
         const item = await repos.socialPosts.updateStatus(id, "ready");
+        if (body.mediaUrl !== undefined) {
+          await repos.socialPosts.updateMedia(id, body.mediaUrl);
+        }
         await enqueueEvent(
           createEvent({
             type: EventTypes.SnsPostPublishRequested,
@@ -74,12 +93,18 @@ export async function PATCH(
           item,
           queued: true,
           message:
-            "接続確認済み。承認済み投稿を外部SNSへ送信キューに入れました。",
+            "接続確認済み。承認済み投稿を外部SNSへ送信キューに入れました。未対応API時は動画・説明文を生成したまま投稿待ちになります。",
         });
       }
     }
 
+    if (body.mediaUrl !== undefined) {
+      await repos.socialPosts.updateMedia(id, body.mediaUrl);
+    }
     const item = await repos.socialPosts.updateStatus(id, body.status);
+    if (body.scheduledAt) {
+      await repos.socialPosts.setScheduledAt(id, new Date(body.scheduledAt));
+    }
     return jsonOk({ item });
   });
 }

@@ -69,6 +69,9 @@ export type Dictionary = {
     ready: string;
     building: string;
     pendingApproval: string;
+    scheduled: string;
+    failed: string;
+    retry: string;
   };
   public: {
     navTools: string;
@@ -395,6 +398,9 @@ const ja: Dictionary = {
     ready: "投稿準備完了",
     building: "生成中",
     pendingApproval: "承認待ち",
+    scheduled: "予約投稿",
+    failed: "失敗",
+    retry: "再試行",
   },
   public: {
     navTools: "AIツール",
@@ -738,6 +744,9 @@ const en: Dictionary = {
     ready: "Ready",
     building: "Building",
     pendingApproval: "Pending approval",
+    scheduled: "Scheduled",
+    failed: "Failed",
+    retry: "Retry",
   },
   public: {
     navTools: "AI tools",
@@ -1190,6 +1199,9 @@ export function statusLabel(
     published: dict.published,
     ready: dict.ready,
     building: dict.building,
+    scheduled: dict.scheduled,
+    failed: dict.failed,
+    retry: dict.retry,
   };
   return map[raw] ?? raw;
 }

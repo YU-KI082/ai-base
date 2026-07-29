@@ -9,17 +9,22 @@ import { repos } from "@ai-base/database";
 import {
   createCriticalAlert,
   decideForPost,
+  evaluateAutoStop,
   loadAutoOpsSettings,
+  publishBackoffMs,
+  runFullAutoPipeline,
 } from "@ai-base/sns-auto-ops";
 
 /**
- * Fully-automatic SNS ops orchestrator.
- * Does not call peer agents over HTTP — only enqueues events / updates DB.
+ * Fully-automatic SNS ops:
+ * theme → content → video render → policy → publish queue → metrics/learn (via peer events).
+ * Human approval is NOT required when mode=full_auto.
+ * Only critical auto-stop / 3x failures notify admins.
  */
 export const snsAutoOpsPlugin: AgentPlugin = {
   manifest: {
     key: "sns-auto-ops",
-    version: "0.1.0",
+    version: "0.2.0",
     displayName: { en: "SNS Auto Ops", ja: "SNS完全自動運用" },
     subscribe: [EventTypes.SnsAutoOpsTick],
     publish: [
@@ -28,8 +33,17 @@ export const snsAutoOpsPlugin: AgentPlugin = {
       EventTypes.SnsOAuthRefreshTick,
       EventTypes.SnsPostPublishRequested,
       EventTypes.SnsAutoOpsAlert,
+      EventTypes.SnsRecommendRequested,
     ],
-    capabilities: ["auto_publish_gate", "revenue_ops", "safety_limits"],
+    capabilities: [
+      "full_auto_pipeline",
+      "theme_select",
+      "video_render",
+      "auto_publish_gate",
+      "revenue_ops",
+      "safety_limits",
+      "auto_stop",
+    ],
   },
 
   async handle(ctx, event) {
@@ -42,7 +56,7 @@ export const snsAutoOpsPlugin: AgentPlugin = {
       return;
     }
 
-    // Keep OAuth fresh and pull learning signals
+    // OAuth refresh + learning signals
     await ctx.publish(
       createEvent({
         type: EventTypes.SnsOAuthRefreshTick,
@@ -61,7 +75,9 @@ export const snsAutoOpsPlugin: AgentPlugin = {
         correlationid: event.correlationid,
         causationid: event.id,
         data: {
-          platforms: settings.platformsEnabled,
+          platforms: settings.platformsEnabled.filter((p) =>
+            ["instagram", "tiktok"].includes(p),
+          ),
           locales: ["ja", "en"],
           useSeedCatalog: true,
         },
@@ -80,28 +96,61 @@ export const snsAutoOpsPlugin: AgentPlugin = {
       );
     }
 
+    // 1) Plan → generate → render → create ready posts
+    if (settings.mode === "full_auto") {
+      try {
+        const run = await runFullAutoPipeline({
+          platforms: settings.platformsEnabled,
+          locale: "ja",
+        });
+        await ctx.logger.info(
+          `Full-auto pipeline theme=${run.theme.kind}/${run.theme.toolName} posts=${run.postIds.length} queued=${run.publishQueued.length}`,
+        );
+        for (const postId of run.publishQueued) {
+          const post = await repos.socialPosts.findById(postId);
+          if (!post || post.externalPostId) continue;
+          // Exponential backoff if prior attempts exist
+          if (post.publishAttempts > 0) {
+            const delay = publishBackoffMs(post.publishAttempts);
+            await ctx.logger.info(
+              `Backoff ${delay}ms before re-publish ${postId} attempt=${post.publishAttempts}`,
+            );
+          }
+          await ctx.publish(
+            createEvent({
+              type: EventTypes.SnsPostPublishRequested,
+              source: "agent:sns-auto-ops",
+              dataschema: "https://ai-base.local/schemas/sns-post-publish.json",
+              correlationid: event.correlationid,
+              causationid: event.id,
+              subject: post.id,
+              data: {
+                socialPostId: post.id,
+                platform: post.platform,
+                approvedBy: "auto-ops",
+              },
+            }),
+          );
+        }
+      } catch (error) {
+        const message = error instanceof Error ? error.message : String(error);
+        await ctx.logger.error(`Full-auto pipeline failed: ${message}`);
+        await createCriticalAlert({
+          kind: "pipeline_error",
+          title: "SNS自動パイプラインエラー",
+          message,
+        });
+      }
+    }
+
+    // 2) Also gate any leftover drafts/ready items
     const candidates = await repos.socialPosts.listDraftsForAutoOps(20);
     let queued = 0;
     let failures = 0;
 
     for (const post of candidates) {
-      if (!settings.platformsEnabled.includes(post.platform as "instagram" | "tiktok")) {
+      if (!settings.platformsEnabled.includes(post.platform as never)) {
         continue;
-      }
-      // Dedupe: never re-publish same external id / hash already published
-      if (post.contentHash) {
-        const dup = await repos.socialPosts.listRecentContents(100);
-        if (
-          dup.some(
-            (d) =>
-              d.id !== post.id &&
-              d.contentHash === post.contentHash &&
-              // published ones preferred — contentHash match is enough signal
-              true,
-          )
-        ) {
-          // Still allow if not published twin; hash collision across drafts ok
-        }
       }
 
       const decision = await decideForPost(post.id);
@@ -117,8 +166,12 @@ export const snsAutoOpsPlugin: AgentPlugin = {
       }
 
       if (decision.action === "queue_publish") {
-        // Prevent duplicate external publish
         if (post.externalPostId) continue;
+        if (post.publishAttempts > 0) {
+          await new Promise((r) =>
+            setTimeout(r, Math.min(publishBackoffMs(post.publishAttempts), 5_000)),
+          );
+        }
         await repos.socialPosts.updateStatus(post.id, "ready");
         await repos.socialPosts.incrementPublishAttempts(post.id);
         await ctx.publish(
@@ -137,8 +190,7 @@ export const snsAutoOpsPlugin: AgentPlugin = {
           }),
         );
         queued += 1;
-        // Respect daily limit: one enqueue per tick when limit is 1
-        if (queued >= 1) break;
+        if (queued >= Math.max(1, settings.dailyPostLimit)) break;
       }
 
       if (
@@ -150,9 +202,8 @@ export const snsAutoOpsPlugin: AgentPlugin = {
     }
 
     if (failures >= settings.consecutiveFailureAlertThreshold) {
-      await createCriticalAlert({
-        kind: "publish_failures",
-        title: "投稿が連続で失敗しています",
+      await evaluateAutoStop({
+        reason: "consecutive_failures",
         message: `自動公開できない投稿が ${failures} 件以上あります`,
       });
       await ctx.publish(
@@ -170,6 +221,18 @@ export const snsAutoOpsPlugin: AgentPlugin = {
         }),
       );
     }
+
+    // Trigger learning recommend for next cycle
+    await ctx.publish(
+      createEvent({
+        type: EventTypes.SnsRecommendRequested,
+        source: "agent:sns-auto-ops",
+        dataschema: "https://ai-base.local/schemas/sns.recommend.requested.v1.json",
+        correlationid: event.correlationid,
+        causationid: event.id,
+        data: { limit: 6 },
+      }),
+    );
 
     await ctx.logger.info(
       `Auto-ops tick done candidates=${candidates.length} queued=${queued}`,

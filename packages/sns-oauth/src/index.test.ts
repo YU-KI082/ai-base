@@ -11,7 +11,9 @@ describe("sns-oauth types", () => {
   it("maps platforms to oauth providers", () => {
     assert.equal(oauthProviderForPlatform("instagram"), "instagram");
     assert.equal(oauthProviderForPlatform("tiktok"), "tiktok");
-    assert.equal(oauthProviderForPlatform("x"), null);
+    assert.equal(oauthProviderForPlatform("x"), "x");
+    assert.equal(oauthProviderForPlatform("threads"), "threads");
+    assert.equal(oauthProviderForPlatform("note"), null);
   });
 
   it("labels statuses in japanese", () => {

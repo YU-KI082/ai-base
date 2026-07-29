@@ -55,10 +55,12 @@ export type GateInput = {
   toolId: string | null;
   /** Healthy tracked affiliate link for the tool */
   hasHealthyAffiliateLink: boolean;
-  /** Destination URL responds OK */
+  /** Destination URL responds OK (affiliate or official homepage) */
   destinationUrlOk: boolean;
   /** Affiliate /go path resolves to healthy link */
   affiliateLinkOk: boolean;
+  /** Video platforms require a public mediaUrl */
+  mediaUrlOk: boolean;
   /** Fact-check flag from scoring/decision */
   factsVerified: boolean;
   recentContents: string[];
@@ -116,12 +118,14 @@ export function evaluateAutoPublishGate(input: GateInput): GateResult {
   }
   if (!input.destinationUrlOk) {
     reasons.push("紹介先URLが無効");
+  } else if (!input.hasHealthyAffiliateLink) {
+    decision.affiliateFallback = "official_homepage";
   }
   if (!input.toolId) {
     reasons.push("紹介ツール未設定");
   }
-  if (!input.hasHealthyAffiliateLink || !input.affiliateLinkOk) {
-    reasons.push("アフィリエイト未提携またはリンク無効");
+  if (!input.mediaUrlOk) {
+    reasons.push("動画mediaUrl未設定（TikTok/Instagram）");
   }
   if (hasForbiddenPhrases(input.content)) {
     reasons.push("禁止表現を含む");

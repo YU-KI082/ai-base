@@ -1,3 +1,6 @@
+export * from "./tiktok.js";
+export * from "./tiktok-assets.js";
+
 /**
  * SNS continuous learning — structure/pattern extraction only.
  * Never copy third-party captions, media, audio, or designs.
@@ -132,10 +135,10 @@ export function assertNoFabricatedMetrics(
  * Used when official APIs are not connected so the loop can still be exercised safely.
  */
 export function seedStructureObservations(): TrendObservationInput[] {
-  return [
+  const base = [
     {
-      platform: "tiktok",
-      locale: "ja",
+      platform: "tiktok" as const,
+      locale: "ja" as const,
       category: "ai_tools",
       theme: "AIツール比較（3選）",
       hookPattern: "数字フック（『知らないと損するAI 3選』系）",
@@ -144,8 +147,8 @@ export function seedStructureObservations(): TrendObservationInput[] {
       subtitleStructure: "冒頭テロップ → 箇条書き3点 → CTA",
       sceneFlow: "問題提示 → 解決策列挙 → 保存誘導",
       format: "vertical_video",
-      ctaPattern: "保存して後で試す",
-      hashtagPatterns: ["#AI", "#効率化"],
+      ctaPattern: "保存して後で試す → AI BASEで比較",
+      hashtagPatterns: ["#AI", "#効率化", "#AI BASE"],
       postedAtHour: 20,
       commentTendency: "『2番目どれ？』系の比較質問",
       plays: null,
@@ -158,13 +161,13 @@ export function seedStructureObservations(): TrendObservationInput[] {
         "比較は保存動機になりやすい",
         "コメント誘発の問いが自然",
       ],
-      sourceType: "seed_structure",
+      sourceType: "seed_structure" as const,
       sourceRef: "catalog:tiktok-ja-listicle-3",
       confidence: 0.25,
     },
     {
-      platform: "instagram",
-      locale: "en",
+      platform: "instagram" as const,
+      locale: "en" as const,
       category: "ai_tools",
       theme: "Single-tool deep dive workflow",
       hookPattern: "Question hook (What if X took 10 minutes?)",
@@ -187,13 +190,13 @@ export function seedStructureObservations(): TrendObservationInput[] {
         "Before/after supports save intent",
         "Profile CTA aligns with Instagram link limits",
       ],
-      sourceType: "seed_structure",
+      sourceType: "seed_structure" as const,
       sourceRef: "catalog:ig-en-deepdive",
       confidence: 0.25,
     },
     {
-      platform: "tiktok",
-      locale: "en",
+      platform: "tiktok" as const,
+      locale: "en" as const,
       category: "ai_tools",
       theme: "Myth-busting AI claims",
       hookPattern: "Contradiction hook (Stop doing X with AI)",
@@ -216,13 +219,13 @@ export function seedStructureObservations(): TrendObservationInput[] {
         "Short length fits TikTok browsing",
         "Comment CTA boosts distribution signals",
       ],
-      sourceType: "seed_structure",
+      sourceType: "seed_structure" as const,
       sourceRef: "catalog:tiktok-en-myth",
       confidence: 0.25,
     },
     {
-      platform: "instagram",
-      locale: "ja",
+      platform: "instagram" as const,
+      locale: "ja" as const,
       category: "ai_tools",
       theme: "初心者向けAI導入手順",
       hookPattern: "共感フック（『まだ手作業で消耗してない？』）",
@@ -245,10 +248,97 @@ export function seedStructureObservations(): TrendObservationInput[] {
         "安心材料がフォロー転換につながる",
         "プロフィール誘導は成約導線と相性が良い",
       ],
-      sourceType: "seed_structure",
+      sourceType: "seed_structure" as const,
       sourceRef: "catalog:ig-ja-beginner",
       confidence: 0.25,
     },
+  ];
+
+  const tiktokKinds: Array<{
+    theme: string;
+    hook: string;
+    durationSec: number;
+    ref: string;
+    why: string[];
+  }> = [
+    {
+      theme: "AIツール紹介（単体）",
+      hook: "好奇心フック（『まだ使ってない？』）",
+      durationSec: 30,
+      ref: "catalog:tiktok-ja-tool-intro",
+      why: ["単体紹介はアフィリエイトCVと相性が良い", "画面収録で信頼を作る"],
+    },
+    {
+      theme: "ランキング（厳選）",
+      hook: "数字フック（『今使うべきN選』）",
+      durationSec: 30,
+      ref: "catalog:tiktok-ja-ranking",
+      why: ["ランキングは保存されやすい", "コメントで順位議論が起きる"],
+    },
+    {
+      theme: "AIニュース速報",
+      hook: "緊急性フック（『今日知らないと損』）",
+      durationSec: 15,
+      ref: "catalog:tiktok-ja-news",
+      why: ["短尺ニュースは完視聴率が高い", "プロフィール遷移へ繋げやすい"],
+    },
+    {
+      theme: "使い方（手順）",
+      hook: "疑問フック（『正しい使い方は？』）",
+      durationSec: 60,
+      ref: "catalog:tiktok-ja-howto",
+      why: ["手順系は保存・シェアが伸びやすい", "AI BASE詳細への導線が自然"],
+    },
+    {
+      theme: "失敗例",
+      hook: "共感フック（『失敗する人の共通点』）",
+      durationSec: 30,
+      ref: "catalog:tiktok-ja-failure",
+      why: ["失敗回避ニーズはクリック動機になる", "教育コンテンツで信頼構築"],
+    },
+    {
+      theme: "ビフォーアフター",
+      hook: "対比フック（『導入前と後』）",
+      durationSec: 15,
+      ref: "catalog:tiktok-ja-before-after",
+      why: ["対比は3秒視聴率を押し上げる", "成果イメージが成約に効く"],
+    },
+    {
+      theme: "初心者向け解説",
+      hook: "共感フック（『AI初心者が最初にやること』）",
+      durationSec: 60,
+      ref: "catalog:tiktok-ja-beginner",
+      why: ["初心者層は比較サイトへの流入が厚い", "字幕多めが理解を助ける"],
+    },
+  ];
+
+  return [
+    ...base,
+    ...tiktokKinds.map((k) => ({
+      platform: "tiktok" as const,
+      locale: "ja" as const,
+      category: "ai_tools",
+      theme: k.theme,
+      hookPattern: k.hook,
+      durationSec: k.durationSec,
+      captionDensity: k.durationSec <= 15 ? "low" : "medium",
+      subtitleStructure: "フック0-2秒 → 本文テロップ → CTA → AI BASE誘導",
+      sceneFlow: "hook_card → tool_ui → compare_cards → cta_endcard",
+      format: "vertical_video",
+      ctaPattern: "保存＋プロフィールからAI BASEへ（計測リンク）",
+      hashtagPatterns: ["#AI", "#AIツール", "#AI BASE"],
+      postedAtHour: 19,
+      commentTendency: "『リンクどこ？』『料金は？』",
+      plays: null,
+      likes: null,
+      saves: null,
+      shares: null,
+      comments: null,
+      whyItMayWork: k.why,
+      sourceType: "seed_structure" as const,
+      sourceRef: k.ref,
+      confidence: 0.28,
+    })),
   ];
 }
 

@@ -13,7 +13,8 @@
     "@ai-base/agents-sdk": "workspace:*",
     "@ai-base/database": "workspace:*",
     "@ai-base/events": "workspace:*",
-    "@ai-base/sns-learning": "workspace:*"
+    "@ai-base/sns-learning": "workspace:*",
+    "@ai-base/sns-oauth": "workspace:*"
   },
   "devDependencies": {
     "tsx": "^4.19.2",

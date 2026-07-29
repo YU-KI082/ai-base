@@ -14,11 +14,11 @@ import {
 import { revenueLearningScore } from "./revenue-learning.js";
 
 describe("sns-auto-ops", () => {
-  it("defaults to safe draft_only with emergency stop", () => {
+  it("defaults to full_auto with emergency stop off", () => {
     const s = defaultAutoOpsSettings();
-    assert.equal(s.mode, "draft_only");
-    assert.equal(s.emergencyStop, true);
-    assert.equal(s.dailyPostLimit, 1);
+    assert.equal(s.mode, "full_auto");
+    assert.equal(s.emergencyStop, false);
+    assert.ok(s.platformsEnabled.includes("tiktok"));
   });
 
   it("ramps daily limit after test days", () => {
@@ -53,6 +53,7 @@ describe("sns-auto-ops", () => {
       hasHealthyAffiliateLink: true,
       destinationUrlOk: true,
       affiliateLinkOk: true,
+      mediaUrlOk: true,
       factsVerified: true,
       recentContents: [],
       postsToday: 0,
@@ -81,6 +82,7 @@ describe("sns-auto-ops", () => {
       hasHealthyAffiliateLink: true,
       destinationUrlOk: true,
       affiliateLinkOk: true,
+      mediaUrlOk: true,
       factsVerified: true,
       recentContents: ["別の投稿です"],
       postsToday: 0,
@@ -93,6 +95,34 @@ describe("sns-auto-ops", () => {
     assert.equal(gate.ok, true);
   });
 
+  it("blocks video platforms without mediaUrl", () => {
+    const gate = evaluateAutoPublishGate({
+      settings: parseAutoOpsSettings({
+        mode: "full_auto",
+        emergencyStop: false,
+        minQualityScore: 80,
+      }),
+      platform: "tiktok",
+      content: "ChatGPTの使い方を3ステップで解説",
+      scoreTotal: 88,
+      riskFlags: [],
+      toolId: "t1",
+      hasHealthyAffiliateLink: true,
+      destinationUrlOk: true,
+      affiliateLinkOk: true,
+      mediaUrlOk: false,
+      factsVerified: true,
+      recentContents: [],
+      postsToday: 0,
+      effectiveDailyLimit: 1,
+      hoursSinceLastPlatformPost: 30,
+      minIntervalHours: 24,
+      emergencyStop: false,
+      oauthOk: true,
+    });
+    assert.equal(gate.ok, false);
+    assert.ok(gate.reasons.some((r) => r.includes("mediaUrl")));
+  });
   it("ranks revenue over vanity plays", () => {
     const highPlays = revenueLearningScore({
       plays: 50000,

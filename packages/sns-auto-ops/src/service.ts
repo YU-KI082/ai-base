@@ -73,7 +73,19 @@ async function toolAffiliateReady(toolId: string | null) {
   const healthy = links
     .filter((l) => l.isHealthy)
     .sort((a, b) => b.priority - a.priority)[0];
-  if (!healthy) {
+  if (healthy) {
+    const destinationUrlOk = await checkUrlAlive(healthy.url);
+    return {
+      hasHealthyAffiliateLink: true,
+      affiliateLinkOk: destinationUrlOk,
+      destinationUrlOk,
+      homepageUrl: healthy.url,
+      linkId: healthy.id,
+    };
+  }
+  const tool = await repos.tools.findById(toolId);
+  const homepage = tool?.homepageUrl ?? null;
+  if (!homepage) {
     return {
       hasHealthyAffiliateLink: false,
       affiliateLinkOk: false,
@@ -82,13 +94,13 @@ async function toolAffiliateReady(toolId: string | null) {
       linkId: null,
     };
   }
-  const destinationUrlOk = await checkUrlAlive(healthy.url);
+  const destinationUrlOk = await checkUrlAlive(homepage);
   return {
-    hasHealthyAffiliateLink: true,
-    affiliateLinkOk: destinationUrlOk,
+    hasHealthyAffiliateLink: false,
+    affiliateLinkOk: false,
     destinationUrlOk,
-    homepageUrl: healthy.url,
-    linkId: healthy.id,
+    homepageUrl: homepage,
+    linkId: null,
   };
 }
 
@@ -129,6 +141,7 @@ export async function decideForPost(postId: string): Promise<EligibleDecision> {
   const minInterval =
     settings.minIntervalHoursByPlatform[post.platform] ?? 24;
 
+  const needsMedia = ["tiktok", "instagram"].includes(post.platform);
   const gate = evaluateAutoPublishGate({
     settings,
     platform: post.platform,
@@ -139,6 +152,7 @@ export async function decideForPost(postId: string): Promise<EligibleDecision> {
     hasHealthyAffiliateLink: aff.hasHealthyAffiliateLink,
     destinationUrlOk: aff.destinationUrlOk,
     affiliateLinkOk: aff.affiliateLinkOk,
+    mediaUrlOk: needsMedia ? Boolean(post.mediaUrl) : true,
     factsVerified: !post.riskFlags.includes("policy_risk"),
     recentContents: recent.filter((c) => c.id !== post.id).map((c) => c.content),
     postsToday,

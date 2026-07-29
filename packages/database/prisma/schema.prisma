@@ -503,6 +503,7 @@ model ArticleTranslation {
 model SocialPost {
   id               String    @id @default(cuid())
   platform         String
+  /// draft | pending_approval | ready | scheduled | published | failed | retry | rejected
   status           String    @default("draft")
   locale           Locale
   content          String
@@ -515,6 +516,15 @@ model SocialPost {
   cta              String?
   format           String?
   hashtags         String[]  @default([])
+  /// tool_intro | compare | ranking | ai_news | howto | failure | before_after | beginner
+  contentKind      String?   @map("content_kind")
+  /// TikTok/Reels multi-duration scripts (15/30/60) JSON
+  scriptJson       Json?     @map("script_json")
+  /// Vertical 9:16 media plan (scenes, BGM, thumbs) JSON
+  mediaPlanJson    Json?     @map("media_plan_json")
+  subtitleDensity  String?   @map("subtitle_density")
+  lastPublishError String?   @map("last_publish_error")
+  maxPublishRetries Int      @default(3) @map("max_publish_retries")
   experimentId     String?   @map("experiment_id")
   variantKey       String?   @map("variant_key")
   recommendationId String?   @map("recommendation_id")
@@ -538,6 +548,7 @@ model SocialPost {
   @@index([platform, status])
   @@index([experimentId])
   @@index([contentHash])
+  @@index([contentKind, platform])
   @@map("social_posts")
 }
 
@@ -681,6 +692,8 @@ model SnsPostMetrics {
   plays           Int?
   reach           Int?
   avgWatchSec     Float?   @map("avg_watch_sec")
+  /// Overall watch retention / average watch ratio when provided
+  watchRetentionRate Float? @map("watch_retention_rate")
   completionRate  Float?   @map("completion_rate")
   hold3SecRate    Float?   @map("hold_3sec_rate")
   likeRate        Float?   @map("like_rate")
@@ -690,6 +703,12 @@ model SnsPostMetrics {
   profileVisitRate Float?  @map("profile_visit_rate")
   linkClickRate   Float?   @map("link_click_rate")
   followRate      Float?   @map("follow_rate")
+  /// Absolute engagement counts (TikTok / IG analytics)
+  likesCount      Int?     @map("likes_count")
+  commentsCount   Int?     @map("comments_count")
+  sharesCount     Int?     @map("shares_count")
+  savesCount      Int?     @map("saves_count")
+  profileVisits   Int?     @map("profile_visits")
   affiliateClicks Int?     @map("affiliate_clicks")
   conversions     Int?
   revenue         Float?

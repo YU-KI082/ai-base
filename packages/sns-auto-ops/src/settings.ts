@@ -31,8 +31,10 @@ export const AutoOpsSettingsSchema = z.object({
     })
     .default({}),
   platformsEnabled: z
-    .array(z.enum(["instagram", "tiktok"]))
-    .default(["instagram", "tiktok"]),
+    .array(
+      z.enum(["instagram", "tiktok", "x", "threads", "note", "linkedin"]),
+    )
+    .default(["tiktok", "instagram", "x", "threads", "note"]),
 });
 
 export type AutoOpsSettings = z.infer<typeof AutoOpsSettingsSchema>;
@@ -40,7 +42,21 @@ export type AutoOpsSettings = z.infer<typeof AutoOpsSettingsSchema>;
 export const AUTO_OPS_SETTING_KEY = "sns_auto_ops_settings";
 
 export function defaultAutoOpsSettings(): AutoOpsSettings {
-  return AutoOpsSettingsSchema.parse({});
+  // Full-auto by default after OAuth is connected; emergency stop off for continuous ops.
+  // Operators can still flip emergencyStop from /admin/ops.
+  return AutoOpsSettingsSchema.parse({
+    mode: "full_auto",
+    emergencyStop: false,
+    dailyPostLimit: 3,
+    minIntervalHoursByPlatform: {
+      tiktok: 8,
+      instagram: 12,
+      x: 4,
+      threads: 6,
+      note: 24,
+    },
+    platformsEnabled: ["tiktok", "instagram", "x", "threads", "note"],
+  });
 }
 
 export function parseAutoOpsSettings(raw: unknown): AutoOpsSettings {

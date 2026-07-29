@@ -1,6 +1,7 @@
 import { EventTypes, createEvent, enqueueEvent } from "@ai-base/events";
 import {
   buildOpsDashboard,
+  runFullAutoPipeline,
   saveAutoOpsSettings,
   type AutoOpsSettings,
 } from "@ai-base/sns-auto-ops";
@@ -56,6 +57,34 @@ export async function POST(request: Request) {
         }),
       );
       return jsonOk({ queued: true });
+    }
+    if (body.action === "run_full_auto") {
+      const result = await runFullAutoPipeline({ locale: "ja" });
+      for (const postId of result.publishQueued) {
+        const post = await repos.socialPosts.findById(postId);
+        if (!post || post.externalPostId) continue;
+        await repos.socialPosts.incrementPublishAttempts(post.id);
+        await enqueueEvent(
+          createEvent({
+            type: EventTypes.SnsPostPublishRequested,
+            source: "admin:ops",
+            dataschema: "https://ai-base.local/schemas/sns-post-publish.json",
+            correlationid: `full-auto-${Date.now()}`,
+            subject: post.id,
+            data: {
+              socialPostId: post.id,
+              platform: post.platform,
+              approvedBy: "auto-ops",
+            },
+          }),
+        );
+      }
+      return jsonOk({
+        theme: result.theme,
+        postIds: result.postIds,
+        publishQueued: result.publishQueued,
+        steps: result.steps,
+      });
     }
     return jsonError("Unknown action", 400);
   });

@@ -111,11 +111,22 @@ export default async function SnsLearningAdminPage() {
               metrics: p.metrics.map((m) => ({
                 windowHours: m.windowHours,
                 plays: m.plays,
+                avgWatchSec: m.avgWatchSec,
+                watchRetentionRate: m.watchRetentionRate,
+                hold3SecRate: m.hold3SecRate,
+                completionRate: m.completionRate,
+                likesCount: m.likesCount,
+                commentsCount: m.commentsCount,
+                sharesCount: m.sharesCount,
+                savesCount: m.savesCount,
+                profileVisits: m.profileVisits,
                 affiliateClicks: m.affiliateClicks,
                 conversions: m.conversions,
                 revenue: m.revenue,
                 saveRate: m.saveRate,
               })),
+              contentKind: p.contentKind,
+              subtitleDensity: p.subtitleDensity,
             })),
           }}
         />

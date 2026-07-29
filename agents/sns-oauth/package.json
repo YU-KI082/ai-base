@@ -13,6 +13,7 @@
     "@ai-base/agents-sdk": "workspace:*",
     "@ai-base/database": "workspace:*",
     "@ai-base/events": "workspace:*",
+    "@ai-base/sns-auto-ops": "workspace:*",
     "@ai-base/sns-oauth": "workspace:*"
   },
   "devDependencies": {

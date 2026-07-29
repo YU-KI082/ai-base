@@ -2,5 +2,11 @@
   "$schema": "https://openapi.vercel.sh/vercel.json",
   "framework": "nextjs",
   "installCommand": "cd ../.. && pnpm install",
-  "buildCommand": "cd ../.. && pnpm db:generate && pnpm --filter \"@ai-base/web^...\" build && pnpm --filter @ai-base/web build"
+  "buildCommand": "cd ../.. && pnpm db:generate && pnpm --filter \"@ai-base/web^...\" build && pnpm --filter @ai-base/web build",
+  "crons": [
+    {
+      "path": "/api/v1/cron/sns-auto-ops",
+      "schedule": "0 */4 * * *"
+    }
+  ]
 }
