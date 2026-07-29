@@ -18,6 +18,7 @@ export async function GET(req: Request) {
     type: EventTypes.SnsAutoOpsTick,
     source: "cron/sns-auto-ops",
     dataschema: "https://ai-base.local/schemas/sns-auto-ops-tick.json",
+    correlationid: `cron-sns-auto-ops-${Date.now()}`,
     data: { reason: "cron" as const },
   });
   await enqueueEvent(event);
