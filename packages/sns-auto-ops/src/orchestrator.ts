@@ -6,8 +6,8 @@ import {
   scoreSocialDraft,
   type TikTokContentKind,
 } from "@ai-base/sns-learning";
-import { getNotePublisher } from "@ai-base/sns-oauth";
-import { planFromBeats, renderVerticalVideo } from "@ai-base/video-render";
+import { getNotePublisher, getDraftQueuePublisher } from "@ai-base/sns-oauth";
+import { planFromBeats, renderVerticalVideo, getTtsProvider } from "@ai-base/video-render";
 import { evaluateAutoStop } from "./auto-stop.js";
 import { runAutoPolicyCheck } from "./policy.js";
 import {
@@ -341,6 +341,55 @@ export async function runFullAutoPipeline(input?: {
       socialPostId: post.id,
       detail: queued.message,
     });
+  }
+
+  // --- LinkedIn / YouTube Shorts / Pinterest / Facebook draft queues ---
+  for (const platform of platforms.filter((p) =>
+    ["linkedin", "youtube_shorts", "pinterest", "facebook"].includes(p),
+  )) {
+    const publisher = getDraftQueuePublisher(platform);
+    if (!publisher) continue;
+    const content =
+      theme.locale === "ja"
+        ? `${theme.toolName}をAI BASEで比較・確認。\n${process.env.NEXT_PUBLIC_SITE_URL || "https://ai-base-beta.vercel.app"}/tools/${theme.toolSlug ?? ""}`
+        : `Compare ${theme.toolName} on AI BASE.\n${process.env.NEXT_PUBLIC_SITE_URL || "https://ai-base-beta.vercel.app"}/tools/${theme.toolSlug ?? ""}`;
+    const queued = await publisher.publish({
+      platform,
+      content,
+      hashtags: ["#AI", "#AItools"],
+      cta: "AI BASE",
+    });
+    const post = await repos.socialPosts.createDraft({
+      platform,
+      locale: theme.locale,
+      status: "scheduled",
+      toolId: theme.toolId,
+      content,
+      theme: `${platform}:${theme.kind}`,
+      externalPostId: queued.externalPostId,
+      lastPublishError: queued.message,
+      format: platform.includes("youtube") || platform === "pinterest" ? "vertical_video" : "text",
+      autoDecision: { fullAuto: true, draftQueue: true },
+    });
+    postIds.push(post.id);
+    steps.push({
+      step: `${platform}_queue`,
+      ok: true,
+      socialPostId: post.id,
+      detail: queued.message,
+    });
+  }
+
+  // Optional TTS readiness check (ElevenLabs when keyed)
+  try {
+    const tts = await getTtsProvider();
+    steps.push({
+      step: "tts_provider",
+      ok: true,
+      detail: tts.name,
+    });
+  } catch {
+    // non-fatal
   }
 
   // Reflect learning into improvement log for next cycle

@@ -32,7 +32,17 @@ export const AutoOpsSettingsSchema = z.object({
     .default({}),
   platformsEnabled: z
     .array(
-      z.enum(["instagram", "tiktok", "x", "threads", "note", "linkedin"]),
+      z.enum([
+        "instagram",
+        "tiktok",
+        "x",
+        "threads",
+        "note",
+        "linkedin",
+        "youtube_shorts",
+        "pinterest",
+        "facebook",
+      ]),
     )
     .default(["tiktok", "instagram", "x", "threads", "note"]),
 });

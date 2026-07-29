@@ -62,6 +62,21 @@ export const EventTypes = {
   SelfHealingErrorReported: "self_healing.error.reported.v1",
   SelfHealingResolved: "self_healing.resolved.v1",
   SelfHealingNeedsApproval: "self_healing.needs_approval.v1",
+  /** Daily company conductor — research→seo→sns→analytics→improve */
+  CompanyOpsTick: "company.ops.tick.v1",
+  ResearchScoutRequested: "research.scout.requested.v1",
+  ResearchToolsDiscovered: "research.tools.discovered.v1",
+  ArticleGenerateRequested: "content.article.generate.requested.v1",
+  ArticlePublished: "content.article.published.v1",
+  AffiliateOptimizeRequested: "affiliate.optimize.requested.v1",
+  AnalyticsDailyRequested: "analytics.daily.requested.v1",
+  AnalyticsDailyReady: "analytics.daily.ready.v1",
+  ContentImproveRequested: "content.improve.requested.v1",
+  ContentImproved: "content.improved.v1",
+  TrendPredictRequested: "trend.predict.requested.v1",
+  TrendPredictionsReady: "trend.predictions.ready.v1",
+  VideoRenderRequested: "video.render.requested.v1",
+  VideoRenderReady: "video.render.ready.v1",
 } as const;
 
 export type EventType = (typeof EventTypes)[keyof typeof EventTypes];
@@ -274,6 +289,107 @@ export const SelfHealingNeedsApprovalDataSchema = z.object({
   incidentId: z.string(),
   title: z.string(),
   reason: z.string(),
+});
+
+export const CompanyOpsTickDataSchema = z.object({
+  reason: z.enum(["cron", "manual"]).default("cron"),
+  siteBrandKey: z.string().optional(),
+});
+
+export const ResearchScoutRequestedDataSchema = z.object({
+  sources: z.array(z.string()).default([]),
+  limit: z.number().int().min(1).max(50).default(10),
+  locale: LocaleSchema.default("ja"),
+});
+
+export const ResearchToolsDiscoveredDataSchema = z.object({
+  count: z.number().int(),
+  toolNames: z.array(z.string()).default([]),
+  source: z.string(),
+});
+
+export const ArticleGenerateRequestedDataSchema = z.object({
+  kind: z.enum([
+    "recommend",
+    "compare",
+    "howto",
+    "ranking",
+    "news",
+    "usecase",
+    "guide",
+    "faq",
+    "beginner",
+  ]),
+  toolSlugs: z.array(z.string()).default([]),
+  topic: z.string().optional(),
+  locale: LocaleSchema.default("ja"),
+  autoPublish: z.boolean().default(true),
+});
+
+export const ArticlePublishedDataSchema = z.object({
+  articleId: z.string(),
+  slug: z.string(),
+  kind: z.string(),
+  locale: LocaleSchema,
+});
+
+export const AffiliateOptimizeRequestedDataSchema = z.object({
+  toolId: z.string().optional(),
+  reason: z.enum(["publish", "cron", "expired"]).default("cron"),
+});
+
+export const AnalyticsDailyRequestedDataSchema = z.object({
+  windowHours: z.number().int().default(24),
+});
+
+export const AnalyticsDailyReadyDataSchema = z.object({
+  summaryId: z.string(),
+  revenue: z.number(),
+  clicks: z.number(),
+  conversions: z.number(),
+  improvements: z.array(z.string()).default([]),
+});
+
+export const ContentImproveRequestedDataSchema = z.object({
+  targetType: z.enum(["article", "tool", "social"]),
+  targetId: z.string(),
+  reason: z.string(),
+});
+
+export const ContentImprovedDataSchema = z.object({
+  targetType: z.string(),
+  targetId: z.string(),
+  changes: z.array(z.string()).default([]),
+});
+
+export const TrendPredictRequestedDataSchema = z.object({
+  limit: z.number().int().min(1).max(20).default(5),
+});
+
+export const TrendPredictionsReadyDataSchema = z.object({
+  predictions: z.array(
+    z.object({
+      name: z.string(),
+      score: z.number(),
+      rationale: z.string(),
+      source: z.string(),
+      homepageUrl: z.string().optional(),
+    }),
+  ),
+});
+
+export const VideoRenderRequestedDataSchema = z.object({
+  socialPostId: z.string().optional(),
+  toolSlug: z.string().optional(),
+  durationSec: z.union([z.literal(15), z.literal(30), z.literal(60)]).default(30),
+  platform: z.string().default("tiktok"),
+});
+
+export const VideoRenderReadyDataSchema = z.object({
+  mediaUrl: z.string(),
+  provider: z.string(),
+  durationSec: z.number(),
+  socialPostId: z.string().optional(),
 });
 
 export function createEvent<T>(input: {

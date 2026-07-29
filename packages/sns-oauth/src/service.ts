@@ -276,8 +276,11 @@ export async function validateConnection(provider: OAuthProvider) {
 
 /** Ensure OAuth connection is healthy before external publish. */
 export async function ensureReadyForPublish(platform: string) {
-  // note uses draft-queue provider — no OAuth required
-  if (platform === "note") {
+  // note + draft-queue platforms — no OAuth required yet
+  if (
+    platform === "note" ||
+    ["linkedin", "youtube_shorts", "pinterest", "facebook"].includes(platform)
+  ) {
     return { ok: true as const, provider: null };
   }
   const provider = oauthProviderForPlatform(platform);

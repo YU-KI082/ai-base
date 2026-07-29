@@ -5,7 +5,7 @@
   "buildCommand": "cd ../.. && pnpm db:generate && pnpm --filter \"@ai-base/web^...\" build && pnpm --filter @ai-base/web build",
   "crons": [
     {
-      "path": "/api/v1/cron/sns-auto-ops",
+      "path": "/api/v1/cron/company-ops",
       "schedule": "0 9 * * *"
     }
   ]

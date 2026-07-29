@@ -1,5 +1,5 @@
 {
-  "name": "@ai-base/agent-affiliate",
+  "name": "@ai-base/agent-auto-improve",
   "version": "0.1.0",
   "private": true,
   "type": "module",
@@ -10,10 +10,8 @@
     "typecheck": "tsc -p tsconfig.json --noEmit"
   },
   "dependencies": {
-    "@ai-base/affiliate-intel": "workspace:*",
     "@ai-base/agents-sdk": "workspace:*",
     "@ai-base/company-ops": "workspace:*",
-    "@ai-base/database": "workspace:*",
     "@ai-base/events": "workspace:*"
   },
   "devDependencies": {

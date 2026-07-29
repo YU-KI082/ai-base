@@ -51,7 +51,10 @@ export default async function AdminDashboard() {
           <h1 className="page-title">{dict.admin.dashboard}</h1>
           <p className="page-subtitle">{dict.admin.dashboardSubtitle}</p>
         </div>
-        <Link className="btn btn-primary" href="/admin/ingest">
+        <Link className="btn btn-primary" href="/admin/company">
+          {locale === "ja" ? "AI会社" : "AI Company"}
+        </Link>
+        <Link className="btn btn-ghost" href="/admin/ingest">
           {dict.admin.manualIngest}
         </Link>
       </div>

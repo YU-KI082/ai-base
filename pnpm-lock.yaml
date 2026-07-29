@@ -26,6 +26,9 @@ importers:
       '@ai-base/agents-sdk':
         specifier: workspace:*
         version: link:../../packages/agents-sdk
+      '@ai-base/company-ops':
+        specifier: workspace:*
+        version: link:../../packages/company-ops
       '@ai-base/database':
         specifier: workspace:*
         version: link:../../packages/database
@@ -45,6 +48,50 @@ importers:
       '@ai-base/agents-sdk':
         specifier: workspace:*
         version: link:../../packages/agents-sdk
+      '@ai-base/company-ops':
+        specifier: workspace:*
+        version: link:../../packages/company-ops
+      '@ai-base/database':
+        specifier: workspace:*
+        version: link:../../packages/database
+      '@ai-base/events':
+        specifier: workspace:*
+        version: link:../../packages/events
+    devDependencies:
+      tsx:
+        specifier: ^4.19.2
+        version: 4.23.1
+      typescript:
+        specifier: 5.7.2
+        version: 5.7.2
+
+  agents/auto-improve:
+    dependencies:
+      '@ai-base/agents-sdk':
+        specifier: workspace:*
+        version: link:../../packages/agents-sdk
+      '@ai-base/company-ops':
+        specifier: workspace:*
+        version: link:../../packages/company-ops
+      '@ai-base/events':
+        specifier: workspace:*
+        version: link:../../packages/events
+    devDependencies:
+      tsx:
+        specifier: ^4.19.2
+        version: 4.23.1
+      typescript:
+        specifier: 5.7.2
+        version: 5.7.2
+
+  agents/company-ops:
+    dependencies:
+      '@ai-base/agents-sdk':
+        specifier: workspace:*
+        version: link:../../packages/agents-sdk
+      '@ai-base/company-ops':
+        specifier: workspace:*
+        version: link:../../packages/company-ops
       '@ai-base/database':
         specifier: workspace:*
         version: link:../../packages/database
@@ -108,6 +155,25 @@ importers:
       '@ai-base/events':
         specifier: workspace:*
         version: link:../../packages/events
+    devDependencies:
+      tsx:
+        specifier: ^4.19.2
+        version: 4.23.1
+      typescript:
+        specifier: 5.7.2
+        version: 5.7.2
+
+  agents/research:
+    dependencies:
+      '@ai-base/agents-sdk':
+        specifier: workspace:*
+        version: link:../../packages/agents-sdk
+      '@ai-base/events':
+        specifier: workspace:*
+        version: link:../../packages/events
+      '@ai-base/scout-sources':
+        specifier: workspace:*
+        version: link:../../packages/scout-sources
     devDependencies:
       tsx:
         specifier: ^4.19.2
@@ -184,6 +250,25 @@ importers:
       '@ai-base/database':
         specifier: workspace:*
         version: link:../../packages/database
+      '@ai-base/events':
+        specifier: workspace:*
+        version: link:../../packages/events
+    devDependencies:
+      tsx:
+        specifier: ^4.19.2
+        version: 4.23.1
+      typescript:
+        specifier: 5.7.2
+        version: 5.7.2
+
+  agents/seo-content:
+    dependencies:
+      '@ai-base/agents-sdk':
+        specifier: workspace:*
+        version: link:../../packages/agents-sdk
+      '@ai-base/company-ops':
+        specifier: workspace:*
+        version: link:../../packages/company-ops
       '@ai-base/events':
         specifier: workspace:*
         version: link:../../packages/events
@@ -396,6 +481,50 @@ importers:
         specifier: 5.7.2
         version: 5.7.2
 
+  agents/trend-predict:
+    dependencies:
+      '@ai-base/agents-sdk':
+        specifier: workspace:*
+        version: link:../../packages/agents-sdk
+      '@ai-base/company-ops':
+        specifier: workspace:*
+        version: link:../../packages/company-ops
+      '@ai-base/events':
+        specifier: workspace:*
+        version: link:../../packages/events
+    devDependencies:
+      tsx:
+        specifier: ^4.19.2
+        version: 4.23.1
+      typescript:
+        specifier: 5.7.2
+        version: 5.7.2
+
+  agents/video:
+    dependencies:
+      '@ai-base/agents-sdk':
+        specifier: workspace:*
+        version: link:../../packages/agents-sdk
+      '@ai-base/database':
+        specifier: workspace:*
+        version: link:../../packages/database
+      '@ai-base/events':
+        specifier: workspace:*
+        version: link:../../packages/events
+      '@ai-base/sns-learning':
+        specifier: workspace:*
+        version: link:../../packages/sns-learning
+      '@ai-base/video-render':
+        specifier: workspace:*
+        version: link:../../packages/video-render
+    devDependencies:
+      tsx:
+        specifier: ^4.19.2
+        version: 4.23.1
+      typescript:
+        specifier: 5.7.2
+        version: 5.7.2
+
   agents/writer:
     dependencies:
       '@ai-base/agents-sdk':
@@ -426,6 +555,9 @@ importers:
       '@ai-base/cache':
         specifier: workspace:*
         version: link:../../packages/cache
+      '@ai-base/company-ops':
+        specifier: workspace:*
+        version: link:../../packages/company-ops
       '@ai-base/database':
         specifier: workspace:*
         version: link:../../packages/database
@@ -453,6 +585,9 @@ importers:
       '@ai-base/sns-oauth':
         specifier: workspace:*
         version: link:../../packages/sns-oauth
+      '@ai-base/video-render':
+        specifier: workspace:*
+        version: link:../../packages/video-render
       '@prisma/client':
         specifier: 6.19.3
         version: 6.19.3(prisma@6.19.3(typescript@5.7.2))(typescript@5.7.2)
@@ -561,6 +696,31 @@ importers:
       ioredis:
         specifier: ^5.4.2
         version: 5.11.1
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.2
+        version: 22.20.1
+      tsx:
+        specifier: ^4.19.2
+        version: 4.23.1
+      typescript:
+        specifier: 5.7.2
+        version: 5.7.2
+
+  packages/company-ops:
+    dependencies:
+      '@ai-base/database':
+        specifier: workspace:*
+        version: link:../database
+      '@ai-base/scout-sources':
+        specifier: workspace:*
+        version: link:../scout-sources
+      '@ai-base/sns-auto-ops':
+        specifier: workspace:*
+        version: link:../sns-auto-ops
+      zod:
+        specifier: ^3.24.1
+        version: 3.25.76
     devDependencies:
       '@types/node':
         specifier: ^22.10.2
@@ -700,6 +860,22 @@ importers:
       '@ai-base/database':
         specifier: workspace:*
         version: link:../database
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.2
+        version: 22.20.1
+      tsx:
+        specifier: ^4.19.2
+        version: 4.23.1
+      typescript:
+        specifier: 5.7.2
+        version: 5.7.2
+
+  packages/scout-sources:
+    dependencies:
+      zod:
+        specifier: ^3.24.1
+        version: 3.25.76
     devDependencies:
       '@types/node':
         specifier: ^22.10.2

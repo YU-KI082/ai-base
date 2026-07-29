@@ -9,6 +9,14 @@ export {
   getNotePublisher,
 } from "./note.js";
 export {
+  DRAFT_QUEUE_PLATFORMS,
+  getDraftQueuePublisher,
+  linkedinDraftQueue,
+  youtubeShortsDraftQueue,
+  pinterestDraftQueue,
+  facebookDraftQueue,
+} from "./draft-queues.js";
+export {
   getProvider,
   createOAuthState,
   verifyOAuthState,

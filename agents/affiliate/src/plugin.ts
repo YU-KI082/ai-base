@@ -1,7 +1,9 @@
 import type { AgentPlugin } from "@ai-base/agents-sdk";
 import { proposeAspInvestigations } from "@ai-base/affiliate-intel";
+import { optimizeAffiliateOffers } from "@ai-base/company-ops";
 import {
   AffiliateIntelRequestedDataSchema,
+  AffiliateOptimizeRequestedDataSchema,
   ContentPublishedDataSchema,
   EventTypes,
   createEvent,
@@ -71,7 +73,7 @@ async function registerTool(
 export const affiliatePlugin: AgentPlugin = {
   manifest: {
     key: "affiliate",
-    version: "0.1.0",
+    version: "0.2.0",
     displayName: {
       en: "Affiliate Intelligence",
       ja: "アフィリエイトインテリジェンス",
@@ -79,11 +81,13 @@ export const affiliatePlugin: AgentPlugin = {
     subscribe: [
       EventTypes.ContentPublished,
       EventTypes.AffiliateIntelRequested,
+      EventTypes.AffiliateOptimizeRequested,
     ],
     publish: [EventTypes.AffiliateIntelRegistered],
     capabilities: [
       "affiliate_case",
       "asp_proposals",
+      "offer_optimize",
       "official",
       "a8",
       "moshimo",
@@ -92,6 +96,16 @@ export const affiliatePlugin: AgentPlugin = {
     ],
   },
   async handle(ctx, event) {
+    if (event.type === EventTypes.AffiliateOptimizeRequested) {
+      const data = parseEvent(event, AffiliateOptimizeRequestedDataSchema).data;
+      const adopted = await optimizeAffiliateOffers(data.toolId);
+      await ctx.logger.info("Affiliate offers optimized", {
+        count: adopted.length,
+        reason: data.reason,
+      });
+      return;
+    }
+
     if (event.type === EventTypes.AffiliateIntelRequested) {
       const data = parseEvent(event, AffiliateIntelRequestedDataSchema).data;
       if (data.backfillAll) {
@@ -116,5 +130,6 @@ export const affiliatePlugin: AgentPlugin = {
       where: { id: published.toolId },
     });
     await registerTool(ctx, event.id, published.toolId, tool?.homepageUrl ?? null);
+    await optimizeAffiliateOffers(published.toolId);
   },
 };
