@@ -6,7 +6,7 @@
   "crons": [
     {
       "path": "/api/v1/cron/sns-auto-ops",
-      "schedule": "0 */4 * * *"
+      "schedule": "0 9 * * *"
     }
   ]
 }

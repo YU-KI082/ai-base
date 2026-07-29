@@ -40,7 +40,7 @@
 
 ## Cron
 
-`GET /api/v1/cron/sns-auto-ops`（`vercel.json` で 4 時間ごと）  
+`GET /api/v1/cron/sns-auto-ops`（`vercel.json` で毎日 09:00 UTC。Hobby では1日1回まで）  
 Header: `Authorization: Bearer $CRON_SECRET`
 
 手動: `pnpm --filter @ai-base/agent-sns-auto-ops` または管理画面「フルオート 1 サイクル」
