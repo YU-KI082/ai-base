@@ -69,7 +69,7 @@ export default function CreatePage() {
 
       <Link href="/admin/studio" className="os-card os-studio-entry">
         <strong>AI Photo Studio</strong>
-        <span>写真を1枚上げるだけで、改善・投稿文・予想効果まで。</span>
+        <span>写真分析・投稿文の拡張枠（Vision接続後に利用。画像編集・予想効果は準備中）。</span>
       </Link>
 
       <div className="os-row">

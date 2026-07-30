@@ -2,7 +2,7 @@ import { prisma, repos } from "@ai-base/database";
 import { completeText, hasRealLlmCredentials } from "./llm.js";
 import { loadBrandMemory } from "./brand-memory.js";
 import { ensureTodayTasks } from "./tasks.js";
-import { generateAiScore } from "./score.js";
+import { generateAiScore, type ScoreResult } from "./score.js";
 import {
   buildEmployeeDailyBrief,
   type ImprovementRow,
@@ -21,11 +21,17 @@ function asPlanPayload(payload: unknown): { version?: string } {
 }
 
 async function loadOwnerName(workspaceId: string): Promise<string | null> {
+  // Neon HTTP: avoid include — fetch owner in a second query.
   const ws = await prisma.workspace.findUnique({
     where: { id: workspaceId },
-    include: { owner: true },
+    select: { ownerUserId: true },
   });
-  return ws?.owner?.name ?? null;
+  if (!ws?.ownerUserId) return null;
+  const owner = await prisma.user.findUnique({
+    where: { id: ws.ownerUserId },
+    select: { name: true },
+  });
+  return owner?.name ?? null;
 }
 
 async function loadImprovementRows(workspaceId: string): Promise<ImprovementRow[]> {
@@ -133,7 +139,19 @@ export async function ensureDailyBrief(workspaceId: string) {
 
   const [tasks, score, scorePair] = await Promise.all([
     ensureTodayTasks(workspaceId),
-    generateAiScore(workspaceId),
+    (async () => {
+      const latest = await repos.marketingOs.latestScore(workspaceId);
+      if (latest && tokyoDateKey(latest.createdAt) === dateKey) {
+        return {
+          overall: latest.overall,
+          platforms: latest.platforms as ScoreResult["platforms"],
+          reasons: (latest.reasons as string[]) ?? [],
+          nextActions: (latest.nextActions as ScoreResult["nextActions"]) ?? [],
+          row: latest,
+        };
+      }
+      return generateAiScore(workspaceId);
+    })(),
     repos.marketingOs.previousScore(workspaceId),
   ]);
 

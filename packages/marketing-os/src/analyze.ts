@@ -3,9 +3,9 @@ import { completeJson } from "./llm.js";
 import { loadBrandMemory, formatBrandForPrompt } from "./brand-memory.js";
 import { buildAnalysisSections } from "./brand-engine.js";
 import {
-  ActionableInsightSchema,
   type ActionableInsight,
   type OsPlatform,
+  normalizeActionableInsight,
 } from "./types.js";
 
 export async function analyzeAccounts(workspaceId: string): Promise<{
@@ -54,7 +54,7 @@ JSON:
 nextActions は最低3件。`,
   });
 
-  const insight = ActionableInsightSchema.parse(raw);
+  const insight = normalizeActionableInsight(raw);
 
   const row = await repos.marketingOs.createAnalysis({
     workspaceId,

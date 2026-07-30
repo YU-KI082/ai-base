@@ -3,6 +3,7 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { requireUser, USER_SESSION_COOKIE } from "@ai-base/auth";
 import { getDictionary, resolveLocale } from "@ai-base/i18n";
+import { OsTabbar } from "./os-tabbar";
 
 export default async function OsLayout({
   children,
@@ -48,15 +49,7 @@ export default async function OsLayout({
         </div>
       </header>
       <div className="os-body">{children}</div>
-      {setupDone ? (
-        <nav className="os-tabbar" aria-label="OS navigation">
-          {NAV.map((item) => (
-            <Link key={item.href} href={item.href} className="os-tab">
-              {item.label}
-            </Link>
-          ))}
-        </nav>
-      ) : null}
+      {setupDone ? <OsTabbar items={NAV} /> : null}
     </div>
   );
 }

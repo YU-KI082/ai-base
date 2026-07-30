@@ -463,6 +463,11 @@ select {
   background: var(--os-soft);
   color: var(--os-ink);
 }
+.os-tab-active {
+  background: var(--os-soft);
+  color: var(--os-ink);
+  font-weight: 600;
+}
 
 .os-eyebrow {
   margin: 0 0 0.35rem;
@@ -580,7 +585,7 @@ select {
 
 .os-composer {
   position: sticky;
-  bottom: 4.6rem;
+  bottom: calc(4.85rem + env(safe-area-inset-bottom));
   display: grid;
   grid-template-columns: 1fr auto;
   gap: 0.5rem;
@@ -866,6 +871,14 @@ select {
 .os-dropzone:hover {
   border-color: color-mix(in srgb, var(--os-ink) 35%, var(--os-line));
   background: rgba(255, 255, 255, 0.92);
+}
+.os-dropzone.is-disabled,
+.os-dropzone.is-disabled:hover {
+  opacity: 0.55;
+  cursor: not-allowed;
+  pointer-events: none;
+  border-color: var(--os-line);
+  background: rgba(255, 255, 255, 0.5);
 }
 .os-studio-compare {
   margin: 1rem 0;

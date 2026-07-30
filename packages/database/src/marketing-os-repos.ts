@@ -157,6 +157,15 @@ export class BrandProfileRepository {
   async get(workspaceId: string) {
     return this.db.brandProfile.findUnique({ where: { workspaceId } });
   }
+
+  async delete(workspaceId: string) {
+    const existing = await this.db.brandProfile.findUnique({
+      where: { workspaceId },
+    });
+    if (!existing) return null;
+    await this.db.brandProfile.delete({ where: { workspaceId } });
+    return existing;
+  }
 }
 
 export class SnsHandleRepository {
@@ -292,10 +301,14 @@ export class MarketingOsRepository {
     if (items.length === 0) return [];
     // Neon HTTP: createMany uses unsupported transactions — insert one by one.
     for (const [i, it] of items.entries()) {
+      const title = String(it.title ?? "").trim();
+      if (!title) {
+        throw new Error("Task item title is required");
+      }
       await this.db.dailyTaskItem.create({
         data: {
           taskSetId,
-          title: it.title,
+          title,
           detail: it.detail ?? "",
           category: it.category ?? "general",
           priority: it.priority ?? i,

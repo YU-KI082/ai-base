@@ -98,16 +98,21 @@ export default function PhotoStudioPage() {
   const [compare, setCompare] = useState(55);
   const [copied, setCopied] = useState<string | null>(null);
   const [imageEditReady, setImageEditReady] = useState(false);
-  const [visionReady, setVisionReady] = useState(true);
+  const [visionReady, setVisionReady] = useState(false);
+  const [capsLoaded, setCapsLoaded] = useState(false);
 
   useEffect(() => {
     void fetch("/api/v1/os/capabilities")
       .then((r) => r.json())
       .then((d) => {
         setImageEditReady(Boolean(d.capabilities?.imageEdit?.ready));
-        setVisionReady(d.capabilities?.vision?.ready !== false);
+        setVisionReady(Boolean(d.capabilities?.vision?.ready));
       })
-      .catch(() => undefined);
+      .catch(() => {
+        setVisionReady(false);
+        setImageEditReady(false);
+      })
+      .finally(() => setCapsLoaded(true));
   }, []);
 
   const enhancedFilter = recipe?.cssFilter || preset?.cssFilter || "none";
@@ -115,6 +120,10 @@ export default function PhotoStudioPage() {
   const onFiles = useCallback(async (files: FileList | File[] | null) => {
     const file = files?.[0];
     if (!file) return;
+    if (!visionReady) {
+      setError("画像分析AIは準備中です。設定完了後にアップロードできます。");
+      return;
+    }
     if (!file.type.startsWith("image/")) {
       setError("画像ファイルを選択してください");
       return;
@@ -150,7 +159,7 @@ export default function PhotoStudioPage() {
     } finally {
       setBusy(null);
     }
-  }, [platform]);
+  }, [platform, visionReady]);
 
   async function enhance() {
     if (!sessionId) return;
@@ -209,11 +218,11 @@ export default function PhotoStudioPage() {
       <p className="os-eyebrow">AI Photo Studio</p>
       <h1>写真を上げたら、投稿まで</h1>
       <p className="os-lead">
-        撮影・編集・投稿文まで。ブランド記憶を前提に、AI社員が仕上げます。
+        画像分析・投稿文生成の拡張枠です。Vision API 接続後に分析が有効になります（画像編集は別途準備中）。
       </p>
-      {!visionReady ? (
+      {capsLoaded && !visionReady ? (
         <OsPending title="画像分析AIは準備中">
-          Vision API（OPENAI_API_KEY）設定後に、アップロード分析が有効になります。
+          Vision API（OPENAI_API_KEY）設定後に、アップロード分析が有効になります。UIと保存の枠だけ先に用意しています。
         </OsPending>
       ) : null}
 
@@ -235,21 +244,28 @@ export default function PhotoStudioPage() {
       </div>
 
       <section
-        className={`os-dropzone ${dragOver ? "is-over" : ""}`}
+        className={`os-dropzone ${dragOver ? "is-over" : ""} ${!visionReady ? "is-disabled" : ""}`}
         onDragOver={(e) => {
           e.preventDefault();
+          if (!visionReady) return;
           setDragOver(true);
         }}
         onDragLeave={() => setDragOver(false)}
         onDrop={(e) => {
           e.preventDefault();
           setDragOver(false);
+          if (!visionReady) return;
           void onFiles(e.dataTransfer.files);
         }}
-        onClick={() => inputRef.current?.click()}
+        onClick={() => {
+          if (!visionReady) return;
+          inputRef.current?.click();
+        }}
         role="button"
-        tabIndex={0}
+        tabIndex={visionReady ? 0 : -1}
+        aria-disabled={!visionReady}
         onKeyDown={(e) => {
+          if (!visionReady) return;
           if (e.key === "Enter" || e.key === " ") inputRef.current?.click();
         }}
       >
@@ -258,10 +274,15 @@ export default function PhotoStudioPage() {
           type="file"
           accept="image/*"
           hidden
+          disabled={!visionReady}
           onChange={(e) => void onFiles(e.target.files)}
         />
-        <strong>ドラッグ＆ドロップ</strong>
-        <span>またはタップして写真を選択（JPEG / PNG）</span>
+        <strong>{visionReady ? "ドラッグ＆ドロップ" : "アップロード準備中"}</strong>
+        <span>
+          {visionReady
+            ? "またはタップして写真を選択（JPEG / PNG）"
+            : "Vision API 接続後に有効になります"}
+        </span>
         {busy === "upload" ? <em>分析中…</em> : null}
       </section>
 

@@ -1,7 +1,7 @@
 import { repos } from "@ai-base/database";
 import { completeJson } from "./llm.js";
 import { loadBrandMemory, formatBrandForPrompt } from "./brand-memory.js";
-import { OS_PLATFORMS, type NextAction } from "./types.js";
+import { OS_PLATFORMS, normalizeNextActions, type NextAction } from "./types.js";
 
 export type ScoreResult = {
   overall: number;
@@ -44,8 +44,10 @@ JSON:
     0,
     Math.min(100, Math.round(Number(raw.overall) || 0)),
   );
-  const nextActions = raw.nextActions?.length ? raw.nextActions : [];
-  const reasons = raw.reasons?.length ? raw.reasons : [];
+  const nextActions = normalizeNextActions(raw.nextActions ?? [], 0);
+  const reasons = Array.isArray(raw.reasons)
+    ? raw.reasons.map((r) => String(r ?? "").trim()).filter(Boolean)
+    : [];
 
   const row = await repos.marketingOs.createScore({
     workspaceId,

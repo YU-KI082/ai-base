@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 
 const FIELDS: Array<{ key: string; label: string }> = [
   { key: "brandName", label: "ブランド名" },
@@ -22,6 +23,7 @@ const emptyBrand = (): BrandForm =>
   Object.fromEntries(FIELDS.map((f) => [f.key, ""])) as BrandForm;
 
 export default function BrandPage() {
+  const router = useRouter();
   const [brand, setBrand] = useState<BrandForm | null>(null);
   const [busy, setBusy] = useState(false);
   const [msg, setMsg] = useState<string | null>(null);
@@ -64,6 +66,29 @@ export default function BrandPage() {
     setMsg("ブランド記憶を更新しました");
   }
 
+  async function remove() {
+    if (!brand?.brandName?.trim()) {
+      setError("削除するブランドがありません");
+      return;
+    }
+    const ok = window.confirm(
+      "ブランド記憶を削除しますか？セットアップからやり直しになります。",
+    );
+    if (!ok) return;
+    setBusy(true);
+    setMsg(null);
+    setError(null);
+    const res = await fetch("/api/v1/os/brand", { method: "DELETE" });
+    const data = await res.json().catch(() => ({}));
+    setBusy(false);
+    if (!res.ok) {
+      setError(data.error || "削除に失敗しました");
+      return;
+    }
+    router.replace("/admin/setup");
+    router.refresh();
+  }
+
   if (error && !brand) {
     return (
       <main className="os-page">
@@ -101,6 +126,9 @@ export default function BrandPage() {
       <div className="os-row">
         <button className="os-btn os-btn-primary" type="button" disabled={busy} onClick={() => void save()}>
           保存
+        </button>
+        <button className="os-btn os-btn-ghost" type="button" disabled={busy} onClick={() => void remove()}>
+          削除
         </button>
         <Link className="os-btn os-btn-ghost" href="/admin/setup">
           SNSユーザー名

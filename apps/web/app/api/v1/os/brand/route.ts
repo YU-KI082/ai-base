@@ -1,5 +1,9 @@
 import { z } from "zod";
-import { saveBrandMemory, loadBrandMemory } from "@ai-base/marketing-os";
+import {
+  saveBrandMemory,
+  loadBrandMemory,
+  deleteBrandMemory,
+} from "@ai-base/marketing-os";
 import { repos } from "@ai-base/database";
 import { withOsUser } from "../_lib";
 
@@ -38,5 +42,12 @@ export async function PUT(request: Request) {
     }
     const brand = await saveBrandMemory(ctx.workspaceId, parsed.data);
     return Response.json({ ok: true, brand });
+  });
+}
+
+export async function DELETE(request: Request) {
+  return withOsUser(request, async (ctx) => {
+    await deleteBrandMemory(ctx.workspaceId);
+    return Response.json({ ok: true, setupDone: false });
   });
 }

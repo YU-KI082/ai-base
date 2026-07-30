@@ -32,6 +32,16 @@ export async function saveBrandMemory(
   return brand;
 }
 
+/** Remove brand memory and require setup again. Handles are left intact. */
+export async function deleteBrandMemory(workspaceId: string) {
+  const removed = await repos.brandProfiles.delete(workspaceId);
+  await prisma.workspace.update({
+    where: { id: workspaceId },
+    data: { setupDone: false, name: "My Workspace" },
+  });
+  return removed;
+}
+
 export function formatBrandForPrompt(brand: BrandMemory): string {
   return [
     `ブランド: ${brand.brandName}`,

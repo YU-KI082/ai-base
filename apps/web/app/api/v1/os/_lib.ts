@@ -25,6 +25,9 @@ function jaError(error: unknown): string {
     if (/Transactions are not supported/i.test(m)) {
       return "一時的なサーバーエラーです。時間をおいて再度お試しください。";
     }
+    if (/Argument `.+` is missing|Task item title is required/i.test(m)) {
+      return "AIの応答形式が不正でした。もう一度お試しください。";
+    }
     if (/Failed to deserialize|Neon|prisma/i.test(m)) {
       return "データの保存に失敗しました。時間をおいて再度お試しください。";
     }
