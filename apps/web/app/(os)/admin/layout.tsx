@@ -2,15 +2,8 @@ import Link from "next/link";
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { requireUser, USER_SESSION_COOKIE } from "@ai-base/auth";
+import { getDictionary, resolveLocale } from "@ai-base/i18n";
 import { OsLogoutButton } from "./os-logout-button";
-
-const NAV = [
-  { href: "/admin", label: "AI社員" },
-  { href: "/admin/tasks", label: "タスク" },
-  { href: "/admin/posts", label: "投稿" },
-  { href: "/admin/score", label: "SCORE" },
-  { href: "/admin/dash", label: "概要" },
-] as const;
 
 export default async function OsLayout({
   children,
@@ -18,6 +11,8 @@ export default async function OsLayout({
   children: React.ReactNode;
 }) {
   const cookieStore = await cookies();
+  const locale = resolveLocale(cookieStore.get("locale")?.value);
+  const t = getDictionary(locale).os;
   const session = cookieStore.get(USER_SESSION_COOKIE)?.value;
   if (!session) redirect("/login?next=/admin");
 
@@ -33,17 +28,25 @@ export default async function OsLayout({
     redirect("/login?next=/admin");
   }
 
+  const NAV = [
+    { href: "/admin", label: t.navAssistant },
+    { href: "/admin/tasks", label: t.navTasks },
+    { href: "/admin/posts", label: t.navPosts },
+    { href: "/admin/score", label: t.navScore },
+    { href: "/admin/dash", label: t.navDash },
+  ] as const;
+
   return (
     <div className="os-shell">
       <header className="os-topbar">
         <Link href={setupDone ? "/admin" : "/admin/setup"} className="os-brand">
-          AI BASE <span>OS</span>
+          {t.brandName} <span>{t.productName}</span>
         </Link>
         <div className="os-topbar-actions">
           <Link href="/admin/brand" className="os-ghost-btn">
-            ブランド
+            {t.navBrand}
           </Link>
-          <OsLogoutButton />
+          <OsLogoutButton label={t.logout} />
         </div>
       </header>
       <div className="os-body">{children}</div>

@@ -1,6 +1,6 @@
 "use client";
 
-export function OsLogoutButton() {
+export function OsLogoutButton({ label = "ログアウト" }: { label?: string }) {
   return (
     <button
       className="os-ghost-btn"
@@ -12,7 +12,7 @@ export function OsLogoutButton() {
         })();
       }}
     >
-      ログアウト
+      {label}
     </button>
   );
 }

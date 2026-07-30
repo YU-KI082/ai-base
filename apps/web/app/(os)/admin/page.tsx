@@ -1,10 +1,12 @@
 import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { requireUser, USER_SESSION_COOKIE } from "@ai-base/auth";
+import { resolveLocale } from "@ai-base/i18n";
 import { AssistantHome } from "./assistant-home";
 
 export default async function AdminHomePage() {
   const cookieStore = await cookies();
+  const locale = resolveLocale(cookieStore.get("locale")?.value);
   const session = cookieStore.get(USER_SESSION_COOKIE)?.value;
   if (!session) redirect("/login?next=/admin");
   const ctx = await requireUser(
@@ -13,5 +15,5 @@ export default async function AdminHomePage() {
     }),
   );
   if (!ctx.setupDone) redirect("/admin/setup");
-  return <AssistantHome />;
+  return <AssistantHome locale={locale} />;
 }

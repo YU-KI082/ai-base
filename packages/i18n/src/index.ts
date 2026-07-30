@@ -359,6 +359,54 @@ export type Dictionary = {
     deleteTool: string;
     generateArticle: string;
   };
+  os: {
+    brandName: string;
+    productName: string;
+    employee: string;
+    homeTitle: string;
+    homeLead: string;
+    thinking: string;
+    briefingLoading: string;
+    send: string;
+    placeholder: string;
+    logout: string;
+    navAssistant: string;
+    navTasks: string;
+    navPosts: string;
+    navScore: string;
+    navDash: string;
+    navBrand: string;
+    navAnalysis: string;
+    quickFollower: string;
+    quickProfile: string;
+    quickReel: string;
+    quickCompetitor: string;
+    quickSaveRate: string;
+    chipAnalysis: string;
+    chipPosts: string;
+    chipTasks: string;
+    nextActions: string;
+    open: string;
+    signupTitle: string;
+    signupLead: string;
+    loginTitle: string;
+    loginLead: string;
+    setupTitle: string;
+    setupLead: string;
+    setupBrandStep: string;
+    setupSnsStep: string;
+    setupLaunch: string;
+    copyCaption: string;
+    copyTags: string;
+    copied: string;
+    generatePost: string;
+    noApiPublish: string;
+    overallScore: string;
+    rescore: string;
+    analyzeNow: string;
+    brandMemory: string;
+    dashLead: string;
+  };
 };
 
 const ja: Dictionary = {
@@ -704,6 +752,54 @@ const ja: Dictionary = {
     editTool: "編集",
     deleteTool: "削除",
     generateArticle: "記事を生成",
+  },
+  os: {
+    brandName: "AI BASE",
+    productName: "OS",
+    employee: "AI社員",
+    homeTitle: "今日のマーケ、一緒に進めましょう",
+    homeLead: "分析だけで終わらず、次の一手まで提案します。",
+    thinking: "考えています…",
+    briefingLoading: "今日のブリーフィングを準備しています…",
+    send: "送信",
+    placeholder: "何でも相談してください…",
+    logout: "ログアウト",
+    navAssistant: "AI社員",
+    navTasks: "タスク",
+    navPosts: "投稿",
+    navScore: "SCORE",
+    navDash: "概要",
+    navBrand: "ブランド",
+    navAnalysis: "分析",
+    quickFollower: "フォロワーを増やしたい",
+    quickProfile: "プロフィール改善して",
+    quickReel: "リール考えて",
+    quickCompetitor: "競合分析して",
+    quickSaveRate: "保存率を上げたい",
+    chipAnalysis: "分析",
+    chipPosts: "投稿生成",
+    chipTasks: "今日のタスク",
+    nextActions: "今すぐの次の一手",
+    open: "開く",
+    signupTitle: "専属AIマーケターを雇う",
+    signupLead: "API連携なしですぐ開始。ブランドを教えるだけで今日の提案が届きます。",
+    loginTitle: "AI社員が、毎日のマーケを考える",
+    loginLead: "分析だけで終わらない。今日やるべきことまで、会話で提案します。",
+    setupTitle: "AI社員にブランドを教えてください",
+    setupLead: "API連携は不要です。入力した内容を永続記憶します。",
+    setupBrandStep: "1. ブランド",
+    setupSnsStep: "2. SNS",
+    setupLaunch: "AI社員を起動",
+    copyCaption: "キャプションをコピー",
+    copyTags: "タグをコピー",
+    copied: "コピー済み",
+    generatePost: "ワンクリック生成",
+    noApiPublish: "API投稿は行いません。生成→コピーが完了です。",
+    overallScore: "総合 AI SCORE",
+    rescore: "再スコア",
+    analyzeNow: "今すぐ分析",
+    brandMemory: "AIブランド記憶",
+    dashLead: "ホームはAI社員です。ここは状況の俯瞰用です。",
   },
 };
 
@@ -1051,6 +1147,54 @@ const en: Dictionary = {
     deleteTool: "Delete",
     generateArticle: "Generate article",
   },
+  os: {
+    brandName: "AI BASE",
+    productName: "OS",
+    employee: "AI teammate",
+    homeTitle: "Let's run today's marketing together",
+    homeLead: "Not just analysis — clear next moves, every day.",
+    thinking: "Thinking…",
+    briefingLoading: "Preparing today's briefing…",
+    send: "Send",
+    placeholder: "Ask anything…",
+    logout: "Log out",
+    navAssistant: "AI",
+    navTasks: "Tasks",
+    navPosts: "Posts",
+    navScore: "SCORE",
+    navDash: "Overview",
+    navBrand: "Brand",
+    navAnalysis: "Analysis",
+    quickFollower: "Grow followers",
+    quickProfile: "Improve my profile",
+    quickReel: "Ideate a reel",
+    quickCompetitor: "Competitor analysis",
+    quickSaveRate: "Boost save rate",
+    chipAnalysis: "Analysis",
+    chipPosts: "Generate post",
+    chipTasks: "Today's tasks",
+    nextActions: "Do this next",
+    open: "Open",
+    signupTitle: "Hire your AI marketer",
+    signupLead: "Start without API keys. Teach your brand once — get daily proposals.",
+    loginTitle: "Your AI teammate plans marketing daily",
+    loginLead: "Conversation-first. Always ends with what to do next.",
+    setupTitle: "Teach your AI teammate the brand",
+    setupLead: "No API connection required. We remember this permanently.",
+    setupBrandStep: "1. Brand",
+    setupSnsStep: "2. SNS",
+    setupLaunch: "Launch AI teammate",
+    copyCaption: "Copy caption",
+    copyTags: "Copy tags",
+    copied: "Copied",
+    generatePost: "Generate in one click",
+    noApiPublish: "We don't auto-publish. Copy and post yourself.",
+    overallScore: "Overall AI SCORE",
+    rescore: "Re-score",
+    analyzeNow: "Analyze now",
+    brandMemory: "Brand memory",
+    dashLead: "Home is the AI teammate. This page is a quick overview.",
+  },
 };
 
 export const dictionaries: Record<Locale, Dictionary> = { ja, en };
@@ -1075,6 +1219,7 @@ function mergeDictionary(base: Dictionary, overlay: Dictionary): Dictionary {
     status: mergeSection(base.status, overlay.status),
     public: mergeSection(base.public, overlay.public),
     admin: mergeSection(base.admin, overlay.admin),
+    os: mergeSection(base.os, overlay.os),
   };
 }
 

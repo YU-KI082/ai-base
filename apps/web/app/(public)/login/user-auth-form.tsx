@@ -3,14 +3,18 @@
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
+import { getDictionary, type Locale } from "@ai-base/i18n";
 
 export function UserAuthForm({
   mode,
   nextPath,
+  locale = "ja",
 }: {
   mode: "login" | "signup";
   nextPath: string;
+  locale?: Locale;
 }) {
+  const t = getDictionary(locale).os;
   const router = useRouter();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
@@ -35,13 +39,13 @@ export function UserAuthForm({
       });
       const body = await res.json().catch(() => ({}));
       if (!res.ok) {
-        setError(body.error ?? "エラーが発生しました");
+        setError(body.error ?? "Error");
         return;
       }
       router.replace(nextPath || "/admin");
       router.refresh();
     } catch {
-      setError("通信エラーです");
+      setError("Network error");
     } finally {
       setBusy(false);
     }
@@ -51,50 +55,53 @@ export function UserAuthForm({
     <form className="os-auth-card" onSubmit={(e) => void onSubmit(e)}>
       {mode === "signup" ? (
         <label className="os-field">
-          <span>お名前</span>
+          <span>{locale === "ja" ? "お名前" : "Name"}</span>
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
-            placeholder="山田"
             autoComplete="name"
           />
         </label>
       ) : null}
       <label className="os-field">
-        <span>メール</span>
+        <span>{locale === "ja" ? "メール" : "Email"}</span>
         <input
           type="email"
           required
           value={email}
           onChange={(e) => setEmail(e.target.value)}
-          placeholder="you@example.com"
           autoComplete="email"
         />
       </label>
       <label className="os-field">
-        <span>パスワード</span>
+        <span>{locale === "ja" ? "パスワード" : "Password"}</span>
         <input
           type="password"
           required
           minLength={8}
           value={password}
           onChange={(e) => setPassword(e.target.value)}
-          placeholder="8文字以上"
           autoComplete={mode === "signup" ? "new-password" : "current-password"}
         />
       </label>
       <button className="os-btn os-btn-primary" disabled={busy} type="submit">
-        {busy ? "処理中…" : mode === "signup" ? "無料で始める" : "ログイン"}
+        {busy
+          ? "…"
+          : mode === "signup"
+            ? t.setupLaunch
+            : locale === "ja"
+              ? "ログイン"
+              : "Log in"}
       </button>
       {error ? <p className="os-error">{error}</p> : null}
       <p className="os-auth-switch">
         {mode === "login" ? (
           <>
-            アカウントがない方は <Link href="/signup">新規登録</Link>
+            <Link href="/signup">{t.signupTitle}</Link>
           </>
         ) : (
           <>
-            既にアカウントがある方は <Link href="/login">ログイン</Link>
+            <Link href="/login">{locale === "ja" ? "ログイン" : "Log in"}</Link>
           </>
         )}
       </p>

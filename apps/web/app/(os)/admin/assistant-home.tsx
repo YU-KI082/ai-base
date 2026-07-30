@@ -2,6 +2,7 @@
 
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
+import { getDictionary, type Locale } from "@ai-base/i18n";
 
 type Message = {
   id: string;
@@ -9,8 +10,16 @@ type Message = {
   content: string;
 };
 
-export function AssistantHome() {
+type NextAction = {
+  title: string;
+  why?: string;
+  deepLink?: string;
+};
+
+export function AssistantHome({ locale = "ja" }: { locale?: Locale }) {
+  const t = getDictionary(locale).os;
   const [messages, setMessages] = useState<Message[]>([]);
+  const [nextActions, setNextActions] = useState<NextAction[]>([]);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [booting, setBooting] = useState(true);
@@ -20,7 +29,7 @@ export function AssistantHome() {
   useEffect(() => {
     void (async () => {
       try {
-        const res = await fetch("/api/v1/os/chat");
+        const res = await fetch("/api/v1/os/brief/today");
         if (res.status === 401) {
           window.location.href = "/login?next=/admin";
           return;
@@ -28,13 +37,16 @@ export function AssistantHome() {
         const data = await res.json();
         if (!res.ok) throw new Error(data.error || "failed");
         setMessages(data.messages ?? []);
+        if (Array.isArray(data.nextActions)) {
+          setNextActions(data.nextActions as NextAction[]);
+        }
       } catch (e) {
-        setError(e instanceof Error ? e.message : "読み込みに失敗しました");
+        setError(e instanceof Error ? e.message : t.briefingLoading);
       } finally {
         setBooting(false);
       }
     })();
-  }, []);
+  }, [t.briefingLoading]);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -57,10 +69,10 @@ export function AssistantHome() {
         body: JSON.stringify({ message }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "送信に失敗しました");
+      if (!res.ok) throw new Error(data.error || "failed");
       setMessages(data.messages ?? []);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "送信に失敗しました");
+      setError(e instanceof Error ? e.message : "error");
     } finally {
       setBusy(false);
     }
@@ -70,25 +82,54 @@ export function AssistantHome() {
     <div className="os-assistant">
       <div className="os-assistant-head">
         <div>
-          <p className="os-eyebrow">AI社員</p>
-          <h1>今日のマーケ、一緒に進めましょう</h1>
+          <p className="os-eyebrow">{t.employee}</p>
+          <h1>{t.homeTitle}</h1>
+          <p className="os-lead" style={{ marginBottom: 0 }}>
+            {t.homeLead}
+          </p>
         </div>
         <div className="os-chip-row">
           <Link className="os-chip" href="/admin/analysis">
-            分析
+            {t.chipAnalysis}
           </Link>
           <Link className="os-chip" href="/admin/posts">
-            投稿生成
+            {t.chipPosts}
           </Link>
           <Link className="os-chip" href="/admin/tasks">
-            今日のタスク
+            {t.chipTasks}
           </Link>
         </div>
       </div>
 
+      {nextActions.length > 0 ? (
+        <section className="os-card" style={{ marginBottom: "0.5rem" }}>
+          <p className="os-eyebrow" style={{ marginBottom: "0.5rem" }}>
+            {t.nextActions}
+          </p>
+          <div className="os-chip-row" style={{ margin: 0 }}>
+            {nextActions.slice(0, 3).map((a) =>
+              a.deepLink ? (
+                <Link key={a.title} className="os-chip" href={a.deepLink}>
+                  {a.title}
+                </Link>
+              ) : (
+                <button
+                  key={a.title}
+                  type="button"
+                  className="os-chip"
+                  onClick={() => void send(a.title)}
+                >
+                  {a.title}
+                </button>
+              ),
+            )}
+          </div>
+        </section>
+      ) : null}
+
       <div className="os-chat-scroll">
         {booting ? (
-          <div className="os-bubble os-bubble-ai">今日のブリーフィングを準備しています…</div>
+          <div className="os-bubble os-bubble-ai">{t.briefingLoading}</div>
         ) : null}
         {messages.map((m) => (
           <div
@@ -98,7 +139,7 @@ export function AssistantHome() {
             {m.content}
           </div>
         ))}
-        {busy ? <div className="os-bubble os-bubble-ai os-typing">考えています…</div> : null}
+        {busy ? <div className="os-bubble os-bubble-ai os-typing">{t.thinking}</div> : null}
         <div ref={bottomRef} />
       </div>
 
@@ -106,11 +147,11 @@ export function AssistantHome() {
 
       <div className="os-quick">
         {[
-          "フォロワーを増やしたい",
-          "プロフィール改善して",
-          "リール考えて",
-          "競合分析して",
-          "保存率を上げたい",
+          t.quickFollower,
+          t.quickProfile,
+          t.quickReel,
+          t.quickCompetitor,
+          t.quickSaveRate,
         ].map((q) => (
           <button key={q} type="button" className="os-chip" onClick={() => void send(q)}>
             {q}
@@ -128,11 +169,11 @@ export function AssistantHome() {
         <input
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder="何でも相談してください…"
+          placeholder={t.placeholder}
           disabled={busy}
         />
         <button className="os-btn os-btn-primary" disabled={busy || !input.trim()} type="submit">
-          送信
+          {t.send}
         </button>
       </form>
     </div>
