@@ -240,16 +240,19 @@ export class MarketingOsRepository {
   ) {
     await this.db.dailyTaskItem.deleteMany({ where: { taskSetId } });
     if (items.length === 0) return [];
-    await this.db.dailyTaskItem.createMany({
-      data: items.map((it, i) => ({
-        taskSetId,
-        title: it.title,
-        detail: it.detail ?? "",
-        category: it.category ?? "general",
-        priority: it.priority ?? i,
-        deepLink: it.deepLink ?? null,
-      })),
-    });
+    // Neon HTTP: createMany uses unsupported transactions — insert one by one.
+    for (const [i, it] of items.entries()) {
+      await this.db.dailyTaskItem.create({
+        data: {
+          taskSetId,
+          title: it.title,
+          detail: it.detail ?? "",
+          category: it.category ?? "general",
+          priority: it.priority ?? i,
+          deepLink: it.deepLink ?? null,
+        },
+      });
+    }
     return this.db.dailyTaskItem.findMany({
       where: { taskSetId },
       orderBy: { priority: "asc" },
