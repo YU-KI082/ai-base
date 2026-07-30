@@ -18,7 +18,7 @@ test.describe("public smoke", () => {
 
   test("compare page renders", async ({ page }) => {
     await page.goto("/compare");
-    await expect(page.getByRole("heading", { name: /Compare|比較/ })).toBeVisible();
+    await expect(page.locator("h1.page-title, h1").first()).toContainText(/比較|Compare/);
   });
 
   test("categories page renders", async ({ page }) => {
