@@ -80,7 +80,7 @@ export function normalizeProviderId(id?: string | null): LlmProviderId {
 export function defaultModelForProvider(id: LlmProviderId): string {
   switch (id) {
     case "gemini":
-      return "gemini-2.0-flash";
+      return "gemini-flash-latest";
     case "groq":
       return "llama-3.3-70b-versatile";
     case "openai":

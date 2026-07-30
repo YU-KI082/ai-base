@@ -13,7 +13,7 @@ export class GeminiProvider implements LlmProvider {
     private readonly apiKey =
       process.env.GEMINI_API_KEY ?? process.env.GOOGLE_API_KEY ?? "",
     private readonly defaultModel =
-      process.env.LLM_MODEL ?? "gemini-2.0-flash",
+      process.env.LLM_MODEL ?? "gemini-flash-latest",
     private readonly baseUrl =
       process.env.GEMINI_BASE_URL ??
       "https://generativelanguage.googleapis.com/v1beta",
@@ -22,7 +22,7 @@ export class GeminiProvider implements LlmProvider {
   static fromConfig(config: LlmProviderConfig = {}): GeminiProvider {
     return new GeminiProvider(
       config.apiKey ?? process.env.GEMINI_API_KEY ?? process.env.GOOGLE_API_KEY ?? "",
-      config.model ?? process.env.LLM_MODEL ?? "gemini-2.0-flash",
+      config.model ?? process.env.LLM_MODEL ?? "gemini-flash-latest",
       config.baseUrl ??
         process.env.GEMINI_BASE_URL ??
         "https://generativelanguage.googleapis.com/v1beta",

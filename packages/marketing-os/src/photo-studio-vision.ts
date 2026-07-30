@@ -60,7 +60,7 @@ async function visionChat(input: {
     const model =
       process.env.VISION_MODEL?.trim() ||
       process.env.LLM_MODEL?.trim() ||
-      "gemini-2.0-flash";
+      "gemini-flash-latest";
     const base = (
       process.env.GEMINI_BASE_URL?.trim() ||
       "https://generativelanguage.googleapis.com/v1beta"
