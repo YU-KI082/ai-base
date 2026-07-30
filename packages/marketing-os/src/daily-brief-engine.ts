@@ -152,7 +152,7 @@ export function buildTodayMissions(input: {
     {
       rank: 3,
       title: `この競合の投稿を参考にしてください`,
-      detail: `「${competitors}」の保存されやすい投稿を3本メモし、${tone}なトーンへ翻訳した差分を1つ決める。`,
+      detail: `「${competitors}」の保存されやすい投稿を3本メモし、トーン「${tone}」へ翻訳した差分を1つ決める。`,
       deepLink: "/admin/analysis",
       why: "真似ではなく、差分の仮説検証が成長を加速します",
     },
