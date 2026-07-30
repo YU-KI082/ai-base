@@ -9,3 +9,7 @@ export * from "./score.js";
 export * from "./tasks.js";
 export * from "./creative.js";
 export * from "./brief-chat.js";
+export * from "./photo-studio-types.js";
+export * from "./photo-studio-engine.js";
+export * from "./photo-studio-port.js";
+export * from "./photo-studio.js";

@@ -1441,6 +1441,7 @@ model Workspace {
   chatThreads OsChatThread[]
   briefs     DailyBrief[]
   improvements OsImprovementLog[]
+  photoSessions OsPhotoSession[]
 
   @@index([ownerUserId])
   @@map("workspaces")
@@ -1659,4 +1660,35 @@ model OsImprovementLog {
   @@index([workspaceId, dateKey])
   @@index([workspaceId, createdAt])
   @@map("os_improvement_logs")
+}
+
+/// AI Photo Studio session (upload → analyze → enhance → posts)
+model OsPhotoSession {
+  id               String   @id @default(cuid())
+  workspaceId      String   @map("workspace_id")
+  status           String   @default("uploaded")
+  /// Compressed data URL or remote URL (provider later)
+  originalUrl      String   @map("original_url") @db.Text
+  /// Enhanced image URL when provider returns pixels; else empty and use CSS recipe
+  enhancedUrl      String?  @map("enhanced_url") @db.Text
+  mimeType         String   @default("image/jpeg") @map("mime_type")
+  width            Int?
+  height           Int?
+  fileName         String?  @map("file_name")
+  platformTarget   String   @default("instagram") @map("platform_target")
+  analysis         Json     @default("{}")
+  enhanceRecipe    Json     @default("{}") @map("enhance_recipe")
+  shootAdvice      Json     @default("[]") @map("shoot_advice")
+  brandPreset      Json     @default("{}") @map("brand_preset")
+  postVariants     Json     @default("[]") @map("post_variants")
+  predictions      Json     @default("{}")
+  provider         String   @default("heuristic")
+  metadata         Json     @default("{}")
+  createdAt        DateTime @default(now()) @map("created_at")
+  updatedAt        DateTime @updatedAt @map("updated_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, createdAt])
+  @@map("os_photo_sessions")
 }

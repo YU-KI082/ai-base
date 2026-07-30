@@ -447,6 +447,80 @@ export class MarketingOsRepository {
     });
     return { latest: rows[0] ?? null, previous: rows[1] ?? null };
   }
+
+  async createPhotoSession(input: {
+    workspaceId: string;
+    originalUrl: string;
+    mimeType?: string;
+    width?: number | null;
+    height?: number | null;
+    fileName?: string | null;
+    platformTarget?: string;
+    analysis?: Prisma.InputJsonValue;
+    brandPreset?: Prisma.InputJsonValue;
+    shootAdvice?: Prisma.InputJsonValue;
+    status?: string;
+    provider?: string;
+  }) {
+    return this.db.osPhotoSession.create({
+      data: {
+        workspaceId: input.workspaceId,
+        originalUrl: input.originalUrl,
+        mimeType: input.mimeType ?? "image/jpeg",
+        width: input.width ?? null,
+        height: input.height ?? null,
+        fileName: input.fileName ?? null,
+        platformTarget: input.platformTarget ?? "instagram",
+        analysis: input.analysis ?? {},
+        brandPreset: input.brandPreset ?? {},
+        shootAdvice: input.shootAdvice ?? [],
+        status: input.status ?? "uploaded",
+        provider: input.provider ?? "heuristic",
+      },
+    });
+  }
+
+  async getPhotoSession(id: string) {
+    return this.db.osPhotoSession.findUnique({ where: { id } });
+  }
+
+  async listPhotoSessions(workspaceId: string, take = 20) {
+    return this.db.osPhotoSession.findMany({
+      where: { workspaceId },
+      orderBy: { createdAt: "desc" },
+      take,
+      select: {
+        id: true,
+        status: true,
+        platformTarget: true,
+        fileName: true,
+        createdAt: true,
+        analysis: true,
+        originalUrl: true,
+      },
+    });
+  }
+
+  async updatePhotoSession(
+    id: string,
+    data: {
+      status?: string;
+      enhancedUrl?: string | null;
+      analysis?: Prisma.InputJsonValue;
+      enhanceRecipe?: Prisma.InputJsonValue;
+      shootAdvice?: Prisma.InputJsonValue;
+      brandPreset?: Prisma.InputJsonValue;
+      postVariants?: Prisma.InputJsonValue;
+      predictions?: Prisma.InputJsonValue;
+      platformTarget?: string;
+      provider?: string;
+    },
+  ) {
+    return this.db.osPhotoSession.update({
+      where: { id },
+      data,
+    });
+  }
 }
 
 export class CustomerUserRepository {

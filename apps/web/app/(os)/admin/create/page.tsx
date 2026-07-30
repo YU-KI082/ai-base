@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import Link from "next/link";
 import { OS_PLATFORMS, type OsPlatform } from "@ai-base/marketing-os/platforms";
 
 type Creative = {
@@ -62,6 +63,11 @@ export default function CreatePage() {
       <p className="os-eyebrow">Create</p>
       <h1>投稿を作成</h1>
       <p className="os-lead">投稿文・ハッシュタグ・リール案を生成し、コピーして使います。自動投稿はしません。</p>
+
+      <Link href="/admin/studio" className="os-card os-studio-entry">
+        <strong>AI Photo Studio</strong>
+        <span>写真を1枚上げるだけで、改善・投稿文・予想効果まで。</span>
+      </Link>
 
       <div className="os-row">
         <select

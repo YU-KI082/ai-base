@@ -125,6 +125,14 @@ export function AssistantHome({ locale = "ja" }: { locale?: Locale }) {
         <p className="os-lead" style={{ marginBottom: 0 }}>
           分析で終わらず、原因→改善→実行まで一緒に進めます。
         </p>
+        <div className="os-chip-row">
+          <Link className="os-chip" href="/admin/studio">
+            Photo Studio
+          </Link>
+          <Link className="os-chip" href="/admin/create">
+            {t.chipPosts}
+          </Link>
+        </div>
       </header>
 
       {(missions.length > 0 || expected) && (
