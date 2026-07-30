@@ -47,10 +47,13 @@ See `.env.example`. Critical:
 | `CACHE_BACKEND` | `memory` for single-region MVP; `redis` when multi-instance |
 | `NEXT_PUBLIC_SITE_URL` | Canonical site URL, e.g. `https://your-domain.vercel.app` |
 | `NEXT_PUBLIC_DEFAULT_LOCALE` | `ja` |
-| `ADMIN_OPS_SECRET` | **Required for production admin** — 16+ char secret used at `/login` |
+| `USER_SESSION_SECRET` | **Required for customer OS** (`/login` `/signup` `/admin`) — 16+ char HMAC secret |
+| `ADMIN_OPS_SECRET` | **Required for ops console** — 16+ char secret used at `/ops/login` |
 | `COOKIE_SECURE` | Optional `true` to force Secure cookies; on Vercel HTTPS is automatic |
 | `ADMIN_DEV_BYPASS` | **Do not set** in Production |
-| `LLM_PROVIDER` | Needed only when running agents/outbox for new article generation |
+| `LLM_PROVIDER` | `openai` (recommended) for AI BASE OS Daily Brief / chat / score / posts |
+| `OPENAI_API_KEY` | **Required for Marketing OS AI features** (no mock fallback) |
+| `LLM_FALLBACK_MOCK` | Must be `false` for OS (mock responses are rejected) |
 
 Build uses `pnpm` (not `turbo run`) so paths with spaces work; `apps/web/vercel.json` is the source of truth when Root Directory is `apps/web`.
 
@@ -61,9 +64,10 @@ DATABASE_URL=... pnpm db:push   # or pnpm db:migrate for versioned migrations
 DATABASE_URL=... pnpm db:seed   # publishes demo tools + JA CTAs
 ```
 
-6. Open `/login`, enter `ADMIN_OPS_SECRET`, then manage affiliates at `/admin/affiliate`.
-7. Replace seed `direct` (公式サイト) URLs with real ASP partner links for monetization.
-8. Agents / outbox are **not** hosted on Vercel — run them on Docker/K8s when you need live AI draft→publish. Seeded tools are enough for public browse + `/go` tracking.
+6. Customer OS: open `/signup` → `/admin/setup` → `/admin`.
+7. Ops console: open `/ops/login`, enter `ADMIN_OPS_SECRET`, then manage affiliates at `/ops/affiliate`.
+8. Replace seed `direct` (公式サイト) URLs with real ASP partner links for monetization.
+9. Agents / outbox are **not** hosted on Vercel — run them on Docker/K8s when you need live AI draft→publish. Seeded tools are enough for public browse + `/go` tracking.
 
 ## Production posture (target)
 

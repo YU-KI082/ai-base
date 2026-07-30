@@ -16,12 +16,19 @@ type Creative = {
 };
 
 export default function CreatePage() {
-  const t = getDictionary("ja").os;
+  const [locale, setLocale] = useState<"ja" | "en">("ja");
+  const t = getDictionary(locale).os;
   const [platform, setPlatform] = useState<OsPlatform>("instagram");
   const [items, setItems] = useState<Creative[]>([]);
   const [busy, setBusy] = useState(false);
   const [copied, setCopied] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const match = document.cookie.match(/(?:^|; )locale=([^;]*)/);
+    const raw = match?.[1] ? decodeURIComponent(match[1]) : "ja";
+    setLocale(raw === "en" ? "en" : "ja");
+  }, []);
 
   async function load() {
     const res = await fetch("/api/v1/os/creatives");
