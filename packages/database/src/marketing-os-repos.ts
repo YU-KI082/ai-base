@@ -22,13 +22,18 @@ export class WorkspaceRepository {
   }
 
   async create(input: { ownerUserId: string; name: string }) {
-    return this.db.workspace.create({
+    // Neon HTTP: create+include uses unsupported transactions.
+    const created = await this.db.workspace.create({
       data: {
         ownerUserId: input.ownerUserId,
         name: input.name,
       },
-      include: { brand: true, handles: true },
     });
+    const full = await this.findById(created.id);
+    if (!full) {
+      throw new Error("Workspace create failed");
+    }
+    return full;
   }
 
   async markSetupDone(id: string, done = true) {
@@ -213,8 +218,12 @@ export class MarketingOsRepository {
       include: { items: { orderBy: { priority: "asc" } } },
     });
     if (existing) return existing;
-    return this.db.dailyTaskSet.create({
+    // Neon HTTP: create+include uses unsupported transactions.
+    await this.db.dailyTaskSet.create({
       data: { workspaceId, dateKey },
+    });
+    return this.db.dailyTaskSet.findUniqueOrThrow({
+      where: { workspaceId_dateKey: { workspaceId, dateKey } },
       include: { items: { orderBy: { priority: "asc" } } },
     });
   }

@@ -18,6 +18,16 @@ function jaError(error: unknown): string {
     if (/LLM|API key|not configured/i.test(m)) {
       return "AIの設定が未完了です。しばらくしてから再度お試しください。";
     }
+    if (/Transactions are not supported/i.test(m)) {
+      return "一時的なサーバーエラーです。時間をおいて再度お試しください。";
+    }
+    if (/Failed to deserialize|Neon|prisma/i.test(m)) {
+      return "データの保存に失敗しました。時間をおいて再度お試しください。";
+    }
+    // Avoid leaking English internals to end users.
+    if (/^[A-Za-z0-9_:[\]\s."'`-]+$/.test(m) && /error|Error|fail|Fail|Exception/.test(m)) {
+      return "予期しないエラーが発生しました。時間をおいて再度お試しください。";
+    }
     return m.length > 180 ? `${m.slice(0, 180)}…` : m;
   }
   return "予期しないエラーが発生しました。時間をおいて再度お試しください。";

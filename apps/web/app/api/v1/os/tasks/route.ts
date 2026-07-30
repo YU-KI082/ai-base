@@ -27,7 +27,7 @@ export async function PATCH(request: Request) {
     const body = await request.json().catch(() => null);
     const parsed = PatchSchema.safeParse(body);
     if (!parsed.success) {
-      return Response.json({ error: "invalid" }, { status: 400 });
+      return Response.json({ error: "タスクの更新内容を確認してください" }, { status: 400 });
     }
     const item = await repos.marketingOs.setTaskDone(
       parsed.data.itemId,

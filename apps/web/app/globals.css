@@ -760,22 +760,28 @@ select {
   margin-top: 0.2rem;
 }
 
-@media (min-width: 860px) {
-  .os-body {
-    padding-top: 1.5rem;
+@media (max-width: 480px) {
+  .os-page,
+  .os-assistant-head,
+  .os-setup {
+    overflow-x: clip;
   }
-  .os-tabbar {
-    left: 50%;
-    transform: translateX(-50%);
-    width: min(720px, 100%);
-    border-radius: 18px 18px 0 0;
+  .os-task-list li {
+    flex-direction: column;
   }
-  .os-dash-grid,
-  .os-score-grid {
-    grid-template-columns: 1fr 1fr;
+  .os-score-number {
+    font-size: 2.5rem;
   }
-  .os-composer {
-    bottom: 5rem;
+  .os-btn {
+    width: 100%;
+  }
+  .os-row .os-btn,
+  .os-composer .os-btn {
+    width: auto;
+  }
+  .os-pre {
+    max-width: 100%;
   }
 }
+
 

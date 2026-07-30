@@ -21,14 +21,14 @@ export async function requireUser(request: Request): Promise<OsUserContext> {
   const token = extractUserSessionToken(request);
   const payload = verifyUserSessionToken(token);
   if (!payload) {
-    throw new AuthError("Unauthorized", 401);
+    throw new AuthError("ログインが必要です。もう一度ログインしてください。", 401);
   }
   const row = await customers.findById(payload.userId);
   if (!row || row.status !== "active") {
-    throw new AuthError("Unauthorized", 401);
+    throw new AuthError("ログインが必要です。もう一度ログインしてください。", 401);
   }
   if (row.kind !== "customer") {
-    throw new AuthError("Customer account required", 403);
+    throw new AuthError("このアカウントでは利用できません。", 403);
   }
   let workspace = await workspaces.findByOwner(row.id);
   if (!workspace) {
