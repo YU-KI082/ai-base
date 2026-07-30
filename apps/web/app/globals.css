@@ -430,7 +430,7 @@ select {
   flex: 1;
   width: min(720px, 100%);
   margin: 0 auto;
-  padding: 1rem 1rem 6.5rem;
+  padding: 1rem 1rem calc(6.8rem + env(safe-area-inset-bottom));
 }
 
 .os-tabbar {
@@ -442,18 +442,22 @@ select {
   display: grid;
   grid-template-columns: repeat(5, 1fr);
   gap: 0.15rem;
-  padding: 0.55rem 0.4rem calc(0.55rem + env(safe-area-inset-bottom));
-  background: rgba(255, 255, 255, 0.92);
+  padding: 0.55rem 0.35rem calc(0.55rem + env(safe-area-inset-bottom));
+  background: rgba(255, 255, 255, 0.94);
   border-top: 1px solid var(--os-line);
   backdrop-filter: blur(16px);
 }
 
 .os-tab {
   text-align: center;
-  font-size: 0.72rem;
+  font-size: 0.68rem;
   color: var(--os-muted);
-  padding: 0.45rem 0.2rem;
+  padding: 0.45rem 0.15rem;
   border-radius: 12px;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 .os-tab:hover {
   background: var(--os-soft);
@@ -551,12 +555,13 @@ select {
 }
 
 .os-bubble {
-  max-width: 92%;
+  max-width: min(92%, 36rem);
   padding: 0.9rem 1rem;
   border-radius: 18px;
   line-height: 1.55;
   white-space: pre-wrap;
   font-size: 0.95rem;
+  overflow-wrap: anywhere;
 }
 .os-bubble-ai {
   align-self: flex-start;
@@ -584,6 +589,7 @@ select {
   border: 1px solid var(--os-line);
   border-radius: 18px;
   backdrop-filter: blur(10px);
+  z-index: 5;
 }
 .os-composer input {
   border: 0;
@@ -591,13 +597,14 @@ select {
   background: transparent;
   padding: 0.55rem 0.5rem;
   width: 100%;
+  min-width: 0;
 }
 
 .os-auth-page,
 .os-setup {
   width: min(440px, calc(100% - 2rem));
   margin: 0 auto;
-  padding: 2.5rem 0 3rem;
+  padding: 2rem 0 calc(2.5rem + env(safe-area-inset-bottom));
 }
 .os-auth-card,
 .os-setup-form,

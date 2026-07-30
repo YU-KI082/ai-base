@@ -20,6 +20,8 @@ export function AssistantHome({ locale = "ja" }: { locale?: Locale }) {
   const t = getDictionary(locale).os;
   const [messages, setMessages] = useState<Message[]>([]);
   const [nextActions, setNextActions] = useState<NextAction[]>([]);
+  const [brandLabel, setBrandLabel] = useState<string | null>(null);
+  const [handlesLabel, setHandlesLabel] = useState<string | null>(null);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
   const [booting, setBooting] = useState(true);
@@ -29,24 +31,45 @@ export function AssistantHome({ locale = "ja" }: { locale?: Locale }) {
   useEffect(() => {
     void (async () => {
       try {
-        const res = await fetch("/api/v1/os/brief/today");
-        if (res.status === 401) {
+        const [briefRes, brandRes] = await Promise.all([
+          fetch("/api/v1/os/brief/today"),
+          fetch("/api/v1/os/brand"),
+        ]);
+        if (briefRes.status === 401 || brandRes.status === 401) {
           window.location.href = "/login?next=/admin";
           return;
         }
-        const data = await res.json();
-        if (!res.ok) throw new Error(data.error || "failed");
+        const data = await briefRes.json();
+        if (!briefRes.ok) throw new Error(data.error || "読み込みに失敗しました");
         setMessages(data.messages ?? []);
         if (Array.isArray(data.nextActions)) {
           setNextActions(data.nextActions as NextAction[]);
         }
+        const brandData = await brandRes.json();
+        if (brandRes.ok) {
+          setBrandLabel(brandData.brand?.brandName ?? null);
+          const handles = (brandData.handles ?? []) as Array<{
+            platform: string;
+            username: string;
+          }>;
+          const labeled = handles
+            .filter((h) => h.username)
+            .map((h) => `${h.platform}@${h.username}`)
+            .slice(0, 3)
+            .join(" · ");
+          setHandlesLabel(labeled || null);
+        }
       } catch (e) {
-        setError(e instanceof Error ? e.message : t.briefingLoading);
+        setError(
+          e instanceof Error
+            ? e.message
+            : "読み込みに失敗しました。再読み込みしてください。",
+        );
       } finally {
         setBooting(false);
       }
     })();
-  }, [t.briefingLoading]);
+  }, []);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -69,10 +92,10 @@ export function AssistantHome({ locale = "ja" }: { locale?: Locale }) {
         body: JSON.stringify({ message }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "failed");
+      if (!res.ok) throw new Error(data.error || "送信に失敗しました。もう一度お試しください。");
       setMessages(data.messages ?? []);
     } catch (e) {
-      setError(e instanceof Error ? e.message : "error");
+      setError(e instanceof Error ? e.message : "送信に失敗しました。");
     } finally {
       setBusy(false);
     }
@@ -87,6 +110,12 @@ export function AssistantHome({ locale = "ja" }: { locale?: Locale }) {
           <p className="os-lead" style={{ marginBottom: 0 }}>
             {t.homeLead}
           </p>
+          {brandLabel ? (
+            <p className="os-muted" style={{ marginTop: "0.35rem" }}>
+              担当ブランド: <strong style={{ color: "var(--os-ink)" }}>{brandLabel}</strong>
+              {handlesLabel ? ` ／ ${handlesLabel}` : ""}
+            </p>
+          ) : null}
         </div>
         <div className="os-chip-row">
           <Link className="os-chip" href="/admin/analysis">

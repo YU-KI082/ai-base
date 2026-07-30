@@ -1,6 +1,7 @@
 import { repos } from "@ai-base/database";
 import { completeJson } from "./llm.js";
 import { loadBrandMemory, formatBrandForPrompt } from "./brand-memory.js";
+import { buildBrandCreative } from "./brand-engine.js";
 import type { OsPlatform } from "./types.js";
 
 export async function generateCreative(
@@ -8,17 +9,11 @@ export async function generateCreative(
   platform: OsPlatform = "instagram",
 ) {
   const brand = await loadBrandMemory(workspaceId);
-  const fallback = {
-    caption: `${brand?.brandName ?? "ブランド"}の世界観を一言で伝える投稿。今日の気づきをストーリーテリングで。`,
-    hashtags: ["#マーケティング", "#SNS運用", "#ブランド"],
-    reelScript:
-      "0-3秒: 問題提起フック\n3-15秒: 共感→解決のヒント\n15-30秒: 具体例\nCTA: プロフィールのリンクへ",
-    imagePrompt: "洗練されたミニマルなビジュアル、余白多め、高級感",
-  };
+  const engine = buildBrandCreative(brand, platform);
 
-  const raw = await completeJson<typeof fallback>({
+  const raw = await completeJson<typeof engine>({
     brand,
-    userPrompt: `${platform}向け投稿をワンセット生成してください。API投稿はしません。コピー用です。
+    userPrompt: `${platform}向け投稿をワンセット生成してください。API投稿はしません。コピー用です。ブランド名「${brand?.brandName ?? ""}」をキャプションに自然に含めること。
 
 ${brand ? formatBrandForPrompt(brand) : "ブランド未設定"}
 
@@ -29,15 +24,15 @@ JSON:
   "reelScript": string,
   "imagePrompt": string
 }`,
-    fallback,
   });
 
   return repos.marketingOs.createCreative({
     workspaceId,
     platform,
-    caption: raw.caption || fallback.caption,
-    hashtags: raw.hashtags?.length ? raw.hashtags : fallback.hashtags,
-    reelScript: raw.reelScript || fallback.reelScript,
-    imagePrompt: raw.imagePrompt || fallback.imagePrompt,
+    caption: raw?.caption || engine.caption,
+    hashtags: raw?.hashtags?.length ? raw.hashtags : engine.hashtags,
+    reelScript: raw?.reelScript || engine.reelScript,
+    imagePrompt: raw?.imagePrompt || engine.imagePrompt,
+    metadata: { source: raw ? "llm" : "brand_engine" },
   });
 }

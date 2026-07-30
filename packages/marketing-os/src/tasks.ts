@@ -1,6 +1,7 @@
 import { repos } from "@ai-base/database";
 import { completeJson } from "./llm.js";
 import { loadBrandMemory, formatBrandForPrompt } from "./brand-memory.js";
+import { buildBrandTasks } from "./brand-engine.js";
 import { tokyoDateKey } from "./persona.js";
 
 type TaskDraft = {
@@ -16,36 +17,11 @@ export async function ensureTodayTasks(workspaceId: string) {
   if (set.items.length > 0) return set;
 
   const brand = await loadBrandMemory(workspaceId);
-  const fallback: TaskDraft[] = [
-    {
-      title: "今日投稿すべき内容を決めてキャプションを生成する",
-      detail: "ワンクリック生成→コピー投稿",
-      category: "post",
-      deepLink: "/admin/posts",
-    },
-    {
-      title: "おすすめ時間帯にリール or 短尺を1本用意する",
-      detail: "黄金時間の仮説で今夜か翌朝",
-      category: "reel",
-      deepLink: "/admin/posts",
-    },
-    {
-      title: "競合の保存されやすい投稿に有益コメントを3件する",
-      detail: "売り込み禁止。価値提供コメント",
-      category: "engage",
-      deepLink: "/admin/tasks",
-    },
-    {
-      title: "プロフィールの改善点を1つ実行する",
-      detail: "一言目・ハイライト・リンクのいずれか",
-      category: "improve",
-      deepLink: "/admin/analysis",
-    },
-  ];
+  const engineTasks = buildBrandTasks(brand);
 
   const raw = await completeJson<{ tasks: TaskDraft[] }>({
     brand,
-    userPrompt: `今日（${dateKey} Asia/Tokyo）のSNSマーケタスクを作ってください。
+    userPrompt: `今日（${dateKey} Asia/Tokyo）のSNSマーケタスクを作ってください。ブランド名をタスク文に含めること。
 
 ${brand ? formatBrandForPrompt(brand) : "ブランド未設定"}
 
@@ -53,10 +29,9 @@ ${brand ? formatBrandForPrompt(brand) : "ブランド未設定"}
 
 JSON: { "tasks": [{ "title": string, "detail": string, "category": string, "deepLink"?: string }] }
 5〜7件。`,
-    fallback: { tasks: fallback },
   });
 
-  const tasks = raw.tasks?.length ? raw.tasks : fallback;
+  const tasks = raw?.tasks?.length ? raw.tasks : engineTasks;
   await repos.marketingOs.replaceTaskItems(
     set.id,
     tasks.map((t, i) => ({

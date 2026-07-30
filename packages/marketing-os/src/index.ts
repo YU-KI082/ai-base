@@ -2,6 +2,7 @@ export * from "./types.js";
 export * from "./connectors.js";
 export * from "./persona.js";
 export * from "./brand-memory.js";
+export * from "./brand-engine.js";
 export * from "./analyze.js";
 export * from "./score.js";
 export * from "./tasks.js";
