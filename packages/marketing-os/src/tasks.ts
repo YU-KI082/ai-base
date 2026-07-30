@@ -1,7 +1,6 @@
 import { repos } from "@ai-base/database";
 import { completeJson } from "./llm.js";
 import { loadBrandMemory, formatBrandForPrompt } from "./brand-memory.js";
-import { buildBrandTasks } from "./brand-engine.js";
 import { tokyoDateKey } from "./persona.js";
 
 type TaskDraft = {
@@ -17,7 +16,6 @@ export async function ensureTodayTasks(workspaceId: string) {
   if (set.items.length > 0) return set;
 
   const brand = await loadBrandMemory(workspaceId);
-  const engineTasks = buildBrandTasks(brand);
 
   const raw = await completeJson<{ tasks: TaskDraft[] }>({
     brand,
@@ -26,15 +24,19 @@ export async function ensureTodayTasks(workspaceId: string) {
 ${brand ? formatBrandForPrompt(brand) : "ブランド未設定"}
 
 必ず含める観点: 今日の投稿、おすすめ時間、リール企画、ストーリー案、コメントすべき内容、改善タスク。
+捏造のフォロワー増減数値は書かないこと。
 
 JSON: { "tasks": [{ "title": string, "detail": string, "category": string, "deepLink"?: string }] }
-5〜7件。`,
+5〜7件。deepLink は /admin/create /admin/studio /admin/analysis /admin/brand /admin#tasks のいずれか。`,
   });
 
-  const tasks = raw?.tasks?.length ? raw.tasks : engineTasks;
+  if (!raw.tasks?.length) {
+    throw new Error("今日のタスク生成に失敗しました。再試行してください。");
+  }
+
   await repos.marketingOs.replaceTaskItems(
     set.id,
-    tasks.map((t, i) => ({
+    raw.tasks.map((t, i) => ({
       title: t.title,
       detail: t.detail,
       category: t.category,

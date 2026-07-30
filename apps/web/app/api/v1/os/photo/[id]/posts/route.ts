@@ -1,4 +1,8 @@
-import { generatePhotoPosts, OS_PLATFORMS } from "@ai-base/marketing-os";
+import {
+  generatePhotoPosts,
+  OS_PLATFORMS,
+  OsAiUnavailableError,
+} from "@ai-base/marketing-os";
 import { withOsUser } from "../../../_lib";
 import { z } from "zod";
 
@@ -25,6 +29,7 @@ export async function POST(
       );
       return Response.json(result);
     } catch (e) {
+      if (e instanceof OsAiUnavailableError) throw e;
       return Response.json(
         { error: e instanceof Error ? e.message : "投稿生成に失敗しました" },
         { status: 400 },

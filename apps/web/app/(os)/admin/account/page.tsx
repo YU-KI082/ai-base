@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { OsLogoutButton } from "../os-logout-button";
+import { OsPending } from "../os-pending";
 
 type Me = {
   user?: { id: string; email: string; name: string | null };
@@ -24,35 +25,49 @@ type SettingsPayload = {
   };
 };
 
+type CapState = { ready: boolean; provider: string | null; reason?: string };
+
+type Capabilities = {
+  textLlm: CapState;
+  vision: CapState;
+  imageEdit: CapState;
+  snsMetrics: CapState;
+  mediaStorage: CapState & { backend?: string };
+};
+
 export default function AccountPage() {
   const [me, setMe] = useState<Me | null>(null);
   const [brand, setBrand] = useState<BrandPayload | null>(null);
   const [settings, setSettings] = useState<SettingsPayload | null>(null);
+  const [caps, setCaps] = useState<Capabilities | null>(null);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     void (async () => {
-      const [authRes, brandRes, settingsRes] = await Promise.all([
+      const [authRes, brandRes, settingsRes, capsRes] = await Promise.all([
         fetch("/api/v1/os/auth"),
         fetch("/api/v1/os/brand"),
         fetch("/api/v1/os/settings"),
+        fetch("/api/v1/os/capabilities"),
       ]);
       if (authRes.status === 401) {
         window.location.href = "/login?next=/admin/account";
         return;
       }
       const auth = await authRes.json();
-      const brandData = await brandRes.json();
-      const settingsData = await settingsRes.json();
       if (!authRes.ok) {
         setError(auth.error || "読み込みに失敗しました");
         return;
       }
       setMe(auth);
-      if (brandRes.ok) setBrand(brandData);
-      if (settingsRes.ok) setSettings(settingsData);
+      if (brandRes.ok) setBrand(await brandRes.json());
+      if (settingsRes.ok) setSettings(await settingsRes.json());
+      if (capsRes.ok) {
+        const c = await capsRes.json();
+        setCaps(c.capabilities);
+      }
     })();
   }, []);
 
@@ -99,7 +114,41 @@ export default function AccountPage() {
     <main className="os-page">
       <p className="os-eyebrow">Account</p>
       <h1>設定</h1>
-      <p className="os-lead">アカウント、通知、プランを管理します。</p>
+      <p className="os-lead">アカウント、AI接続、通知、プランを管理します。</p>
+
+      <section className="os-card">
+        <h2>AI接続状態</h2>
+        {!caps ? (
+          <p className="os-muted">確認中…</p>
+        ) : (
+          <div className="os-cap-grid">
+            {(
+              [
+                ["テキストAI", caps.textLlm],
+                ["画像分析", caps.vision],
+                ["画像編集", caps.imageEdit],
+                ["SNS実測", caps.snsMetrics],
+                ["画像保存", caps.mediaStorage],
+              ] as const
+            ).map(([label, state]) => (
+              <div key={label} className="os-cap-row">
+                <span>{label}</span>
+                <span className={state.ready ? "os-cap-ok" : "os-cap-pending"}>
+                  {state.ready
+                    ? `接続中${state.provider ? `（${state.provider}）` : ""}`
+                    : "準備中"}
+                  {!state.ready && state.reason ? <em> — {state.reason}</em> : null}
+                </span>
+              </div>
+            ))}
+          </div>
+        )}
+        {!caps?.textLlm.ready ? (
+          <OsPending title="テキストAIが未接続">
+            OPENAI_API_KEY 等をサーバー環境に設定すると、チャット・Brief・投稿生成が有効になります。
+          </OsPending>
+        ) : null}
+      </section>
 
       <section className="os-card">
         <h2>ログイン</h2>
@@ -115,9 +164,7 @@ export default function AccountPage() {
             <strong>{me.user.name}</strong>
           </p>
         ) : null}
-        <p className="os-muted">
-          初期設定: {me.setupDone ? "完了" : "未完了"}
-        </p>
+        <p className="os-muted">初期設定: {me.setupDone ? "完了" : "未完了"}</p>
       </section>
 
       <section className="os-card">

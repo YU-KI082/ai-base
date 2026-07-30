@@ -1,38 +1,20 @@
 import type { BrandMemory } from "./types.js";
 import type { PhotoAnalysis, PhotoEnhanceRecipe, PhotoStudioPort } from "./photo-studio-types.js";
 import {
-  analyzePhotoHeuristic,
-  buildEnhanceRecipe,
-  resolveBrandPhotoPreset,
-} from "./photo-studio-engine.js";
+  getActivePhotoStudioPort,
+  visionPhotoStudioPort,
+} from "./photo-studio-vision.js";
+import { resolveBrandPhotoPreset } from "./photo-studio-engine.js";
+import { OsAiUnavailableError } from "./capabilities.js";
 
-/**
- * Default Photo Studio provider.
- * Swap via registerPhotoStudioPort() when OpenAI / Vision / edit APIs are ready.
- */
-export const heuristicPhotoStudioPort: PhotoStudioPort = {
-  id: "heuristic",
-  async analyze(input) {
-    return analyzePhotoHeuristic({
-      brand: input.brand,
-      width: input.width,
-      height: input.height,
-      seed: input.imageDataUrl.slice(0, 64),
-    });
-  },
-  async enhance(input) {
-    return buildEnhanceRecipe({
-      brand: input.brand,
-      analysis: input.analysis,
-      preset: input.preset,
-    });
-  },
-};
-
-let activePort: PhotoStudioPort = heuristicPhotoStudioPort;
+let activePort: PhotoStudioPort | null = getActivePhotoStudioPort();
 
 export function getPhotoStudioPort(): PhotoStudioPort {
-  return activePort;
+  const port = activePort ?? getActivePhotoStudioPort();
+  if (!port) {
+    throw new OsAiUnavailableError("画像分析AIは準備中です。");
+  }
+  return port;
 }
 
 export function registerPhotoStudioPort(port: PhotoStudioPort): void {
@@ -66,3 +48,5 @@ export async function runPhotoEnhance(
   });
   return { recipe, preset };
 }
+
+export { visionPhotoStudioPort };

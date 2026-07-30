@@ -14,3 +14,7 @@ export * from "./photo-studio-engine.js";
 export * from "./photo-studio-port.js";
 export * from "./photo-studio.js";
 export * from "./workspace-settings.js";
+export * from "./capabilities.js";
+export * from "./media-storage.js";
+export * from "./llm.js";
+export * from "./photo-studio-vision.js";

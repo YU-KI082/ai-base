@@ -1,91 +1,100 @@
 import { createLlmProvider } from "@ai-base/llm";
 import type { BrandMemory } from "./types.js";
 import { aiEmployeeSystemPrompt } from "./persona.js";
+import {
+  assertTextLlmReady,
+  OsAiUnavailableError,
+  resolveTextLlmProviderId,
+} from "./capabilities.js";
 
-/** True when a cloud LLM credential is available (not mock-only). */
+/** True when a real (non-mock) text LLM can be used. */
 export function hasRealLlmCredentials(): boolean {
-  const provider = (process.env.LLM_PROVIDER ?? "openai").toLowerCase().trim();
-  if (provider === "mock") return false;
-  return Boolean(
-    process.env.OPENAI_API_KEY?.trim() ||
-      process.env.ANTHROPIC_API_KEY?.trim() ||
-      process.env.GEMINI_API_KEY?.trim() ||
-      process.env.GOOGLE_API_KEY?.trim() ||
-      process.env.GROK_API_KEY?.trim() ||
-      process.env.XAI_API_KEY?.trim(),
-  );
+  return resolveTextLlmProviderId() !== null;
 }
 
 export function getOsLlm() {
-  return createLlmProvider();
+  const id = assertTextLlmReady();
+  return createLlmProvider({
+    provider: id,
+    model:
+      process.env.LLM_MODEL ||
+      (id === "local" ? "qwen3:8b" : undefined),
+  });
 }
 
 function looksLikeMock(content: string): boolean {
   return /^Mock completion for:/i.test(content.trim());
 }
 
+/**
+ * JSON completion via real LLM only.
+ * Throws OsAiUnavailableError when not configured; never returns mock/heuristic JSON.
+ */
 export async function completeJson<T>(input: {
   brand: BrandMemory | null;
   userPrompt: string;
   improvementHistory?: string;
-}): Promise<T | null> {
-  if (!hasRealLlmCredentials()) return null;
+}): Promise<T> {
+  assertTextLlmReady();
+  const llm = getOsLlm();
+  const result = await llm.complete({
+    messages: [
+      {
+        role: "system",
+        content: aiEmployeeSystemPrompt(input.brand, input.improvementHistory),
+      },
+      {
+        role: "user",
+        content: `${input.userPrompt}\n\n必ず有効な JSON のみを返してください。`,
+      },
+    ],
+    temperature: 0.6,
+    responseFormat: "json",
+  });
+  const raw = result.content.trim();
+  if (!raw || looksLikeMock(raw)) {
+    throw new OsAiUnavailableError("AI応答が不正です。しばらくして再試行してください。");
+  }
+  const start = raw.indexOf("{");
+  const end = raw.lastIndexOf("}");
+  const jsonText = start >= 0 && end > start ? raw.slice(start, end + 1) : raw;
   try {
-    const llm = getOsLlm();
-    const result = await llm.complete({
-      messages: [
-        {
-          role: "system",
-          content: aiEmployeeSystemPrompt(input.brand, input.improvementHistory),
-        },
-        {
-          role: "user",
-          content: `${input.userPrompt}\n\n必ず有効な JSON のみを返してください。`,
-        },
-      ],
-      temperature: 0.6,
-      responseFormat: "json",
-    });
-    const raw = result.content.trim();
-    if (looksLikeMock(raw)) return null;
-    const start = raw.indexOf("{");
-    const end = raw.lastIndexOf("}");
-    const jsonText =
-      start >= 0 && end > start ? raw.slice(start, end + 1) : raw;
     return JSON.parse(jsonText) as T;
   } catch {
-    return null;
+    throw new OsAiUnavailableError("AI応答の解析に失敗しました。再試行してください。");
   }
 }
 
+/**
+ * Text completion via real LLM only.
+ */
 export async function completeText(input: {
   brand: BrandMemory | null;
   userPrompt: string;
   history?: Array<{ role: "user" | "assistant"; content: string }>;
   improvementHistory?: string;
-}): Promise<string | null> {
-  if (!hasRealLlmCredentials()) return null;
-  try {
-    const llm = getOsLlm();
-    const history = (input.history ?? []).map((m) => ({
-      role: m.role as "user" | "assistant",
-      content: m.content,
-    }));
-    const result = await llm.complete({
-      messages: [
-        {
-          role: "system",
-          content: aiEmployeeSystemPrompt(input.brand, input.improvementHistory),
-        },
-        ...history,
-        { role: "user", content: input.userPrompt },
-      ],
-      temperature: 0.7,
-    });
-    const text = result.content.trim();
-    if (!text || looksLikeMock(text)) return null;
-    return text;
-  } catch {
-    return null;
+}): Promise<string> {
+  assertTextLlmReady();
+  const llm = getOsLlm();
+  const history = (input.history ?? []).map((m) => ({
+    role: m.role as "user" | "assistant",
+    content: m.content,
+  }));
+  const result = await llm.complete({
+    messages: [
+      {
+        role: "system",
+        content: aiEmployeeSystemPrompt(input.brand, input.improvementHistory),
+      },
+      ...history,
+      { role: "user", content: input.userPrompt },
+    ],
+    temperature: 0.7,
+  });
+  const text = result.content.trim();
+  if (!text || looksLikeMock(text)) {
+    throw new OsAiUnavailableError("AI応答が空でした。再試行してください。");
   }
+  // Strip common local-model think tags if present
+  return text.replace(/<think>[\s\S]*?<\/think>/gi, "").trim() || text;
 }

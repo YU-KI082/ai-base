@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { OsPending } from "../os-pending";
 
 type Insight = {
   summary: string;
@@ -153,6 +154,9 @@ export default function AnalysisPage() {
           </section>
           <section className="os-card" id="competitor">
             <h2>競合分析</h2>
+            <OsPending title="競合の公開クロールは準備中">
+              実アカウントの自動収集は未接続です。ブランドに登録した競合名に基づく差分提案のみ表示します。
+            </OsPending>
             <ul>
               {sections.competitor.map((f) => (
                 <li key={f}>{f}</li>

@@ -1,10 +1,9 @@
 import {
   createPhotoSession,
-  enhancePhotoSession,
-  generatePhotoPosts,
   getPhotoSession,
   listPhotoSessions,
   OS_PLATFORMS,
+  OsAiUnavailableError,
 } from "@ai-base/marketing-os";
 import { withOsUser } from "../_lib";
 import { z } from "zod";
@@ -56,6 +55,7 @@ export async function POST(request: Request) {
         advice: result.advice,
       });
     } catch (e) {
+      if (e instanceof OsAiUnavailableError) throw e;
       return Response.json(
         { error: e instanceof Error ? e.message : "アップロードに失敗しました" },
         { status: 400 },

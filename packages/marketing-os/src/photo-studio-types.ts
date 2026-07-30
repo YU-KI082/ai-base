@@ -69,9 +69,10 @@ export type PhotoPostVariant = {
 };
 
 export type PhotoPredictions = {
-  saveRatePct: { min: number; max: number };
-  engagementPct: { min: number; max: number };
-  followersDelta: { min: number; max: number };
+  status: "ready" | "pending";
+  saveRatePct?: { min: number; max: number };
+  engagementPct?: { min: number; max: number };
+  followersDelta?: { min: number; max: number };
   note: string;
 };
 

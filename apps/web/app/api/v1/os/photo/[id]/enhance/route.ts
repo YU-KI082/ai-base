@@ -1,4 +1,4 @@
-import { enhancePhotoSession } from "@ai-base/marketing-os";
+import { enhancePhotoSession, OsAiUnavailableError } from "@ai-base/marketing-os";
 import { withOsUser } from "../../../_lib";
 
 export async function POST(
@@ -11,6 +11,7 @@ export async function POST(
       const result = await enhancePhotoSession(ctx.workspaceId, id);
       return Response.json(result);
     } catch (e) {
+      if (e instanceof OsAiUnavailableError) throw e;
       return Response.json(
         { error: e instanceof Error ? e.message : "改善に失敗しました" },
         { status: 400 },

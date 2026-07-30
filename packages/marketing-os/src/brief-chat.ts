@@ -1,20 +1,19 @@
 import { prisma, repos } from "@ai-base/database";
-import { completeText } from "./llm.js";
+import { completeText, hasRealLlmCredentials } from "./llm.js";
 import { loadBrandMemory } from "./brand-memory.js";
 import { ensureTodayTasks } from "./tasks.js";
 import { generateAiScore } from "./score.js";
-import { buildBrandChatReply } from "./brand-engine.js";
 import {
   buildEmployeeDailyBrief,
-  estimateResultForTask,
   type ImprovementRow,
 } from "./daily-brief-engine.js";
 import {
   formatImprovementsForPrompt,
   tokyoDateKey,
 } from "./persona.js";
+import { OsAiUnavailableError } from "./capabilities.js";
 
-const BRIEF_VERSION = "employee-v2";
+const BRIEF_VERSION = "employee-v3";
 
 function asPlanPayload(payload: unknown): { version?: string } {
   if (payload && typeof payload === "object") return payload as { version?: string };
@@ -51,6 +50,82 @@ export async function ensureDailyBrief(workspaceId: string) {
     return { brief: existing, thread, messages, created: false };
   }
 
+  if (!hasRealLlmCredentials()) {
+    const pendingContent =
+      "AI Daily Brief は準備中です。\n\nテキストAIのAPIキー（OPENAI_API_KEY 等）を設定すると、ブランド記憶に基づく今日の指示を自動生成します。\n設定画面で接続状態を確認できます。";
+    const payload = {
+      version: BRIEF_VERSION,
+      source: "pending",
+      aiStatus: "pending",
+      nextActions: [
+        {
+          title: "設定でAI接続を確認する",
+          why: "Daily Brief・チャット・投稿生成に必要です",
+          deepLink: "/admin/account",
+        },
+      ],
+      missions: [],
+      expectedEffect: {
+        status: "pending",
+        note: "AI接続後に表示します",
+      },
+      yesterday: {
+        headline: "AI接続待ち",
+        metrics: [],
+        metricsStatus: "pending",
+        metricsNote: "SNS実測値は準備中です",
+        improvements: [],
+        cause: "",
+        lesson: "",
+        scoreOverall: null,
+        scoreDelta: null,
+      },
+    };
+
+    if (existing?.messageId) {
+      await repos.marketingOs.updateMessage(existing.messageId, pendingContent, {
+        kind: "daily_brief",
+        dateKey,
+        version: BRIEF_VERSION,
+        source: "pending",
+      });
+      const brief = await repos.marketingOs.updateBrief(existing.id, {
+        content: pendingContent,
+        payload,
+      });
+      const messages = await repos.marketingOs.listMessages(thread.id);
+      return { brief, thread, messages, created: false };
+    }
+
+    const message = await repos.marketingOs.addMessage({
+      threadId: thread.id,
+      role: "assistant",
+      content: pendingContent,
+      metadata: {
+        kind: "daily_brief",
+        dateKey,
+        version: BRIEF_VERSION,
+        source: "pending",
+      },
+    });
+    const brief = existing
+      ? await repos.marketingOs.updateBrief(existing.id, {
+          content: pendingContent,
+          messageId: message.id,
+          payload,
+        })
+      : await repos.marketingOs.createBrief({
+          workspaceId,
+          dateKey,
+          threadId: thread.id,
+          messageId: message.id,
+          content: pendingContent,
+          payload,
+        });
+    const messages = await repos.marketingOs.listMessages(thread.id);
+    return { brief, thread, messages, created: !existing };
+  }
+
   const brand = await loadBrandMemory(workspaceId);
   const handles = await repos.snsHandles.list(workspaceId);
   const ownerName = await loadOwnerName(workspaceId);
@@ -67,7 +142,7 @@ export async function ensureDailyBrief(workspaceId: string) {
       ? scorePair.latest.overall - scorePair.previous.overall
       : null;
 
-  const { content: engineContent, plan } = buildEmployeeDailyBrief({
+  const { plan } = buildEmployeeDailyBrief({
     brand,
     handles,
     ownerName,
@@ -79,36 +154,36 @@ export async function ensureDailyBrief(workspaceId: string) {
   });
 
   const historyText = formatImprovementsForPrompt(improvements);
-  const llmContent = await completeText({
+  const content = await completeText({
     brand,
     improvementHistory: historyText,
     userPrompt: `あなたは専属AIマーケティング社員です。ログイン直後のデイリーブリーフを、次の構成で自然な会話として書いてください。
 
-必須構成（この順番・見出し感を保つ）:
-1. 「おはようございます/こんにちは、{名前}さん。」
-2. 「昨日の分析が完了しました。」
-3. Instagram等の媒体別（フォロワー増減・保存率・改善点数）
+必須構成:
+1. 挨拶（${plan.greetingName}さん）
+2. 昨日の振り返り（捏造のフォロワー増減・保存率は絶対に書かない。AI SCOREと改善履歴のみ使ってよい）
+3. SNS実測値は「準備中」と明記
 4. 原因 → 改善案 → 実行
-5. 今日やるべきこと ①投稿（時刻付き）②リール撮影③競合参考
-6. 今日の予想効果（フォロワー +N〜M人）
+5. 今日やるべきこと ①②③（投稿・リール・競合）
+6. 予想フォロワー増の数値は出さず「SNS連携後に予測」と書く
 7. 「何を手伝いましょうか？」
 
-ブランド名「${brand?.brandName ?? ""}」とターゲットを必ず織り込む。
-分析ツール口調禁止。同僚マーケターとして話す。
+ブランド「${brand?.brandName ?? ""}」を織り込む。分析ツール口調禁止。
 
-参考データ（数値はこれか近い値を使う）:
-${engineContent}
+参考（事実のみ）:
+- AI SCORE: ${score.overall}${scoreDelta != null ? ` / 前日比 ${scoreDelta}` : ""}
+- 改善履歴: ${historyText || "なし"}
+- ミッション案: ${plan.missions.map((m) => m.title).join(" / ")}
 `,
   });
 
-  const content = llmContent || engineContent;
   const payload = {
     ...plan,
     overallScore: score.overall,
     taskIds: tasks.items.map((t) => t.id),
     nextActions: plan.nextActions,
     brandName: brand?.brandName ?? null,
-    source: llmContent ? "llm" : "brand_engine",
+    source: "llm",
   };
 
   if (existing?.messageId) {
@@ -137,7 +212,7 @@ ${engineContent}
       overallScore: score.overall,
       nextActions: plan.nextActions,
       brandName: brand?.brandName ?? null,
-      source: llmContent ? "llm" : "brand_engine",
+      source: "llm",
     },
   });
 
@@ -164,6 +239,9 @@ export async function chatWithEmployee(
   workspaceId: string,
   userMessage: string,
 ) {
+  if (!hasRealLlmCredentials()) {
+    throw new OsAiUnavailableError();
+  }
   const brand = await loadBrandMemory(workspaceId);
   const improvements = await loadImprovementRows(workspaceId);
   const historyText = formatImprovementsForPrompt(improvements);
@@ -174,7 +252,7 @@ export async function chatWithEmployee(
     content: userMessage,
   });
   const history = await repos.marketingOs.listMessages(thread.id);
-  const llmReply = await completeText({
+  const reply = await completeText({
     brand,
     improvementHistory: historyText,
     history: history
@@ -188,16 +266,14 @@ export async function chatWithEmployee(
 
 必ず「原因 → 改善案 → 実行」の順で答える。
 ブランド記憶を前提にし、聞き直さない。
-投稿が必要ならコピー用の短い案も添える。`,
+投稿が必要ならコピー用の短い案も添える。
+フォロワー増減や保存率の数値は、実測がない限り捏造しない（準備中と書く）。`,
   });
-  const reply =
-    llmReply ||
-    buildBrandChatReply(brand, userMessage, improvements);
   const assistant = await repos.marketingOs.addMessage({
     threadId: thread.id,
     role: "assistant",
     content: reply,
-    metadata: { source: llmReply ? "llm" : "brand_engine" },
+    metadata: { source: "llm" },
   });
   return { thread, assistant, reply };
 }
@@ -213,19 +289,18 @@ export async function recordTaskImprovement(
   if (!done) return { item: updated, improvement: null };
 
   const brand = await loadBrandMemory(workspaceId);
+  const { estimateResultForTask } = await import("./daily-brief-engine.js");
   const improvement = await repos.marketingOs.createImprovement({
     workspaceId,
     dateKey: tokyoDateKey(),
     title: item.title,
     cause: brand
-      ? `「${brand.concept || "価値"}」が「${brand.targetAudience || "顧客"}」に伝わりきれていなかった`
-      : "実行前のギャップ",
+      ? `実行タスク完了（${brand.brandName}）`
+      : "実行タスク完了",
     action: item.detail || item.title,
     result: estimateResultForTask(item.title, item.category),
+    platform: null,
     source: "task",
-    metadata: { taskItemId: item.id, category: item.category },
   });
   return { item: updated, improvement };
 }
-
-export { estimateResultForTask };

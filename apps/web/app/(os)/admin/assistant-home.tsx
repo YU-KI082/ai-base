@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { getDictionary, type Locale } from "@ai-base/i18n";
+import { OsPending } from "./os-pending";
 
 type Message = {
   id: string;
@@ -24,19 +25,25 @@ type Mission = {
 };
 
 type ExpectedEffect = {
-  followersMin: number;
-  followersMax: number;
+  status?: "ready" | "pending";
+  followersMin?: number;
+  followersMax?: number;
+  note?: string;
 };
 
 type Yesterday = {
   headline: string;
   cause: string;
   lesson: string;
+  metricsStatus?: "ready" | "pending";
+  metricsNote?: string;
   metrics?: Array<{
     platform: string;
     followersDelta: number;
     saveRateDeltaPct: number;
   }>;
+  scoreOverall?: number | null;
+  scoreDelta?: number | null;
 };
 
 type TaskItem = {
@@ -207,7 +214,20 @@ export function AssistantHome({ locale = "ja" }: { locale?: Locale }) {
         <section className="os-card os-yesterday-strip" aria-label="昨日の結果">
           <p className="os-eyebrow">Yesterday</p>
           <strong>{yesterday.headline}</strong>
-          {yesterday.metrics?.length ? (
+          {yesterday.scoreOverall != null ? (
+            <p className="os-muted" style={{ marginTop: "0.35rem" }}>
+              AI SCORE {yesterday.scoreOverall}
+              {yesterday.scoreDelta != null
+                ? `（前日比 ${yesterday.scoreDelta >= 0 ? "+" : ""}${yesterday.scoreDelta}）`
+                : ""}
+            </p>
+          ) : null}
+          {yesterday.metricsStatus === "pending" || !yesterday.metrics?.length ? (
+            <OsPending title="SNS実測値は準備中">
+              {yesterday.metricsNote ||
+                "フォロワー・保存率はSNSインサイト連携後に表示します。"}
+            </OsPending>
+          ) : (
             <div className="os-chip-row" style={{ marginTop: "0.5rem" }}>
               {yesterday.metrics.map((m) => (
                 <span key={m.platform} className="os-chip" style={{ cursor: "default" }}>
@@ -217,23 +237,32 @@ export function AssistantHome({ locale = "ja" }: { locale?: Locale }) {
                 </span>
               ))}
             </div>
+          )}
+          {yesterday.cause ? (
+            <p className="os-muted" style={{ marginBottom: 0 }}>
+              原因: {yesterday.cause}
+              {yesterday.lesson ? ` → 学び: ${yesterday.lesson}` : ""}
+            </p>
           ) : null}
-          <p className="os-muted" style={{ marginBottom: 0 }}>
-            原因: {yesterday.cause} → 学び: {yesterday.lesson}
-          </p>
         </section>
       ) : null}
 
       {(missions.length > 0 || expected) && (
         <section className="os-mission-rail" aria-label="今日のミッション">
-          {expected ? (
+          {expected?.status === "pending" ||
+          expected?.followersMin == null ? (
+            <OsPending title="今日の数値予測は準備中">
+              {expected?.note ||
+                "フォロワー増加予測はSNS実測データ連携後に表示します。"}
+            </OsPending>
+          ) : (
             <div className="os-mission-effect">
               今日の予想効果
               <strong>
                 フォロワー +{expected.followersMin}〜{expected.followersMax}人
               </strong>
             </div>
-          ) : null}
+          )}
           <div className="os-mission-cards">
             {(missions.length
               ? missions

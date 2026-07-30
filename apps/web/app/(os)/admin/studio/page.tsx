@@ -3,6 +3,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { OS_PLATFORMS, type OsPlatform } from "@ai-base/marketing-os/platforms";
+import { OsPending } from "../os-pending";
 
 type Analysis = {
   overall: number;
@@ -39,9 +40,10 @@ type Variant = {
 };
 
 type Predictions = {
-  saveRatePct: { min: number; max: number };
-  engagementPct: { min: number; max: number };
-  followersDelta: { min: number; max: number };
+  status?: "ready" | "pending";
+  saveRatePct?: { min: number; max: number };
+  engagementPct?: { min: number; max: number };
+  followersDelta?: { min: number; max: number };
   note: string;
 };
 
@@ -95,6 +97,18 @@ export default function PhotoStudioPage() {
   const [predictions, setPredictions] = useState<Predictions | null>(null);
   const [compare, setCompare] = useState(55);
   const [copied, setCopied] = useState<string | null>(null);
+  const [imageEditReady, setImageEditReady] = useState(false);
+  const [visionReady, setVisionReady] = useState(true);
+
+  useEffect(() => {
+    void fetch("/api/v1/os/capabilities")
+      .then((r) => r.json())
+      .then((d) => {
+        setImageEditReady(Boolean(d.capabilities?.imageEdit?.ready));
+        setVisionReady(d.capabilities?.vision?.ready !== false);
+      })
+      .catch(() => undefined);
+  }, []);
 
   const enhancedFilter = recipe?.cssFilter || preset?.cssFilter || "none";
 
@@ -197,6 +211,11 @@ export default function PhotoStudioPage() {
       <p className="os-lead">
         撮影・編集・投稿文まで。ブランド記憶を前提に、AI社員が仕上げます。
       </p>
+      {!visionReady ? (
+        <OsPending title="画像分析AIは準備中">
+          Vision API（OPENAI_API_KEY）設定後に、アップロード分析が有効になります。
+        </OsPending>
+      ) : null}
 
       <div className="os-row" style={{ marginBottom: "1rem" }}>
         <select
@@ -285,10 +304,14 @@ export default function PhotoStudioPage() {
               <button
                 type="button"
                 className="os-btn os-btn-primary"
-                disabled={!!busy || !sessionId}
+                disabled={!!busy || !sessionId || !imageEditReady}
                 onClick={() => void enhance()}
               >
-                {busy === "enhance" ? "改善中…" : "ワンクリック改善"}
+                {imageEditReady
+                  ? busy === "enhance"
+                    ? "改善中…"
+                    : "ワンクリック改善"
+                  : "改善（準備中）"}
               </button>
               <button
                 type="button"
@@ -299,9 +322,9 @@ export default function PhotoStudioPage() {
                 {busy === "posts" ? "生成中…" : "投稿を3パターン生成"}
               </button>
             </div>
-            {recipe?.labels?.length ? (
-              <p className="os-muted">適用: {recipe.labels.join(" · ")}</p>
-            ) : null}
+            <OsPending title="画素レベルの自動改善は準備中">
+              明るさ・不要物除去などの実画像編集AIは未接続です。分析・撮影アドバイス・投稿文は利用できます。
+            </OsPending>
           </section>
           {/* eslint-enable @next/next/no-img-element */}
         </>
@@ -405,29 +428,35 @@ export default function PhotoStudioPage() {
       {predictions ? (
         <section className="os-card">
           <h2>予想効果</h2>
-          <div className="os-dash-grid">
-            <div className="os-dash-tile os-card">
-              <span>保存率</span>
-              <strong>
-                {predictions.saveRatePct.min}〜{predictions.saveRatePct.max}%
-              </strong>
-            </div>
-            <div className="os-dash-tile os-card">
-              <span>エンゲージメント</span>
-              <strong>
-                {predictions.engagementPct.min}〜{predictions.engagementPct.max}%
-              </strong>
-            </div>
-            <div className="os-dash-tile os-card">
-              <span>フォロワー増加</span>
-              <strong>
-                +{predictions.followersDelta.min}〜{predictions.followersDelta.max}
-              </strong>
-            </div>
-          </div>
-          <p className="os-muted" style={{ marginTop: "0.75rem" }}>
-            {predictions.note}
-          </p>
+          {predictions.status === "pending" || !predictions.saveRatePct ? (
+            <OsPending title="数値予測は準備中">{predictions.note}</OsPending>
+          ) : (
+            <>
+              <div className="os-dash-grid">
+                <div className="os-dash-tile os-card">
+                  <span>保存率</span>
+                  <strong>
+                    {predictions.saveRatePct.min}〜{predictions.saveRatePct.max}%
+                  </strong>
+                </div>
+                <div className="os-dash-tile os-card">
+                  <span>エンゲージメント</span>
+                  <strong>
+                    {predictions.engagementPct!.min}〜{predictions.engagementPct!.max}%
+                  </strong>
+                </div>
+                <div className="os-dash-tile os-card">
+                  <span>フォロワー増加</span>
+                  <strong>
+                    +{predictions.followersDelta!.min}〜{predictions.followersDelta!.max}
+                  </strong>
+                </div>
+              </div>
+              <p className="os-muted" style={{ marginTop: "0.75rem" }}>
+                {predictions.note}
+              </p>
+            </>
+          )}
         </section>
       ) : null}
 
