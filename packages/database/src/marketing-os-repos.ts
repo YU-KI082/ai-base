@@ -343,6 +343,13 @@ export class MarketingOsRepository {
     });
   }
 
+  async findPreviousBrief(workspaceId: string, beforeDateKey: string) {
+    return this.db.dailyBrief.findFirst({
+      where: { workspaceId, dateKey: { lt: beforeDateKey } },
+      orderBy: { dateKey: "desc" },
+    });
+  }
+
   async createBrief(input: {
     workspaceId: string;
     dateKey: string;
@@ -361,6 +368,84 @@ export class MarketingOsRepository {
         payload: input.payload ?? {},
       },
     });
+  }
+
+  async updateBrief(
+    id: string,
+    data: {
+      content: string;
+      messageId?: string;
+      payload?: Prisma.InputJsonValue;
+    },
+  ) {
+    return this.db.dailyBrief.update({
+      where: { id },
+      data: {
+        content: data.content,
+        messageId: data.messageId,
+        payload: data.payload,
+      },
+    });
+  }
+
+  async updateMessage(id: string, content: string, metadata?: Prisma.InputJsonValue) {
+    return this.db.osChatMessage.update({
+      where: { id },
+      data: {
+        content,
+        ...(metadata !== undefined ? { metadata } : {}),
+      },
+    });
+  }
+
+  async listImprovements(workspaceId: string, take = 20) {
+    return this.db.osImprovementLog.findMany({
+      where: { workspaceId },
+      orderBy: [{ dateKey: "desc" }, { createdAt: "desc" }],
+      take,
+    });
+  }
+
+  async createImprovement(input: {
+    workspaceId: string;
+    dateKey: string;
+    title: string;
+    cause?: string;
+    action?: string;
+    result?: string;
+    platform?: string | null;
+    source?: string;
+    metadata?: Prisma.InputJsonValue;
+  }) {
+    return this.db.osImprovementLog.create({
+      data: {
+        workspaceId: input.workspaceId,
+        dateKey: input.dateKey,
+        title: input.title,
+        cause: input.cause ?? "",
+        action: input.action ?? "",
+        result: input.result ?? "",
+        platform: input.platform ?? null,
+        source: input.source ?? "manual",
+        metadata: input.metadata ?? {},
+      },
+    });
+  }
+
+  async getTaskItem(itemId: string) {
+    return this.db.dailyTaskItem.findUnique({
+      where: { id: itemId },
+      include: { taskSet: true },
+    });
+  }
+
+  async previousScore(workspaceId: string) {
+    const rows = await this.db.aiScoreSnapshot.findMany({
+      where: { workspaceId },
+      orderBy: { createdAt: "desc" },
+      take: 2,
+    });
+    return { latest: rows[0] ?? null, previous: rows[1] ?? null };
   }
 }
 

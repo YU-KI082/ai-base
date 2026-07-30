@@ -1,5 +1,4 @@
-import { ensureTodayTasks } from "@ai-base/marketing-os";
-import { repos } from "@ai-base/database";
+import { recordTaskImprovement, ensureTodayTasks } from "@ai-base/marketing-os";
 import { withOsUser } from "../_lib";
 import { z } from "zod";
 
@@ -29,11 +28,17 @@ export async function PATCH(request: Request) {
     if (!parsed.success) {
       return Response.json({ error: "タスクの更新内容を確認してください" }, { status: 400 });
     }
-    const item = await repos.marketingOs.setTaskDone(
+    const result = await recordTaskImprovement(
+      ctx.workspaceId,
       parsed.data.itemId,
       parsed.data.done,
     );
-    void ctx;
-    return Response.json({ item });
+    if (!result) {
+      return Response.json({ error: "タスクが見つかりません" }, { status: 404 });
+    }
+    return Response.json({
+      item: result.item,
+      improvement: result.improvement,
+    });
   });
 }

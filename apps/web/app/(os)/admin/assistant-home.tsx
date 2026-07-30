@@ -16,34 +16,31 @@ type NextAction = {
   deepLink?: string;
 };
 
-type TaskItem = {
-  id: string;
+type Mission = {
+  rank: number;
   title: string;
   detail: string;
-  deepLink: string | null;
-  doneAt: string | null;
+  deepLink?: string;
+};
+
+type ExpectedEffect = {
+  followersMin: number;
+  followersMax: number;
 };
 
 export function AssistantHome({ locale = "ja" }: { locale?: Locale }) {
   const t = getDictionary(locale).os;
   const [messages, setMessages] = useState<Message[]>([]);
   const [nextActions, setNextActions] = useState<NextAction[]>([]);
-  const [tasks, setTasks] = useState<TaskItem[]>([]);
+  const [missions, setMissions] = useState<Mission[]>([]);
+  const [expected, setExpected] = useState<ExpectedEffect | null>(null);
   const [brandLabel, setBrandLabel] = useState<string | null>(null);
-  const [handlesLabel, setHandlesLabel] = useState<string | null>(null);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
-  const [taskBusy, setTaskBusy] = useState(false);
   const [booting, setBooting] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
-
-  async function loadTasks() {
-    const res = await fetch("/api/v1/os/tasks");
-    if (!res.ok) return;
-    const data = await res.json();
-    setTasks(data.taskSet?.items ?? []);
-  }
+  const composerRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     void (async () => {
@@ -62,21 +59,17 @@ export function AssistantHome({ locale = "ja" }: { locale?: Locale }) {
         if (Array.isArray(data.nextActions)) {
           setNextActions(data.nextActions as NextAction[]);
         }
+        const payload = data.brief?.payload;
+        if (payload?.missions && Array.isArray(payload.missions)) {
+          setMissions(payload.missions as Mission[]);
+        }
+        if (payload?.expectedEffect) {
+          setExpected(payload.expectedEffect as ExpectedEffect);
+        }
         const brandData = await brandRes.json();
         if (brandRes.ok) {
           setBrandLabel(brandData.brand?.brandName ?? null);
-          const handles = (brandData.handles ?? []) as Array<{
-            platform: string;
-            username: string;
-          }>;
-          const labeled = handles
-            .filter((h) => h.username)
-            .map((h) => `${h.platform}@${h.username}`)
-            .slice(0, 3)
-            .join(" · ");
-          setHandlesLabel(labeled || null);
         }
-        await loadTasks();
       } catch (e) {
         setError(
           e instanceof Error
@@ -92,17 +85,6 @@ export function AssistantHome({ locale = "ja" }: { locale?: Locale }) {
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, busy]);
-
-  async function toggleTask(id: string, done: boolean) {
-    setTaskBusy(true);
-    await fetch("/api/v1/os/tasks", {
-      method: "PATCH",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ itemId: id, done }),
-    });
-    await loadTasks();
-    setTaskBusy(false);
-  }
 
   async function send(text?: string) {
     const message = (text ?? input).trim();
@@ -121,100 +103,76 @@ export function AssistantHome({ locale = "ja" }: { locale?: Locale }) {
         body: JSON.stringify({ message }),
       });
       const data = await res.json();
-      if (!res.ok) throw new Error(data.error || "送信に失敗しました。もう一度お試しください。");
+      if (!res.ok) {
+        throw new Error(data.error || "送信に失敗しました。もう一度お試しください。");
+      }
       setMessages(data.messages ?? []);
     } catch (e) {
       setError(e instanceof Error ? e.message : "送信に失敗しました。");
     } finally {
       setBusy(false);
+      composerRef.current?.focus();
     }
   }
 
   return (
-    <div className="os-assistant">
-      <div className="os-assistant-head">
-        <div>
-          <p className="os-eyebrow">{t.employee}</p>
-          <h1>{t.homeTitle}</h1>
-          <p className="os-lead" style={{ marginBottom: 0 }}>
-            {t.homeLead}
-          </p>
-          {brandLabel ? (
-            <p className="os-muted" style={{ marginTop: "0.35rem" }}>
-              担当ブランド: <strong style={{ color: "var(--os-ink)" }}>{brandLabel}</strong>
-              {handlesLabel ? ` ／ ${handlesLabel}` : ""}
-            </p>
-          ) : null}
-        </div>
-        <div className="os-chip-row">
-          <Link className="os-chip" href="/admin/analysis">
-            {t.chipAnalysis}
-          </Link>
-          <Link className="os-chip" href="/admin/create">
-            {t.chipPosts}
-          </Link>
-          <Link className="os-chip" href="/admin/brand">
-            {t.navBrand}
-          </Link>
-        </div>
-      </div>
+    <div className="os-assistant os-assistant-employee">
+      <header className="os-assistant-head os-assistant-head-minimal">
+        <p className="os-eyebrow">{t.employee}</p>
+        <h1 className="os-home-greeting">
+          {brandLabel ? `${brandLabel}の今日` : t.homeTitle}
+        </h1>
+        <p className="os-lead" style={{ marginBottom: 0 }}>
+          分析で終わらず、原因→改善→実行まで一緒に進めます。
+        </p>
+      </header>
 
-      {nextActions.length > 0 ? (
-        <section className="os-card" style={{ marginBottom: "0.5rem" }}>
-          <p className="os-eyebrow" style={{ marginBottom: "0.5rem" }}>
-            {t.nextActions}
-          </p>
-          <div className="os-chip-row" style={{ margin: 0 }}>
-            {nextActions.slice(0, 3).map((a) =>
-              a.deepLink ? (
-                <Link key={a.title} className="os-chip" href={a.deepLink}>
-                  {a.title}
-                </Link>
-              ) : (
-                <button
-                  key={a.title}
-                  type="button"
-                  className="os-chip"
-                  onClick={() => void send(a.title)}
-                >
-                  {a.title}
-                </button>
-              ),
-            )}
+      {(missions.length > 0 || expected) && (
+        <section className="os-mission-rail" aria-label="今日のミッション">
+          {expected ? (
+            <div className="os-mission-effect">
+              今日の予想効果
+              <strong>
+                フォロワー +{expected.followersMin}〜{expected.followersMax}人
+              </strong>
+            </div>
+          ) : null}
+          <div className="os-mission-cards">
+            {(missions.length
+              ? missions
+              : nextActions.slice(0, 3).map((a, i) => ({
+                  rank: i + 1,
+                  title: a.title,
+                  detail: a.why || "",
+                  deepLink: a.deepLink,
+                }))
+            ).map((m) => (
+              <article key={`${m.rank}-${m.title}`} className="os-mission-card">
+                <span className="os-mission-rank">
+                  {["①", "②", "③"][m.rank - 1] ?? m.rank}
+                </span>
+                <div>
+                  <strong>{m.title}</strong>
+                  {m.detail ? <p>{m.detail}</p> : null}
+                  {m.deepLink ? (
+                    <Link href={m.deepLink} className="os-chip">
+                      進む
+                    </Link>
+                  ) : (
+                    <button
+                      type="button"
+                      className="os-chip"
+                      onClick={() => void send(m.title)}
+                    >
+                      相談する
+                    </button>
+                  )}
+                </div>
+              </article>
+            ))}
           </div>
         </section>
-      ) : null}
-
-      {tasks.length > 0 ? (
-        <section className="os-card" id="tasks" style={{ marginBottom: "0.5rem" }}>
-          <p className="os-eyebrow" style={{ marginBottom: "0.5rem" }}>
-            {t.chipTasks}
-          </p>
-          <ul className="os-task-list" style={{ marginTop: 0 }}>
-            {tasks.slice(0, 5).map((it) => (
-              <li key={it.id} className={it.doneAt ? "done" : ""}>
-                <label>
-                  <input
-                    type="checkbox"
-                    checked={Boolean(it.doneAt)}
-                    disabled={taskBusy}
-                    onChange={(e) => void toggleTask(it.id, e.target.checked)}
-                  />
-                  <span>
-                    <strong>{it.title}</strong>
-                    <em>{it.detail}</em>
-                  </span>
-                </label>
-                {it.deepLink ? (
-                  <Link href={it.deepLink} className="os-chip">
-                    {t.open}
-                  </Link>
-                ) : null}
-              </li>
-            ))}
-          </ul>
-        </section>
-      ) : null}
+      )}
 
       <div className="os-chat-scroll">
         {booting ? (
@@ -228,7 +186,9 @@ export function AssistantHome({ locale = "ja" }: { locale?: Locale }) {
             {m.content}
           </div>
         ))}
-        {busy ? <div className="os-bubble os-bubble-ai os-typing">{t.thinking}</div> : null}
+        {busy ? (
+          <div className="os-bubble os-bubble-ai os-typing">{t.thinking}</div>
+        ) : null}
         <div ref={bottomRef} />
       </div>
 
@@ -240,7 +200,7 @@ export function AssistantHome({ locale = "ja" }: { locale?: Locale }) {
           t.quickProfile,
           t.quickReel,
           t.quickCompetitor,
-          t.quickSaveRate,
+          "今日のブリーフを要約して",
         ].map((q) => (
           <button key={q} type="button" className="os-chip" onClick={() => void send(q)}>
             {q}
@@ -256,9 +216,10 @@ export function AssistantHome({ locale = "ja" }: { locale?: Locale }) {
         }}
       >
         <input
+          ref={composerRef}
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          placeholder={t.placeholder}
+          placeholder="何を手伝いましょうか？"
           disabled={busy}
         />
         <button className="os-btn os-btn-primary" disabled={busy || !input.trim()} type="submit">

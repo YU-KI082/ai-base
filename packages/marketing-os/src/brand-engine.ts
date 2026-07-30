@@ -316,6 +316,7 @@ export function buildBrandBrief(input: {
 export function buildBrandChatReply(
   brand: BrandMemory | null,
   userMessage: string,
+  improvements: Array<{ dateKey: string; title: string; result: string }> = [],
 ): string {
   const name = brandOr(brand, "brandName", "ブランド");
   const concept = brandOr(brand, "concept", "コンセプト");
@@ -324,70 +325,87 @@ export function buildBrandChatReply(
   const products = brandOr(brand, "products", "商品");
   const goals = brandOr(brand, "goals", "成長");
   const competitors = brandOr(brand, "competitors", "競合");
+  const worldview = brandOr(brand, "worldview", "世界観");
+  const learned = improvements[0]
+    ? `（学習済み: ${improvements[0].dateKey.slice(5).replace("-", "/")} ${improvements[0].title} → ${improvements[0].result}）`
+    : "";
 
   const q = userMessage.toLowerCase();
   if (/フォロワー|増や/.test(userMessage)) {
     return [
-      `了解です。「${name}」でフォロワーを伸ばすなら、今日やるのは次の1手です。`,
+      `了解です。「${name}」のフォロワー拡大ですね。${learned}`,
       ``,
-      `1. プロフィール1行目を「${audience}向け / ${concept}」に固定`,
-      `2. フック「${audience}が後悔すること」→解決を${tone}に語る投稿を1本（保存狙い）`,
-      `3. ${competitors}周辺の投稿に有益コメントを3件`,
+      `【原因】`,
+      `初見で「${audience}のための${concept}」が伝わらず、フォロー決断まで届いていません。`,
       ``,
-      `目標「${goals}」に直結するので、投稿生成からキャプションを作ってすぐコピー投稿しましょう。`,
+      `【改善案】`,
+      `プロフィール一文と投稿フックを世界観「${worldview}」で揃える。`,
+      ``,
+      `【実行】`,
+      `1. プロフィール1行目を「${audience}向け / ${concept}」に更新`,
+      `2. フック「${audience}が後悔すること」→${tone}に解決する投稿を1本（19:30目安）`,
+      `3. ${competitors}周辺の保存投稿に有益コメントを3件`,
+      ``,
+      `今すぐ: 「作成」でキャプションを生成してコピー投稿しましょう。目標は「${goals}」です。`,
     ].join("\n");
   }
   if (/プロフィール|改善/.test(userMessage)) {
     return [
-      `プロフィール改善案（${name}）:`,
+      `プロフィール改善に入ります（${name}）。`,
       ``,
+      `【原因】一文が抽象的だと、${audience}が「自分向け」と感じられません。`,
+      `【改善案】「誰の・何の・どうなる」を1行に固定。`,
+      `【実行】`,
       `・名前欄: ${name}`,
       `・一文: ${audience}のための${concept}`,
-      `・導線: ${products}の詳細へ（リンクは1つ）`,
-      `・ハイライト: 世界観 / 実績 / FAQ`,
+      `・導線: ${products}の詳細（リンクは1つ）`,
       ``,
-      `トーンは「${tone}」。今日中に一文だけ更新→投稿1本で検証、が最短です。`,
+      `今日中に一文だけ更新→投稿1本で検証、が最短です。`,
     ].join("\n");
   }
   if (/リール|reel/i.test(userMessage) || q.includes("reel")) {
     return [
-      `リール案（${name}）:`,
+      `リールを一緒に作りましょう（${name}）。`,
+      ``,
+      `【原因】新規リーチは静止画よりリールが主戦場です。`,
+      `【改善案】0–3秒で悩み→${concept}で解決→CTA。`,
+      `【実行】`,
       `0-3秒: ${audience}の悩みを一言`,
-      `3-15秒: ${concept}の視点で解決のヒント`,
+      `3-15秒: ${concept}の視点でヒント`,
       `15-30秒: ${products}の具体例`,
       `CTA: プロフィールへ`,
       ``,
-      `「投稿生成」で台本全文を出せます。今すぐ作りましょう。`,
+      `「作成」で台本全文を出します。今すぐ作りましょう。`,
     ].join("\n");
   }
   if (/競合/.test(userMessage)) {
     return [
-      `競合「${competitors}」との見方:`,
-      `・彼らは比較・機能で勝ちにいきやすい`,
-      `・${name}は「${concept}」と${tone}な伴走で差を出す`,
+      `競合「${competitors}」の見立てです。`,
       ``,
-      `次の一手: 競合の保存多い投稿を3本メモ→自ブランドのトーンに翻訳した投稿を1本生成。`,
+      `【原因】機能比較だけで戦うと、${name}の世界観が埋もれます。`,
+      `【改善案】保存されやすい型を借り、${tone}な伴走トーンへ翻訳。`,
+      `【実行】競合の保存投稿3本メモ→差分を1つ決めて投稿生成。`,
     ].join("\n");
   }
   if (/保存/.test(userMessage)) {
     return [
-      `保存率を上げるなら、${name}では「すぐ使える具体」が効きます。`,
+      `保存率アップの最短ルートです（${name}）。`,
       ``,
-      `・チェックリスト形式`,
-      `・${audience}の失敗→対策を1枚に`,
-      `・${products}の手順を3ステップ`,
-      ``,
-      `今すぐ: 投稿生成でチェックリスト投稿を作ってコピーしてください。`,
+      `【原因】「すぐ使える具体」が足りないと保存されません。`,
+      `【改善案】チェックリスト / 失敗→対策 / 3ステップ手順。`,
+      `【実行】「作成」でチェックリスト投稿を生成→今夜コピー投稿。`,
     ].join("\n");
   }
   return [
-    `「${userMessage}」ですね。${name}（${concept} / ${audience}）の文脈で整理します。`,
+    `「${userMessage}」ですね。${name}（${concept} / ${audience}）の文脈で整理します。${learned}`,
     ``,
-    `今の最短ルート:`,
-    `1. 目標「${goals}」に効く投稿を1本生成`,
+    `【原因】優先順位が散ると、目標「${goals}」に効く一手が遅れます。`,
+    `【改善案】今日はインパクト最大の1手に集中。`,
+    `【実行】`,
+    `1. 「作成」で投稿を1本生成`,
     `2. プロフィール一文を${tone}に揃える`,
-    `3. 今日のタスクを上から消化`,
+    `3. ホームの今日のミッションを上から実行`,
     ``,
-    `必要なら「リール考えて」「競合分析して」など具体的に指示してください。すぐ次の一手に落とします。`,
+    `何を手伝いましょうか？`,
   ].join("\n");
 }

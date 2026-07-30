@@ -27,13 +27,17 @@ function looksLikeMock(content: string): boolean {
 export async function completeJson<T>(input: {
   brand: BrandMemory | null;
   userPrompt: string;
+  improvementHistory?: string;
 }): Promise<T | null> {
   if (!hasRealLlmCredentials()) return null;
   try {
     const llm = getOsLlm();
     const result = await llm.complete({
       messages: [
-        { role: "system", content: aiEmployeeSystemPrompt(input.brand) },
+        {
+          role: "system",
+          content: aiEmployeeSystemPrompt(input.brand, input.improvementHistory),
+        },
         {
           role: "user",
           content: `${input.userPrompt}\n\n必ず有効な JSON のみを返してください。`,
@@ -58,6 +62,7 @@ export async function completeText(input: {
   brand: BrandMemory | null;
   userPrompt: string;
   history?: Array<{ role: "user" | "assistant"; content: string }>;
+  improvementHistory?: string;
 }): Promise<string | null> {
   if (!hasRealLlmCredentials()) return null;
   try {
@@ -68,7 +73,10 @@ export async function completeText(input: {
     }));
     const result = await llm.complete({
       messages: [
-        { role: "system", content: aiEmployeeSystemPrompt(input.brand) },
+        {
+          role: "system",
+          content: aiEmployeeSystemPrompt(input.brand, input.improvementHistory),
+        },
         ...history,
         { role: "user", content: input.userPrompt },
       ],

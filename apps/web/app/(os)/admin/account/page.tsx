@@ -100,9 +100,53 @@ export default function AccountPage() {
       </section>
 
       <section className="os-card">
+        <h2>改善履歴</h2>
+        <ImprovementHistory />
+      </section>
+
+      <section className="os-card">
         <h2>セッション</h2>
         <OsLogoutButton label="ログアウト" />
       </section>
     </main>
+  );
+}
+
+function ImprovementHistory() {
+  const [items, setItems] = useState<
+    Array<{ id: string; dateKey: string; title: string; result: string; cause: string }>
+  >([]);
+
+  useEffect(() => {
+    void fetch("/api/v1/os/improvements")
+      .then((r) => r.json())
+      .then((d) => setItems(d.items ?? []))
+      .catch(() => setItems([]));
+  }, []);
+
+  if (!items.length) {
+    return (
+      <p className="os-muted">
+        まだ改善履歴はありません。ホームのミッションを完了すると学習が始まります。
+      </p>
+    );
+  }
+
+  return (
+    <ul className="os-task-list" style={{ marginTop: 0 }}>
+      {items.slice(0, 8).map((it) => (
+        <li key={it.id}>
+          <span>
+            <strong>
+              {it.dateKey.slice(5).replace("-", "/")} {it.title}
+            </strong>
+            <em>
+              結果: {it.result || "計測中"}
+              {it.cause ? ` / 原因: ${it.cause}` : ""}
+            </em>
+          </span>
+        </li>
+      ))}
+    </ul>
   );
 }

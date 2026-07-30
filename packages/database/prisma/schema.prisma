@@ -1440,6 +1440,7 @@ model Workspace {
   creatives  GeneratedCreative[]
   chatThreads OsChatThread[]
   briefs     DailyBrief[]
+  improvements OsImprovementLog[]
 
   @@index([ownerUserId])
   @@map("workspaces")
@@ -1634,4 +1635,28 @@ model DailyBrief {
 
   @@unique([workspaceId, dateKey])
   @@map("daily_briefs")
+}
+
+/// AI社員が学習する改善履歴（実行内容と成果）
+model OsImprovementLog {
+  id          String   @id @default(cuid())
+  workspaceId String   @map("workspace_id")
+  /// YYYY-MM-DD Asia/Tokyo
+  dateKey     String   @map("date_key")
+  title       String
+  /// cause → improvement → execution narrative
+  cause       String   @default("")
+  action      String   @default("")
+  /// e.g. 保存率+14%
+  result      String   @default("")
+  platform    String?
+  source      String   @default("manual")
+  metadata    Json     @default("{}")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, dateKey])
+  @@index([workspaceId, createdAt])
+  @@map("os_improvement_logs")
 }

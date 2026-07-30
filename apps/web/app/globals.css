@@ -784,4 +784,59 @@ select {
   }
 }
 
+.os-assistant-employee {
+  gap: 0.85rem;
+}
+.os-assistant-head-minimal h1.os-home-greeting {
+  font-size: clamp(1.35rem, 4vw, 1.75rem);
+}
+.os-mission-rail {
+  display: grid;
+  gap: 0.65rem;
+}
+.os-mission-effect {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.35rem 0.75rem;
+  padding: 0.75rem 0.9rem;
+  border-radius: 16px;
+  background: var(--os-ink);
+  color: var(--os-accent-fg);
+  font-size: 0.85rem;
+}
+.os-mission-effect strong {
+  font-size: 1.05rem;
+  letter-spacing: -0.02em;
+}
+.os-mission-cards {
+  display: grid;
+  gap: 0.5rem;
+}
+.os-mission-card {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 0.65rem;
+  padding: 0.85rem 0.9rem;
+  border-radius: 16px;
+  border: 1px solid var(--os-line);
+  background: rgba(255, 255, 255, 0.88);
+}
+.os-mission-rank {
+  font-family: var(--font-display-loaded), var(--font-display);
+  font-size: 1.15rem;
+  line-height: 1.2;
+}
+.os-mission-card p {
+  margin: 0.25rem 0 0.55rem;
+  color: var(--os-muted);
+  font-size: 0.85rem;
+  line-height: 1.45;
+}
+.os-mission-card .os-chip {
+  margin-top: 0.15rem;
+}
+
+
 
