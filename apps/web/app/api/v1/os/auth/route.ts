@@ -1,20 +1,14 @@
 import { NextResponse } from "next/server";
 import {
   AuthError,
-  clearUserSessionCookieHeader,
-  createUserSessionToken,
-  hashPassword,
-  userSessionCookieHeader,
-  verifyPassword,
+  signupCustomer,
+  loginCustomer,
+  issueUserSessionToken,
+  buildUserSessionCookieOptions,
+  buildClearUserSessionCookieOptions,
+  requireUser,
 } from "@ai-base/auth";
-import {
-  CustomerUserRepository,
-  WorkspaceRepository,
-} from "@ai-base/database";
 import { z } from "zod";
-
-const customers = new CustomerUserRepository();
-const workspaces = new WorkspaceRepository();
 
 const SignupSchema = z.object({
   email: z.string().email(),
@@ -27,30 +21,19 @@ const LoginSchema = z.object({
   password: z.string().min(1).max(128),
 });
 
-function secureCookie() {
-  return (
-    process.env.COOKIE_SECURE === "true" ||
-    process.env.VERCEL === "1" ||
-    process.env.VERCEL_ENV === "production"
-  );
-}
-
-function sessionResponse(user: {
-  id: string;
-  email: string;
-  name: string | null;
-}) {
-  const token = createUserSessionToken({ userId: user.id, email: user.email });
+function sessionResponse(user: { id: string; email: string; name: string | null }) {
+  const token = issueUserSessionToken(user);
+  const cookie = buildUserSessionCookieOptions(token);
   const res = NextResponse.json({
     ok: true,
     user: { id: user.id, email: user.email, name: user.name },
   });
-  res.cookies.set("aibase_user_session", token, {
-    path: "/",
-    httpOnly: true,
-    sameSite: "lax",
-    secure: secureCookie(),
-    maxAge: 60 * 60 * 24 * 30,
+  res.cookies.set(cookie.name, cookie.value, {
+    path: cookie.path,
+    httpOnly: cookie.httpOnly,
+    sameSite: cookie.sameSite,
+    secure: cookie.secure,
+    maxAge: cookie.maxAge,
   });
   return res;
 }
@@ -82,84 +65,38 @@ export async function POST(request: Request) {
           { status: 400 },
         );
       }
-      const email = parsed.data.email.toLowerCase();
-      const existing = await customers.findByEmail(email);
-      if (existing) {
-        // Recover orphaned accounts from earlier Neon HTTP create+include failures.
-        const ws = await workspaces.findByOwner(existing.id);
-        if (
-          !ws &&
-          existing.kind === "customer" &&
-          existing.passwordHash &&
-          verifyPassword(parsed.data.password, existing.passwordHash)
-        ) {
-          await workspaces.create({
-            ownerUserId: existing.id,
-            name: parsed.data.name || existing.name || email.split("@")[0] || "My brand",
-          });
-          return sessionResponse(existing);
-        }
-        return NextResponse.json(
-          { error: "このメールは既に登録されています" },
-          { status: 409 },
-        );
-      }
-      const user = await customers.createCustomer({
-        email,
-        name: parsed.data.name,
-        passwordHash: hashPassword(parsed.data.password),
-        locale: "ja",
-      });
-      await workspaces.create({
-        ownerUserId: user.id,
-        name: parsed.data.name || email.split("@")[0] || "My brand",
-      });
+      const user = await signupCustomer(parsed.data);
       return sessionResponse(user);
     }
 
     if (action === "logout") {
+      const clear = buildClearUserSessionCookieOptions();
       const res = NextResponse.json({ ok: true });
-      res.cookies.set("aibase_user_session", "", {
-        path: "/",
-        httpOnly: true,
-        maxAge: 0,
+      res.cookies.set(clear.name, clear.value, {
+        path: clear.path,
+        httpOnly: clear.httpOnly,
+        sameSite: clear.sameSite,
+        secure: clear.secure,
+        maxAge: clear.maxAge,
       });
       return res;
     }
 
-    // login
     const body = await request.json().catch(() => null);
     const parsed = LoginSchema.safeParse(body);
     if (!parsed.success) {
       return NextResponse.json({ error: "入力内容を確認してください" }, { status: 400 });
     }
-    const user = await customers.findByEmail(parsed.data.email);
-    if (!user?.passwordHash || user.kind !== "customer") {
-      return NextResponse.json({ error: "メールまたはパスワードが違います" }, { status: 401 });
-    }
-    if (!verifyPassword(parsed.data.password, user.passwordHash)) {
-      return NextResponse.json({ error: "メールまたはパスワードが違います" }, { status: 401 });
-    }
-    if (user.status !== "active") {
-      return NextResponse.json({ error: "アカウントが無効です" }, { status: 403 });
-    }
-    // Ensure workspace exists (recover orphans).
-    const ws = await workspaces.findByOwner(user.id);
-    if (!ws) {
-      await workspaces.create({
-        ownerUserId: user.id,
-        name: user.name || user.email.split("@")[0] || "My brand",
-      });
-    }
+    const user = await loginCustomer(parsed.data);
     return sessionResponse(user);
   } catch (error) {
-    return NextResponse.json({ error: jaAuthError(error) }, { status: 500 });
+    const status = error instanceof AuthError ? error.status : 500;
+    return NextResponse.json({ error: jaAuthError(error) }, { status });
   }
 }
 
 export async function GET(request: Request) {
   try {
-    const { requireUser } = await import("@ai-base/auth");
     const ctx = await requireUser(request);
     return NextResponse.json({
       ok: true,
@@ -185,7 +122,3 @@ export async function GET(request: Request) {
     );
   }
 }
-
-// silence unused imports in some trees
-void userSessionCookieHeader;
-void clearUserSessionCookieHeader;

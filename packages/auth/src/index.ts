@@ -45,6 +45,14 @@ export {
   type RateLimitResult,
 } from "./rate-limit.js";
 export {
+  signupCustomer,
+  loginCustomer,
+  issueUserSessionToken,
+  buildUserSessionCookieOptions,
+  buildClearUserSessionCookieOptions,
+  type CustomerAuthUser,
+} from "./customer-auth.js";
+export {
   sealSecret,
   openSecret,
   isTokenEncryptionConfigured,

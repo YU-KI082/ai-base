@@ -3,6 +3,8 @@
  * UI must show「準備中」when a capability is not ready (no dummies).
  */
 
+import { listConnectors } from "./connectors.js";
+
 export class OsAiUnavailableError extends Error {
   readonly code = "AI_UNAVAILABLE" as const;
   readonly status = 503;
@@ -26,6 +28,14 @@ export type OsCapabilities = {
   /** Live SNS follower/save metrics from connected APIs */
   snsMetrics: CapabilityState;
   mediaStorage: CapabilityState & { backend: "database" | "blob" };
+  /** Per-platform connector capabilities (V2: oauth/publish/insights false) */
+  connectors: Array<{
+    platform: string;
+    oauth: boolean;
+    publish: boolean;
+    insights: boolean;
+    status: "coming_soon" | "ready";
+  }>;
 };
 
 function hasOpenAi() {
@@ -45,7 +55,6 @@ function hasGrok() {
   );
 }
 function hasLocalLlm() {
-  // Local is only usable on the machine hosting the process (not Vercel).
   if (process.env.VERCEL === "1") return false;
   return Boolean(
     process.env.LOCAL_LLM_BASE_URL?.trim() ||
@@ -76,14 +85,12 @@ export function resolveTextLlmProviderId(): string | null {
 }
 
 export function resolveVisionProviderId(): string | null {
-  // Vision: OpenAI chat with image_url, or local vision model via Ollama-compatible API.
   if (hasOpenAi()) return "openai";
   if (hasLocalLlm() && process.env.VISION_MODEL?.trim()) return "local-vision";
   return null;
 }
 
 export function resolveImageEditProviderId(): string | null {
-  // Pixel edit requires a real image edit API (OpenAI images edits / dedicated editor).
   if (hasOpenAi() && process.env.IMAGE_EDIT_ENABLED === "true") return "openai-images";
   return null;
 }
@@ -124,6 +131,16 @@ export function getOsCapabilities(): OsCapabilities {
     mediaStorage: blob
       ? { ready: true, provider: "vercel-blob", backend: "blob" }
       : { ready: true, provider: "database", backend: "database" },
+    connectors: listConnectors().map((c) => ({
+      platform: c.platform,
+      oauth: c.capabilities.oauth,
+      publish: c.capabilities.publish,
+      insights: c.capabilities.insights,
+      status:
+        c.capabilities.oauth || c.capabilities.publish || c.capabilities.insights
+          ? "ready"
+          : "coming_soon",
+    })),
   };
 }
 

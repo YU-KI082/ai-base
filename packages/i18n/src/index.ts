@@ -410,6 +410,17 @@ export type Dictionary = {
     analyzeNow: string;
     brandMemory: string;
     dashLead: string;
+    authName: string;
+    authEmail: string;
+    authPassword: string;
+    authSubmitLogin: string;
+    authSubmitSignup: string;
+    authHaveAccount: string;
+    authNeedAccount: string;
+    oauthComingSoon: string;
+    oauthComingSoonLead: string;
+    createTitle: string;
+    createLead: string;
   };
 };
 
@@ -807,6 +818,18 @@ const ja: Dictionary = {
     analyzeNow: "今すぐ分析",
     brandMemory: "AIブランド記憶",
     dashLead: "ホームはAI社員です。ここは状況の俯瞰用です。",
+    authName: "お名前",
+    authEmail: "メール",
+    authPassword: "パスワード",
+    authSubmitLogin: "ログイン",
+    authSubmitSignup: "無料ではじめる",
+    authHaveAccount: "すでにアカウントがある方",
+    authNeedAccount: "新規登録はこちら",
+    oauthComingSoon: "SNS API連携は Coming soon",
+    oauthComingSoonLead:
+      "V2はユーザー名＋コピー投稿のみ。OAuth自動投稿は将来の Connector で追加します。",
+    createTitle: "投稿を作成",
+    createLead: "投稿文・ハッシュタグ・リール案を生成し、コピーして使います。自動投稿はしません。",
   },
 };
 
@@ -1204,6 +1227,19 @@ const en: Dictionary = {
     analyzeNow: "Analyze now",
     brandMemory: "Brand memory",
     dashLead: "Home is the AI teammate. This page is a quick overview.",
+    authName: "Name",
+    authEmail: "Email",
+    authPassword: "Password",
+    authSubmitLogin: "Log in",
+    authSubmitSignup: "Start free",
+    authHaveAccount: "Already have an account?",
+    authNeedAccount: "Create an account",
+    oauthComingSoon: "SNS API connect — Coming soon",
+    oauthComingSoonLead:
+      "V2 is username + copy-to-post only. OAuth auto-publish arrives later via Connectors.",
+    createTitle: "Create a post",
+    createLead:
+      "Generate caption, hashtags, and reel script — then copy. No auto-publish.",
   },
 };
 

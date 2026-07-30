@@ -55,7 +55,7 @@ export function UserAuthForm({
     <form className="os-auth-card" onSubmit={(e) => void onSubmit(e)}>
       {mode === "signup" ? (
         <label className="os-field">
-          <span>{locale === "ja" ? "お名前" : "Name"}</span>
+          <span>{t.authName}</span>
           <input
             value={name}
             onChange={(e) => setName(e.target.value)}
@@ -64,7 +64,7 @@ export function UserAuthForm({
         </label>
       ) : null}
       <label className="os-field">
-        <span>{locale === "ja" ? "メール" : "Email"}</span>
+        <span>{t.authEmail}</span>
         <input
           type="email"
           required
@@ -74,7 +74,7 @@ export function UserAuthForm({
         />
       </label>
       <label className="os-field">
-        <span>{locale === "ja" ? "パスワード" : "Password"}</span>
+        <span>{t.authPassword}</span>
         <input
           type="password"
           required
@@ -88,21 +88,15 @@ export function UserAuthForm({
         {busy
           ? "…"
           : mode === "signup"
-            ? t.setupLaunch
-            : locale === "ja"
-              ? "ログイン"
-              : "Log in"}
+            ? t.authSubmitSignup
+            : t.authSubmitLogin}
       </button>
       {error ? <p className="os-error">{error}</p> : null}
       <p className="os-auth-switch">
         {mode === "login" ? (
-          <>
-            <Link href="/signup">{t.signupTitle}</Link>
-          </>
+          <Link href="/signup">{t.authNeedAccount}</Link>
         ) : (
-          <>
-            <Link href="/login">{locale === "ja" ? "ログイン" : "Log in"}</Link>
-          </>
+          <Link href="/login">{t.authHaveAccount}</Link>
         )}
       </p>
     </form>

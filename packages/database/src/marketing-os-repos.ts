@@ -62,6 +62,38 @@ export class WorkspaceRepository {
   }
 }
 
+/** Future OAuth connections for OS workspaces (V2: disconnected stubs only). */
+export class OsSnsConnectionRepository {
+  private get db() {
+    return prisma;
+  }
+
+  async list(workspaceId: string) {
+    return this.db.snsConnection.findMany({
+      where: { workspaceId },
+      orderBy: { provider: "asc" },
+    });
+  }
+
+  async find(workspaceId: string, provider: string) {
+    return this.db.snsConnection.findUnique({
+      where: { workspaceId_provider: { workspaceId, provider } },
+    });
+  }
+
+  async ensureDisconnected(workspaceId: string, provider: string) {
+    const existing = await this.find(workspaceId, provider);
+    if (existing) return existing;
+    return this.db.snsConnection.create({
+      data: {
+        workspaceId,
+        provider,
+        status: "disconnected",
+      },
+    });
+  }
+}
+
 export class BrandProfileRepository {
   private get db() {
     return prisma;

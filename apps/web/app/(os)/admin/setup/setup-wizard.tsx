@@ -68,6 +68,9 @@ export function SetupWizard() {
       <p className="os-eyebrow">初回セットアップ</p>
       <h1>AI社員にブランドを教えてください</h1>
       <p className="os-lead">API連携は不要です。入力した内容を永続記憶します。</p>
+      <p className="os-muted" style={{ marginBottom: "1rem" }}>
+        SNS API連携（OAuth）は Coming soon。いまはユーザー名の登録とコピー投稿だけで完結します。
+      </p>
 
       <div className="os-steps">
         <button type="button" className={step === 0 ? "active" : ""} onClick={() => setStep(0)}>

@@ -2,6 +2,7 @@
 
 import { useEffect, useState } from "react";
 import Link from "next/link";
+import { getDictionary } from "@ai-base/i18n";
 import { OS_PLATFORMS, type OsPlatform } from "@ai-base/marketing-os/platforms";
 
 type Creative = {
@@ -15,6 +16,7 @@ type Creative = {
 };
 
 export default function CreatePage() {
+  const t = getDictionary("ja").os;
   const [platform, setPlatform] = useState<OsPlatform>("instagram");
   const [items, setItems] = useState<Creative[]>([]);
   const [busy, setBusy] = useState(false);
@@ -61,8 +63,9 @@ export default function CreatePage() {
   return (
     <main className="os-page">
       <p className="os-eyebrow">Create</p>
-      <h1>投稿を作成</h1>
-      <p className="os-lead">投稿文・ハッシュタグ・リール案を生成し、コピーして使います。自動投稿はしません。</p>
+      <h1>{t.createTitle}</h1>
+      <p className="os-lead">{t.createLead}</p>
+      <p className="os-muted">{t.noApiPublish}</p>
 
       <Link href="/admin/studio" className="os-card os-studio-entry">
         <strong>AI Photo Studio</strong>
@@ -81,8 +84,13 @@ export default function CreatePage() {
             </option>
           ))}
         </select>
-        <button className="os-btn os-btn-primary" type="button" disabled={busy} onClick={() => void generate()}>
-          {busy ? "生成中…" : "ワンクリック生成"}
+        <button
+          className="os-btn os-btn-primary"
+          type="button"
+          disabled={busy}
+          onClick={() => void generate()}
+        >
+          {busy ? "…" : t.generatePost}
         </button>
       </div>
 
@@ -101,7 +109,7 @@ export default function CreatePage() {
               type="button"
               onClick={() => void copy(c.caption, `${c.id}-c`)}
             >
-              {copied === `${c.id}-c` ? "コピー済み" : "キャプションをコピー"}
+              {copied === `${c.id}-c` ? t.copied : t.copyCaption}
             </button>
             <h3>ハッシュタグ</h3>
             <p>{c.hashtags.join(" ")}</p>
@@ -110,7 +118,7 @@ export default function CreatePage() {
               type="button"
               onClick={() => void copy(c.hashtags.join(" "), `${c.id}-h`)}
             >
-              {copied === `${c.id}-h` ? "コピー済み" : "タグをコピー"}
+              {copied === `${c.id}-h` ? t.copied : t.copyTags}
             </button>
             <h3>リール台本</h3>
             <pre className="os-pre">{c.reelScript}</pre>
@@ -119,7 +127,7 @@ export default function CreatePage() {
               type="button"
               onClick={() => void copy(c.reelScript, `${c.id}-r`)}
             >
-              {copied === `${c.id}-r` ? "コピー済み" : "リール案をコピー"}
+              {copied === `${c.id}-r` ? t.copied : t.copyTags}
             </button>
             <h3>画像プロンプト</h3>
             <pre className="os-pre">{c.imagePrompt}</pre>

@@ -8,7 +8,7 @@ export type AuthUser = {
 export class AuthError extends Error {
   constructor(
     message: string,
-    readonly status: 401 | 403 = 401,
+    readonly status: 401 | 403 | 409 = 401,
   ) {
     super(message);
     this.name = "AuthError";

@@ -76,7 +76,7 @@ export async function requireAdmin(request?: Request): Promise<AuthUser> {
 
   if (process.env.ADMIN_DEV_BYPASS === "true" && isProductionRuntime()) {
     throw new AuthError(
-      "ADMIN_DEV_BYPASS is ignored in production. Set ADMIN_OPS_SECRET and sign in at /login.",
+      "ADMIN_DEV_BYPASS is ignored in production. Set ADMIN_OPS_SECRET and sign in at /ops/login.",
       401,
     );
   }

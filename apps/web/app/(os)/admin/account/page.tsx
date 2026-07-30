@@ -33,6 +33,13 @@ type Capabilities = {
   imageEdit: CapState;
   snsMetrics: CapState;
   mediaStorage: CapState & { backend?: string };
+  connectors?: Array<{
+    platform: string;
+    oauth: boolean;
+    publish: boolean;
+    insights: boolean;
+    status: string;
+  }>;
 };
 
 export default function AccountPage() {
@@ -147,6 +154,25 @@ export default function AccountPage() {
           <OsPending title="テキストAIが未接続">
             OPENAI_API_KEY 等をサーバー環境に設定すると、チャット・Brief・投稿生成が有効になります。
           </OsPending>
+        ) : null}
+      </section>
+
+      <section className="os-card">
+        <h2>SNS Connector</h2>
+        <OsPending title="SNS API連携は Coming soon">
+          V2はユーザー名＋コピー投稿のみです。OAuth自動投稿・インサイトは将来の Connector
+          で追加します。
+        </OsPending>
+        {caps?.connectors?.length ? (
+          <ul className="os-muted" style={{ marginTop: "0.75rem" }}>
+            {caps.connectors.map((c) => (
+              <li key={c.platform}>
+                {c.platform}: OAuth {c.oauth ? "可" : "準備中"} / 投稿{" "}
+                {c.publish ? "可" : "準備中"} / インサイト{" "}
+                {c.insights ? "可" : "準備中"}
+              </li>
+            ))}
+          </ul>
         ) : null}
       </section>
 

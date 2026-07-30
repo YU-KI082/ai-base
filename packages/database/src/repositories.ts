@@ -2723,6 +2723,7 @@ import {
   BrandProfileRepository,
   CustomerUserRepository,
   MarketingOsRepository,
+  OsSnsConnectionRepository,
   SnsHandleRepository,
   WorkspaceRepository,
 } from "./marketing-os-repos.js";
@@ -2760,6 +2761,7 @@ export class Repositories {
   readonly workspaces = new WorkspaceRepository();
   readonly brandProfiles = new BrandProfileRepository();
   readonly snsHandles = new SnsHandleRepository();
+  readonly osSnsConnections = new OsSnsConnectionRepository();
   readonly marketingOs = new MarketingOsRepository();
   readonly customers = new CustomerUserRepository();
 }
