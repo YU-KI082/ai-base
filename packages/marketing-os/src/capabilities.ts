@@ -123,16 +123,22 @@ export function resolveTextLlmProviderId(): TextProviderId | null {
   return null;
 }
 
-/** Vision: Gemini free tier first, then OpenAI, then local. */
+/** Vision: Gemini free tier first; OpenAI only when explicitly selected or as last resort. */
 export function resolveVisionProviderId(): string | null {
   const requested = (process.env.VISION_PROVIDER ?? process.env.LLM_PROVIDER ?? "")
     .toLowerCase()
     .trim();
-  if (requested === "gemini" && hasGemini()) return "gemini";
-  if (requested === "openai" && hasOpenAi()) return "openai";
-  if (requested === "local" && hasLocalLlm() && process.env.VISION_MODEL?.trim()) {
-    return "local-vision";
+
+  // Explicit provider — do not silently fall back to OpenAI.
+  if (requested === "gemini") return hasGemini() ? "gemini" : null;
+  if (requested === "openai") return hasOpenAi() ? "openai" : null;
+  if (requested === "groq") return null; // Groq text-only for V2
+  if (requested === "local") {
+    return hasLocalLlm() && process.env.VISION_MODEL?.trim()
+      ? "local-vision"
+      : null;
   }
+
   if (hasGemini()) return "gemini";
   if (hasOpenAi()) return "openai";
   if (hasLocalLlm() && process.env.VISION_MODEL?.trim()) return "local-vision";
