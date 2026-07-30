@@ -3,7 +3,6 @@ import { cookies } from "next/headers";
 import { redirect } from "next/navigation";
 import { requireUser, USER_SESSION_COOKIE } from "@ai-base/auth";
 import { getDictionary, resolveLocale } from "@ai-base/i18n";
-import { OsLogoutButton } from "./os-logout-button";
 
 export default async function OsLayout({
   children,
@@ -29,11 +28,11 @@ export default async function OsLayout({
   }
 
   const NAV = [
-    { href: "/admin", label: t.navAssistant },
-    { href: "/admin/tasks", label: t.navTasks },
-    { href: "/admin/posts", label: t.navPosts },
-    { href: "/admin/score", label: t.navScore },
-    { href: "/admin/dash", label: t.navDash },
+    { href: "/admin", label: t.navHome },
+    { href: "/admin/analysis", label: t.navAnalysis },
+    { href: "/admin/create", label: t.navCreate },
+    { href: "/admin/brand", label: t.navBrand },
+    { href: "/admin/account", label: t.navAccount },
   ] as const;
 
   return (
@@ -43,10 +42,9 @@ export default async function OsLayout({
           {t.brandName} <span>{t.productName}</span>
         </Link>
         <div className="os-topbar-actions">
-          <Link href="/admin/brand" className="os-ghost-btn">
-            {t.navBrand}
-          </Link>
-          <OsLogoutButton label={t.logout} />
+          <span className="os-muted" style={{ fontSize: "0.8rem" }}>
+            {t.employee}
+          </span>
         </div>
       </header>
       <div className="os-body">{children}</div>

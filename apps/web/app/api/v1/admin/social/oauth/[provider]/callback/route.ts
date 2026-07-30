@@ -15,7 +15,7 @@ function siteUrl(request: Request): string {
 
 /**
  * Official OAuth callback — exchanges code for tokens and encrypts them at rest.
- * Admin must have started the flow from /admin/social (state cookie).
+ * Ops must have started the flow from /ops/social (state cookie).
  */
 export async function GET(
   request: Request,
@@ -26,7 +26,7 @@ export async function GET(
   const code = url.searchParams.get("code");
   const state = url.searchParams.get("state");
   const oauthError = url.searchParams.get("error");
-  const adminSocial = new URL("/admin/social", siteUrl(request));
+  const adminSocial = new URL("/ops/social", siteUrl(request));
 
   if (!isOAuthProvider(raw)) {
     adminSocial.searchParams.set("oauth_error", "unknown_provider");

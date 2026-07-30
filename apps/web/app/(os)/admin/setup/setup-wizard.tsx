@@ -2,7 +2,7 @@
 
 import { useRouter } from "next/navigation";
 import { useState, type FormEvent } from "react";
-import { OS_PLATFORMS } from "@/lib/os-platforms";
+import { OS_PLATFORMS } from "@ai-base/marketing-os/platforms";
 
 const emptyHandles = Object.fromEntries(OS_PLATFORMS.map((p) => [p, ""])) as Record<
   (typeof OS_PLATFORMS)[number],

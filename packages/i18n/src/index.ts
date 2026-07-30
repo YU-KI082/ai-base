@@ -370,13 +370,17 @@ export type Dictionary = {
     send: string;
     placeholder: string;
     logout: string;
+    navHome: string;
+    navAnalysis: string;
+    navCreate: string;
+    navBrand: string;
+    navAccount: string;
+    /** @deprecated kept for merge compatibility */
     navAssistant: string;
     navTasks: string;
     navPosts: string;
     navScore: string;
     navDash: string;
-    navBrand: string;
-    navAnalysis: string;
     quickFollower: string;
     quickProfile: string;
     quickReel: string;
@@ -764,13 +768,16 @@ const ja: Dictionary = {
     send: "送信",
     placeholder: "何でも相談してください…",
     logout: "ログアウト",
-    navAssistant: "AI社員",
+    navHome: "ホーム",
+    navAnalysis: "分析",
+    navCreate: "作成",
+    navBrand: "ブランド",
+    navAccount: "設定",
+    navAssistant: "ホーム",
     navTasks: "タスク",
-    navPosts: "投稿",
+    navPosts: "作成",
     navScore: "SCORE",
     navDash: "概要",
-    navBrand: "ブランド",
-    navAnalysis: "分析",
     quickFollower: "フォロワーを増やしたい",
     quickProfile: "プロフィール改善して",
     quickReel: "リール考えて",
@@ -1158,13 +1165,16 @@ const en: Dictionary = {
     send: "Send",
     placeholder: "Ask anything…",
     logout: "Log out",
-    navAssistant: "AI",
+    navHome: "Home",
+    navAnalysis: "Analysis",
+    navCreate: "Create",
+    navBrand: "Brand",
+    navAccount: "Account",
+    navAssistant: "Home",
     navTasks: "Tasks",
-    navPosts: "Posts",
+    navPosts: "Create",
     navScore: "SCORE",
     navDash: "Overview",
-    navBrand: "Brand",
-    navAnalysis: "Analysis",
     quickFollower: "Grow followers",
     quickProfile: "Improve my profile",
     quickReel: "Ideate a reel",

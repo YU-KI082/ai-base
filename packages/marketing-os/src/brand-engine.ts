@@ -71,7 +71,7 @@ export function buildBrandAnalysis(
       title: `「${concept}」をフックにした投稿を1本生成してコピー投稿`,
       why: "分析より実行。ブランド記憶を使った仮説検証を今日回します",
       effort: "mid",
-      deepLink: "/admin/posts",
+      deepLink: "/admin/create",
     },
     {
       title: `競合「${competitors}」の保存されやすい投稿を3本メモする`,
@@ -161,7 +161,7 @@ export function buildBrandScore(
         title: `「${name}」向け投稿を1本生成する`,
         why: "スコア改善は投稿実験で検証する",
         effort: "mid",
-        deepLink: "/admin/posts",
+        deepLink: "/admin/create",
       },
     ],
   };
@@ -186,25 +186,25 @@ export function buildBrandTasks(brand: BrandMemory | null): Array<{
       title: `今日の投稿: 「${concept}」を${audience}に刺さるフックで1本`,
       detail: `${name}のトーン「${tone}」。生成→コピー投稿`,
       category: "post",
-      deepLink: "/admin/posts",
+      deepLink: "/admin/create",
     },
     {
       title: `リール企画: ${products}のビフォーアフターを15秒で`,
       detail: "0–3秒で問題提起。おすすめ時間は夜20–22時帯を仮説に",
       category: "reel",
-      deepLink: "/admin/posts",
+      deepLink: "/admin/create",
     },
     {
       title: `ストーリー案: 今日の制作裏話（${name}）を3枚`,
       detail: "世界観の温度感を見せ、保存より親近感を狙う",
       category: "story",
-      deepLink: "/admin/tasks",
+      deepLink: "/admin#tasks",
     },
     {
       title: `コメント: 「${competitors}」周辺の保存投稿に有益返信を3件`,
       detail: "売り込み禁止。価値提供のみ",
       category: "engage",
-      deepLink: "/admin/tasks",
+      deepLink: "/admin#tasks",
     },
     {
       title: `改善: プロフィールの一文を目標「${goals}」に合わせて更新`,

@@ -118,7 +118,7 @@ export function oauthSetupStatus(siteUrl: string): OAuthSetupStatus[] {
       provider: "note",
       configured: true,
       missingEnv: [],
-      callbackPath: `${base}/admin/social`,
+      callbackPath: `${base}/ops/social`,
       authType: "draft_queue",
     },
   ];

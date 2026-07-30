@@ -24,7 +24,7 @@ function adminSocialRedirect(
   request: Request,
   params: Record<string, string>,
 ): NextResponse {
-  const url = new URL("/admin/social", siteUrl(request));
+  const url = new URL("/ops/social", siteUrl(request));
   for (const [k, v] of Object.entries(params)) {
     url.searchParams.set(k, v);
   }
@@ -51,7 +51,7 @@ export async function GET(
     }
   } catch (error) {
     if (error instanceof AuthError && error.status === 401) {
-      const login = new URL("/login", siteUrl(request));
+      const login = new URL("/ops/login", siteUrl(request));
       login.searchParams.set("next", nextPath);
       return NextResponse.redirect(login);
     }

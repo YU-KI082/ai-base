@@ -12,6 +12,7 @@ const nextConfig: NextConfig = {
     "@ai-base/events",
     "@ai-base/i18n",
     "@ai-base/llm",
+    "@ai-base/marketing-os",
     "@ai-base/marketplace",
     "@ai-base/sns-learning",
     "@ai-base/affiliate-intel",

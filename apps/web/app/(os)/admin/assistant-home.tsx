@@ -16,17 +16,34 @@ type NextAction = {
   deepLink?: string;
 };
 
+type TaskItem = {
+  id: string;
+  title: string;
+  detail: string;
+  deepLink: string | null;
+  doneAt: string | null;
+};
+
 export function AssistantHome({ locale = "ja" }: { locale?: Locale }) {
   const t = getDictionary(locale).os;
   const [messages, setMessages] = useState<Message[]>([]);
   const [nextActions, setNextActions] = useState<NextAction[]>([]);
+  const [tasks, setTasks] = useState<TaskItem[]>([]);
   const [brandLabel, setBrandLabel] = useState<string | null>(null);
   const [handlesLabel, setHandlesLabel] = useState<string | null>(null);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
+  const [taskBusy, setTaskBusy] = useState(false);
   const [booting, setBooting] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const bottomRef = useRef<HTMLDivElement>(null);
+
+  async function loadTasks() {
+    const res = await fetch("/api/v1/os/tasks");
+    if (!res.ok) return;
+    const data = await res.json();
+    setTasks(data.taskSet?.items ?? []);
+  }
 
   useEffect(() => {
     void (async () => {
@@ -59,6 +76,7 @@ export function AssistantHome({ locale = "ja" }: { locale?: Locale }) {
             .join(" · ");
           setHandlesLabel(labeled || null);
         }
+        await loadTasks();
       } catch (e) {
         setError(
           e instanceof Error
@@ -74,6 +92,17 @@ export function AssistantHome({ locale = "ja" }: { locale?: Locale }) {
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, busy]);
+
+  async function toggleTask(id: string, done: boolean) {
+    setTaskBusy(true);
+    await fetch("/api/v1/os/tasks", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ itemId: id, done }),
+    });
+    await loadTasks();
+    setTaskBusy(false);
+  }
 
   async function send(text?: string) {
     const message = (text ?? input).trim();
@@ -121,11 +150,11 @@ export function AssistantHome({ locale = "ja" }: { locale?: Locale }) {
           <Link className="os-chip" href="/admin/analysis">
             {t.chipAnalysis}
           </Link>
-          <Link className="os-chip" href="/admin/posts">
+          <Link className="os-chip" href="/admin/create">
             {t.chipPosts}
           </Link>
-          <Link className="os-chip" href="/admin/tasks">
-            {t.chipTasks}
+          <Link className="os-chip" href="/admin/brand">
+            {t.navBrand}
           </Link>
         </div>
       </div>
@@ -153,6 +182,37 @@ export function AssistantHome({ locale = "ja" }: { locale?: Locale }) {
               ),
             )}
           </div>
+        </section>
+      ) : null}
+
+      {tasks.length > 0 ? (
+        <section className="os-card" id="tasks" style={{ marginBottom: "0.5rem" }}>
+          <p className="os-eyebrow" style={{ marginBottom: "0.5rem" }}>
+            {t.chipTasks}
+          </p>
+          <ul className="os-task-list" style={{ marginTop: 0 }}>
+            {tasks.slice(0, 5).map((it) => (
+              <li key={it.id} className={it.doneAt ? "done" : ""}>
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={Boolean(it.doneAt)}
+                    disabled={taskBusy}
+                    onChange={(e) => void toggleTask(it.id, e.target.checked)}
+                  />
+                  <span>
+                    <strong>{it.title}</strong>
+                    <em>{it.detail}</em>
+                  </span>
+                </label>
+                {it.deepLink ? (
+                  <Link href={it.deepLink} className="os-chip">
+                    {t.open}
+                  </Link>
+                ) : null}
+              </li>
+            ))}
+          </ul>
         </section>
       ) : null}
 

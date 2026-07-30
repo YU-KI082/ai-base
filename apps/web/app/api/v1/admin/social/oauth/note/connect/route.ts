@@ -22,22 +22,22 @@ export async function GET(request: Request) {
   try {
     const user = await requireAdmin(request);
     if (!hasPermission(user, "settings.manage")) {
-      const url = new URL("/admin/social", siteUrl(request));
+      const url = new URL("/ops/social", siteUrl(request));
       url.searchParams.set("oauth_error", "forbidden");
       return NextResponse.redirect(url);
     }
     await connectNoteDraftQueue();
-    const url = new URL("/admin/social", siteUrl(request));
+    const url = new URL("/ops/social", siteUrl(request));
     url.searchParams.set("oauth", "connected");
     url.searchParams.set("provider", "note");
     return NextResponse.redirect(url);
   } catch (error) {
     if (error instanceof AuthError && error.status === 401) {
-      const login = new URL("/login", siteUrl(request));
+      const login = new URL("/ops/login", siteUrl(request));
       login.searchParams.set("next", nextPath);
       return NextResponse.redirect(login);
     }
-    const url = new URL("/admin/social", siteUrl(request));
+    const url = new URL("/ops/social", siteUrl(request));
     url.searchParams.set(
       "oauth_error",
       error instanceof Error ? error.message.slice(0, 120) : "note_connect_failed",
