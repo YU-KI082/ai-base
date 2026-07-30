@@ -1,6 +1,9 @@
 /**
  * OS capability registry — single source of truth for what is actually wired.
  * UI must show「準備中」when a capability is not ready (no dummies).
+ *
+ * Text LLM providers are selected via LLM_PROVIDER + matching API key.
+ * Free-tier verification prefers Gemini / Groq when LLM_PROVIDER is unset.
  */
 
 import { listConnectors } from "./connectors.js";
@@ -49,6 +52,9 @@ function hasGemini() {
     process.env.GEMINI_API_KEY?.trim() || process.env.GOOGLE_API_KEY?.trim(),
   );
 }
+function hasGroq() {
+  return Boolean(process.env.GROQ_API_KEY?.trim());
+}
 function hasGrok() {
   return Boolean(
     process.env.GROK_API_KEY?.trim() || process.env.XAI_API_KEY?.trim(),
@@ -65,26 +71,69 @@ function hasBlob() {
   return Boolean(process.env.BLOB_READ_WRITE_TOKEN?.trim());
 }
 
-/** Preferred text LLM provider for OS (never mock). */
-export function resolveTextLlmProviderId(): string | null {
+type TextProviderId =
+  | "openai"
+  | "anthropic"
+  | "gemini"
+  | "groq"
+  | "grok"
+  | "local";
+
+function providerHasCredentials(id: string): boolean {
+  switch (id) {
+    case "openai":
+      return hasOpenAi();
+    case "anthropic":
+    case "claude":
+      return hasAnthropic();
+    case "gemini":
+      return hasGemini();
+    case "groq":
+      return hasGroq();
+    case "grok":
+      return hasGrok();
+    case "local":
+      return hasLocalLlm();
+    default:
+      return false;
+  }
+}
+
+/**
+ * Preferred text LLM provider for OS (never mock).
+ * Order when LLM_PROVIDER unset: gemini → groq → openai → anthropic → grok → local
+ * (free-tier friendly first).
+ */
+export function resolveTextLlmProviderId(): TextProviderId | null {
   const requested = (process.env.LLM_PROVIDER ?? "").toLowerCase().trim();
   if (requested && requested !== "mock") {
-    if (requested === "openai" && hasOpenAi()) return "openai";
-    if ((requested === "anthropic" || requested === "claude") && hasAnthropic())
-      return "anthropic";
-    if (requested === "gemini" && hasGemini()) return "gemini";
-    if (requested === "grok" && hasGrok()) return "grok";
-    if (requested === "local" && hasLocalLlm()) return "local";
+    const id = requested === "claude" ? "anthropic" : requested;
+    if (providerHasCredentials(id)) return id as TextProviderId;
+    // Explicit provider requested but missing key — do not silently fall through
+    // to a different vendor (avoids accidental OpenAI billing).
+    return null;
   }
+
+  if (hasGemini()) return "gemini";
+  if (hasGroq()) return "groq";
   if (hasOpenAi()) return "openai";
   if (hasAnthropic()) return "anthropic";
-  if (hasGemini()) return "gemini";
   if (hasGrok()) return "grok";
   if (hasLocalLlm()) return "local";
   return null;
 }
 
+/** Vision: Gemini free tier first, then OpenAI, then local. */
 export function resolveVisionProviderId(): string | null {
+  const requested = (process.env.VISION_PROVIDER ?? process.env.LLM_PROVIDER ?? "")
+    .toLowerCase()
+    .trim();
+  if (requested === "gemini" && hasGemini()) return "gemini";
+  if (requested === "openai" && hasOpenAi()) return "openai";
+  if (requested === "local" && hasLocalLlm() && process.env.VISION_MODEL?.trim()) {
+    return "local-vision";
+  }
+  if (hasGemini()) return "gemini";
   if (hasOpenAi()) return "openai";
   if (hasLocalLlm() && process.env.VISION_MODEL?.trim()) return "local-vision";
   return null;
@@ -107,14 +156,15 @@ export function getOsCapabilities(): OsCapabilities {
       : {
           ready: false,
           provider: null,
-          reason: "テキストAIのAPIキーが未設定です",
+          reason:
+            "テキストAIのAPIキーが未設定です（GEMINI_API_KEY または GROQ_API_KEY を推奨）",
         },
     vision: visionId
       ? { ready: true, provider: visionId }
       : {
           ready: false,
           provider: null,
-          reason: "画像分析AI（Vision）が未接続です",
+          reason: "画像分析AI（Vision）が未接続です（GEMINI_API_KEY 推奨）",
         },
     imageEdit: editId
       ? { ready: true, provider: editId }

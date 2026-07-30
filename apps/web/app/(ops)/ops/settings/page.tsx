@@ -47,7 +47,7 @@ export default async function SettingsPage() {
         </ul>
         <p className="muted">{dict.admin.apiKeysHint}</p>
         <ul className="muted">
-          <li>OPENAI_API_KEY / ANTHROPIC_API_KEY / GEMINI_API_KEY / GROK_API_KEY</li>
+          <li>GEMINI_API_KEY / GROQ_API_KEY / OPENAI_API_KEY / ANTHROPIC_API_KEY（LLM_PROVIDER で切替）</li>
           <li>LOCAL_LLM_BASE_URL (Ollama / vLLM)</li>
           <li>DATABASE_URL / REDIS_URL / CACHE_BACKEND</li>
         </ul>

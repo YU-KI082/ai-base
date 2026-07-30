@@ -222,7 +222,7 @@ export default function PhotoStudioPage() {
       </p>
       {capsLoaded && !visionReady ? (
         <OsPending title="画像分析AIは準備中">
-          Vision API（OPENAI_API_KEY）設定後に、アップロード分析が有効になります。UIと保存の枠だけ先に用意しています。
+          Vision API（GEMINI_API_KEY 推奨）設定後に、アップロード分析が有効になります。UIと保存の枠だけ先に用意しています。
         </OsPending>
       ) : null}
 

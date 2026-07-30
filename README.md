@@ -40,7 +40,7 @@ See [docs/DEPLOYMENT.md](docs/DEPLOYMENT.md). Import the GitHub repo, set Root D
 
 ```bash
 # .env
-LLM_PROVIDER=anthropic   # or openai | gemini | grok | local | mock
+LLM_PROVIDER=gemini   # or groq | openai | anthropic | grok | local | mock
 LLM_MODEL=claude-3-5-haiku-latest
 ANTHROPIC_API_KEY=...
 ```

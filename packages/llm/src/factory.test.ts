@@ -12,6 +12,7 @@ describe("llm providers", () => {
     assert.ok(ids.includes("openai"));
     assert.ok(ids.includes("anthropic"));
     assert.ok(ids.includes("gemini"));
+    assert.ok(ids.includes("groq"));
     assert.ok(ids.includes("grok"));
     assert.ok(ids.includes("local"));
     assert.ok(ids.includes("mock"));

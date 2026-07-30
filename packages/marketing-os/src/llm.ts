@@ -1,4 +1,5 @@
-import { createLlmProvider } from "@ai-base/llm";
+import { createLlmProvider, defaultModelForProvider } from "@ai-base/llm";
+import type { LlmProviderId } from "@ai-base/llm";
 import type { BrandMemory } from "./types.js";
 import { aiEmployeeSystemPrompt } from "./persona.js";
 import {
@@ -13,12 +14,10 @@ export function hasRealLlmCredentials(): boolean {
 }
 
 export function getOsLlm() {
-  const id = assertTextLlmReady();
+  const id = assertTextLlmReady() as LlmProviderId;
   return createLlmProvider({
     provider: id,
-    model:
-      process.env.LLM_MODEL ||
-      (id === "local" ? "qwen3:8b" : undefined),
+    model: process.env.LLM_MODEL?.trim() || defaultModelForProvider(id),
   });
 }
 

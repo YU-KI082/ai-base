@@ -37,6 +37,14 @@ function clampScore(n: number) {
   return Math.max(0, Math.min(100, Math.round(n)));
 }
 
+function parseDataUrl(dataUrl: string): { mimeType: string; base64: string } {
+  const m = /^data:([^;]+);base64,(.+)$/s.exec(dataUrl);
+  if (!m) {
+    throw new Error("画像データ形式が不正です");
+  }
+  return { mimeType: m[1]!, base64: m[2]! };
+}
+
 async function visionChat(input: {
   imageDataUrl: string;
   system: string;
@@ -44,6 +52,53 @@ async function visionChat(input: {
 }): Promise<string> {
   const provider = resolveVisionProviderId();
   if (!provider) throw new OsAiUnavailableError("画像分析AIは準備中です。");
+
+  if (provider === "gemini") {
+    const apiKey = (
+      process.env.GEMINI_API_KEY ?? process.env.GOOGLE_API_KEY ?? ""
+    ).trim();
+    const model =
+      process.env.VISION_MODEL?.trim() ||
+      process.env.LLM_MODEL?.trim() ||
+      "gemini-2.0-flash";
+    const base = (
+      process.env.GEMINI_BASE_URL?.trim() ||
+      "https://generativelanguage.googleapis.com/v1beta"
+    ).replace(/\/$/, "");
+    const { mimeType, base64 } = parseDataUrl(input.imageDataUrl);
+    const url = `${base}/models/${model}:generateContent?key=${apiKey}`;
+    const res = await fetch(url, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        systemInstruction: { parts: [{ text: input.system }] },
+        contents: [
+          {
+            role: "user",
+            parts: [
+              { text: `${input.user}\n必ず有効な JSON のみを返してください。` },
+              { inline_data: { mime_type: mimeType, data: base64 } },
+            ],
+          },
+        ],
+        generationConfig: {
+          temperature: 0.3,
+          responseMimeType: "application/json",
+        },
+      }),
+    });
+    if (!res.ok) {
+      const body = await res.text();
+      throw new Error(`Gemini Vision error ${res.status}: ${body.slice(0, 400)}`);
+    }
+    const json = (await res.json()) as {
+      candidates?: Array<{ content?: { parts?: Array<{ text?: string }> } }>;
+    };
+    return (
+      json.candidates?.[0]?.content?.parts?.map((p) => p.text ?? "").join("") ??
+      ""
+    );
+  }
 
   if (provider === "openai") {
     const apiKey = process.env.OPENAI_API_KEY!.trim();

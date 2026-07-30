@@ -2,6 +2,7 @@ import type { LlmProvider, LlmProviderConfig, LlmProviderId } from "./types.js";
 import { normalizeProviderId } from "./types.js";
 import { AnthropicProvider } from "./anthropic.js";
 import { GeminiProvider } from "./gemini.js";
+import { GroqProvider } from "./groq.js";
 import { GrokProvider } from "./grok.js";
 import { LocalLlmProvider } from "./local.js";
 import { MockLlmProvider } from "./mock.js";
@@ -14,6 +15,7 @@ const registry = new Map<LlmProviderId, LlmProviderFactory>([
   ["anthropic", (c) => AnthropicProvider.fromConfig(c)],
   ["claude", (c) => AnthropicProvider.fromConfig(c)],
   ["gemini", (c) => GeminiProvider.fromConfig(c)],
+  ["groq", (c) => new GroqProvider(c)],
   ["grok", (c) => new GrokProvider(c)],
   ["local", (c) => new LocalLlmProvider(c)],
   ["mock", (c) => new MockLlmProvider(c)],
@@ -44,6 +46,8 @@ function hasCredentials(id: LlmProviderId, config: LlmProviderConfig): boolean {
       return Boolean(
         config.apiKey ?? process.env.GEMINI_API_KEY ?? process.env.GOOGLE_API_KEY,
       );
+    case "groq":
+      return Boolean(config.apiKey ?? process.env.GROQ_API_KEY);
     case "grok":
       return Boolean(
         config.apiKey ?? process.env.GROK_API_KEY ?? process.env.XAI_API_KEY,

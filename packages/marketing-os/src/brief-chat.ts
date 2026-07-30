@@ -58,7 +58,7 @@ export async function ensureDailyBrief(workspaceId: string) {
 
   if (!hasRealLlmCredentials()) {
     const pendingContent =
-      "AI Daily Brief は準備中です。\n\nテキストAIのAPIキー（OPENAI_API_KEY 等）を設定すると、ブランド記憶に基づく今日の指示を自動生成します。\n設定画面で接続状態を確認できます。";
+      "AI Daily Brief は準備中です。\n\nテキストAIのAPIキー（GEMINI_API_KEY または GROQ_API_KEY 推奨）を設定すると、ブランド記憶に基づく今日の指示を自動生成します。\n設定画面で接続状態を確認できます。";
     const payload = {
       version: BRIEF_VERSION,
       source: "pending",

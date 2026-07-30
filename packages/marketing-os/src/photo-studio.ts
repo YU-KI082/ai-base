@@ -41,7 +41,7 @@ export async function createPhotoSession(input: {
 
   if (!resolveVisionProviderId()) {
     throw new OsAiUnavailableError(
-      "画像分析AIは準備中です。OPENAI_API_KEY（Vision対応モデル）設定後に利用できます。",
+      "画像分析AIは準備中です。GEMINI_API_KEY（Vision対応）設定後に利用できます。",
     );
   }
 

@@ -152,7 +152,7 @@ export default function AccountPage() {
         )}
         {!caps?.textLlm.ready ? (
           <OsPending title="テキストAIが未接続">
-            OPENAI_API_KEY 等をサーバー環境に設定すると、チャット・Brief・投稿生成が有効になります。
+            GEMINI_API_KEY または GROQ_API_KEY をサーバー環境に設定すると、チャット・Brief・投稿生成が有効になります（LLM_PROVIDER で切替）。
           </OsPending>
         ) : null}
       </section>

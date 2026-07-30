@@ -26,8 +26,8 @@ pnpm --filter @ai-base/web dev # http://localhost:3000
 See `.env.example`. Critical:
 
 - `DATABASE_URL`, `REDIS_URL`
-- `LLM_PROVIDER` (`openai` \| `anthropic` \| `gemini` \| `grok` \| `local` \| `mock`)
-- Provider keys as needed (`OPENAI_API_KEY`, `ANTHROPIC_API_KEY`, `GEMINI_API_KEY`, `GROK_API_KEY`, …)
+- `LLM_PROVIDER` (`gemini` \| `groq` \| `openai` \| `anthropic` \| `grok` \| `local` \| `mock`)
+- Provider keys as needed (`GEMINI_API_KEY`, `GROQ_API_KEY`, `OPENAI_API_KEY`, …) — free-tier verification: Gemini or Groq
 - `EMBEDDING_PROVIDER` / `VECTOR_BACKEND` (see [KNOWLEDGE_LAYER.md](./KNOWLEDGE_LAYER.md))
 - `ADMIN_DEV_BYPASS=true` for **local only** (`NODE_ENV !== production`; ignored in production)
 - `CACHE_BACKEND=memory|redis`, `OUTBOX_MAX_ATTEMPTS`
@@ -51,8 +51,10 @@ See `.env.example`. Critical:
 | `ADMIN_OPS_SECRET` | **Required for ops console** — 16+ char secret used at `/ops/login` |
 | `COOKIE_SECURE` | Optional `true` to force Secure cookies; on Vercel HTTPS is automatic |
 | `ADMIN_DEV_BYPASS` | **Do not set** in Production |
-| `LLM_PROVIDER` | `openai` (recommended) for AI BASE OS Daily Brief / chat / score / posts |
-| `OPENAI_API_KEY` | **Required for Marketing OS AI features** (no mock fallback) |
+| `LLM_PROVIDER` | `gemini` or `groq` for free-tier verification; also `openai` |
+| `GEMINI_API_KEY` | **Recommended** for Marketing OS AI (Google AI Studio free tier) |
+| `GROQ_API_KEY` | Alternative free-tier provider (`LLM_PROVIDER=groq`) |
+| `OPENAI_API_KEY` | Optional — only when `LLM_PROVIDER=openai` |
 | `LLM_FALLBACK_MOCK` | Must be `false` for OS (mock responses are rejected) |
 
 Build uses `pnpm` (not `turbo run`) so paths with spaces work; `apps/web/vercel.json` is the source of truth when Root Directory is `apps/web`.
