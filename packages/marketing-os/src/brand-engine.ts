@@ -88,6 +88,47 @@ export function buildBrandAnalysis(
   };
 }
 
+/** Split analysis into profile / competitor / learning slices (no extra APIs). */
+export function buildAnalysisSections(
+  brand: BrandMemory | null,
+  handles: HandleRow[],
+  improvements: Array<{ title: string; result: string; cause: string; dateKey: string }> = [],
+): {
+  profile: string[];
+  competitor: string[];
+  learning: string[];
+} {
+  const name = brandOr(brand, "brandName", "ブランド");
+  const audience = brandOr(brand, "targetAudience", "ターゲット未設定");
+  const tone = brandOr(brand, "postTone", "トーン未設定");
+  const worldview = brandOr(brand, "worldview", "世界観未設定");
+  const concept = brandOr(brand, "concept", "コンセプト未設定");
+  const competitors = brandOr(brand, "competitors", "競合未設定");
+  const goals = brandOr(brand, "goals", "目標未設定");
+  const listed = handles.filter((h) => h.username.trim());
+
+  return {
+    profile: [
+      `プロフィール一文で「${name} × ${concept}」が伝わるか（対象: ${audience}）`,
+      `トーン「${tone}」と世界観「${worldview}」の一貫性`,
+      listed.length
+        ? `登録ハンドル: ${listed.map((h) => `${h.platform}@${h.username}`).join(" / ")}`
+        : "SNSユーザー名が未登録です",
+    ],
+    competitor: [
+      `競合「${competitors}」との差分（世界観・専門性・CTA）を週1つ検証`,
+      `目標「${goals}」に対し、競合が取っている保存導線を自ブランドのトーンへ翻訳`,
+      "競合の保存されやすい投稿を3本メモし、構成だけ借りる",
+    ],
+    learning: improvements.length
+      ? improvements.slice(0, 5).map(
+          (i) =>
+            `${i.dateKey.slice(5)} ${i.title} → ${i.result || "計測中"}${i.cause ? `（原因: ${i.cause}）` : ""}`,
+        )
+      : ["改善履歴がまだありません。今日のタスク完了から学習が始まります。"],
+  };
+}
+
 export function buildBrandScore(
   brand: BrandMemory | null,
   handles: HandleRow[],

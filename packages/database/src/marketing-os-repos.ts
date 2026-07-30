@@ -42,6 +42,24 @@ export class WorkspaceRepository {
       data: { setupDone: done },
     });
   }
+
+  async updateSettings(
+    id: string,
+    data: {
+      plan?: string;
+      settings?: Prisma.InputJsonValue;
+      name?: string;
+    },
+  ) {
+    return this.db.workspace.update({
+      where: { id },
+      data: {
+        ...(data.plan !== undefined ? { plan: data.plan } : {}),
+        ...(data.settings !== undefined ? { settings: data.settings } : {}),
+        ...(data.name !== undefined ? { name: data.name } : {}),
+      },
+    });
+  }
 }
 
 export class BrandProfileRepository {

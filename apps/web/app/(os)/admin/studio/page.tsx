@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useMemo, useRef, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import { OS_PLATFORMS, type OsPlatform } from "@ai-base/marketing-os/platforms";
 
@@ -430,6 +430,108 @@ export default function PhotoStudioPage() {
           </p>
         </section>
       ) : null}
+
+      <PhotoHistory
+        activeId={sessionId}
+        onSelect={(item) => {
+          setSessionId(item.id);
+          setImageUrl(item.imageDataUrl);
+          setAnalysis(item.analysis);
+          setPreset(item.preset);
+          setAdvice(item.advice);
+          setRecipe(item.recipe);
+          setVariants(item.variants);
+          setPredictions(item.predictions);
+          if (item.platformTarget) {
+            setPlatform(item.platformTarget as OsPlatform);
+          }
+        }}
+      />
     </main>
+  );
+}
+
+type HistoryItem = {
+  id: string;
+  createdAt: string;
+  imageDataUrl: string;
+  platformTarget?: string | null;
+  analysis: Analysis | null;
+  preset: Preset | null;
+  advice: Advice[];
+  recipe: Recipe | null;
+  variants: Variant[];
+  predictions: Predictions | null;
+};
+
+function PhotoHistory({
+  activeId,
+  onSelect,
+}: {
+  activeId: string | null;
+  onSelect: (item: HistoryItem) => void;
+}) {
+  const [items, setItems] = useState<
+    Array<{
+      id: string;
+      createdAt: string;
+      fileName: string | null;
+      platformTarget: string | null;
+      analysis: Analysis | null;
+      originalUrl?: string;
+    }>
+  >([]);
+
+  useEffect(() => {
+    void fetch("/api/v1/os/photo")
+      .then((r) => r.json())
+      .then((d) => setItems(d.items ?? []))
+      .catch(() => setItems([]));
+  }, [activeId]);
+
+  if (!items.length) return null;
+
+  return (
+    <section className="os-card" id="history">
+      <h2>画像履歴</h2>
+      <p className="os-muted">これまでの Photo Studio セッション</p>
+      <div className="os-photo-history">
+        {items.map((it) => (
+          <button
+            key={it.id}
+            type="button"
+            className={`os-photo-thumb ${activeId === it.id ? "is-active" : ""}`}
+            onClick={() =>
+              void (async () => {
+                const res = await fetch(`/api/v1/os/photo?id=${it.id}`);
+                const data = await res.json();
+                if (!res.ok || !data.session) return;
+                const s = data.session;
+                onSelect({
+                  id: s.id,
+                  createdAt: s.createdAt,
+                  imageDataUrl: s.originalUrl || s.enhancedUrl,
+                  platformTarget: s.platformTarget,
+                  analysis: (s.analysis as Analysis) || null,
+                  preset: (s.brandPreset as Preset) || null,
+                  advice: (s.shootAdvice as Advice[]) || [],
+                  recipe: (s.enhanceRecipe as Recipe) || null,
+                  variants: (s.postVariants as Variant[]) || [],
+                  predictions: (s.predictions as Predictions) || null,
+                });
+              })()
+            }
+          >
+            {it.originalUrl ? (
+              // eslint-disable-next-line @next/next/no-img-element -- data URL thumbs
+              <img src={it.originalUrl} alt="" />
+            ) : (
+              <span>{it.fileName || "画像"}</span>
+            )}
+            <em>{new Date(it.createdAt).toLocaleString("ja-JP")}</em>
+          </button>
+        ))}
+      </div>
+    </section>
   );
 }

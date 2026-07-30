@@ -9,10 +9,24 @@ type Insight = {
   nextActions: Array<{ title: string; why: string; effort: string; deepLink?: string }>;
 };
 
+type Sections = {
+  profile: string[];
+  competitor: string[];
+  learning: string[];
+};
+
 type ScoreData = {
   overall?: number;
   platforms?: Record<string, { score: number; reason: string }>;
   nextActions?: Array<{ title: string; why: string; deepLink?: string }>;
+};
+
+type Improvement = {
+  id: string;
+  dateKey: string;
+  title: string;
+  result: string;
+  cause: string;
 };
 
 export default function AnalysisPage() {
@@ -20,6 +34,8 @@ export default function AnalysisPage() {
     Array<{ id: string; summary: string; createdAt: string }>
   >([]);
   const [latest, setLatest] = useState<Insight | null>(null);
+  const [sections, setSections] = useState<Sections | null>(null);
+  const [improvements, setImprovements] = useState<Improvement[]>([]);
   const [score, setScore] = useState<ScoreData | null>(null);
   const [busy, setBusy] = useState(false);
   const [scoreBusy, setScoreBusy] = useState(false);
@@ -28,6 +44,16 @@ export default function AnalysisPage() {
     const res = await fetch("/api/v1/os/analyze");
     const data = await res.json();
     setItems(data.items ?? []);
+    setSections(data.sections ?? null);
+    setImprovements(data.improvements ?? []);
+    if (data.latest) {
+      setLatest({
+        summary: data.latest.summary,
+        findings: (data.latest.findings as string[]) || [],
+        nextActions:
+          (data.latest.nextActions as Insight["nextActions"]) || [],
+      });
+    }
   }
 
   async function loadScore(force = false) {
@@ -63,6 +89,7 @@ export default function AnalysisPage() {
     const data = await res.json();
     setBusy(false);
     if (data.insight) setLatest(data.insight);
+    if (data.sections) setSections(data.sections);
     await loadAnalysis();
   }
 
@@ -70,7 +97,9 @@ export default function AnalysisPage() {
     <main className="os-page">
       <p className="os-eyebrow">Analysis</p>
       <h1>分析と AI SCORE</h1>
-      <p className="os-lead">アカウント所見と媒体スコアを、ひとつの画面で確認できます。</p>
+      <p className="os-lead">
+        プロフィール・競合・成果・スコアを、ひとつの画面で確認できます。
+      </p>
 
       <section id="score" className="os-card" style={{ marginBottom: "1rem" }}>
         <div className="os-row" style={{ justifyContent: "space-between", alignItems: "center" }}>
@@ -109,6 +138,39 @@ export default function AnalysisPage() {
         {busy ? "分析中…" : "今すぐ分析"}
       </button>
 
+      {sections ? (
+        <div className="os-analysis-sections">
+          <section className="os-card" id="profile">
+            <h2>プロフィール分析</h2>
+            <ul>
+              {sections.profile.map((f) => (
+                <li key={f}>{f}</li>
+              ))}
+            </ul>
+            <Link href="/admin/brand" className="os-chip">
+              ブランドを整える
+            </Link>
+          </section>
+          <section className="os-card" id="competitor">
+            <h2>競合分析</h2>
+            <ul>
+              {sections.competitor.map((f) => (
+                <li key={f}>{f}</li>
+              ))}
+            </ul>
+          </section>
+          <section className="os-card" id="results">
+            <h2>成果レポート / AI学習</h2>
+            <ul>
+              {sections.learning.map((f) => (
+                <li key={f}>{f}</li>
+              ))}
+            </ul>
+            <p className="os-muted">学習ログ {improvements.length} 件</p>
+          </section>
+        </div>
+      ) : null}
+
       {latest ? (
         <section className="os-card">
           <h2>最新の所見</h2>
@@ -136,6 +198,7 @@ export default function AnalysisPage() {
       ) : null}
 
       <section className="os-card-list">
+        <h2 style={{ margin: "0.5rem 0 0" }}>分析履歴</h2>
         {items.map((it) => (
           <article key={it.id} className="os-card">
             <p className="os-muted">{new Date(it.createdAt).toLocaleString("ja-JP")}</p>

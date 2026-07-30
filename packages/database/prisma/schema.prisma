@@ -1427,6 +1427,10 @@ model Workspace {
   ownerUserId String   @map("owner_user_id")
   name        String
   setupDone   Boolean  @default(false) @map("setup_done")
+  /// free | pro | business — subscription-ready (billing later)
+  plan        String   @default("free")
+  /// { notifications?: { dailyBrief?: boolean, tasks?: boolean }, locale?: string }
+  settings    Json     @default("{}")
   createdAt   DateTime @default(now()) @map("created_at")
   updatedAt   DateTime @updatedAt @map("updated_at")
 

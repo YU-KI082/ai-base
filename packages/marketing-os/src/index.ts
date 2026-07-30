@@ -13,3 +13,4 @@ export * from "./photo-studio-types.js";
 export * from "./photo-studio-engine.js";
 export * from "./photo-studio-port.js";
 export * from "./photo-studio.js";
+export * from "./workspace-settings.js";

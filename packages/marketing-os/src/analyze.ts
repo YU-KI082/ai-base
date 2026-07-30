@@ -1,7 +1,7 @@
 import { repos } from "@ai-base/database";
 import { completeJson } from "./llm.js";
 import { loadBrandMemory, formatBrandForPrompt } from "./brand-memory.js";
-import { buildBrandAnalysis } from "./brand-engine.js";
+import { buildAnalysisSections, buildBrandAnalysis } from "./brand-engine.js";
 import {
   ActionableInsightSchema,
   type ActionableInsight,
@@ -10,16 +10,28 @@ import {
 
 export async function analyzeAccounts(workspaceId: string): Promise<{
   insight: ActionableInsight;
+  sections: ReturnType<typeof buildAnalysisSections>;
   row: Awaited<ReturnType<typeof repos.marketingOs.createAnalysis>>;
 }> {
   const brand = await loadBrandMemory(workspaceId);
   const handles = await repos.snsHandles.list(workspaceId);
+  const improvements = await repos.marketingOs.listImprovements(workspaceId, 8);
   const handleLines =
     handles.length > 0
       ? handles.map((h) => `- ${h.platform}: @${h.username}`).join("\n")
       : "（未登録）";
 
   const engine = buildBrandAnalysis(brand, handles);
+  const sections = buildAnalysisSections(
+    brand,
+    handles,
+    improvements.map((i) => ({
+      title: i.title,
+      result: i.result,
+      cause: i.cause,
+      dateKey: i.dateKey,
+    })),
+  );
 
   const raw = await completeJson<ActionableInsight>({
     brand,
@@ -57,8 +69,9 @@ nextActions は最低3件。`,
       handles,
       platforms: handles.map((h) => h.platform as OsPlatform),
       source: raw ? "llm" : "brand_engine",
+      sections,
     },
   });
 
-  return { insight, row };
+  return { insight, sections, row };
 }

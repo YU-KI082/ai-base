@@ -28,12 +28,34 @@ type ExpectedEffect = {
   followersMax: number;
 };
 
+type Yesterday = {
+  headline: string;
+  cause: string;
+  lesson: string;
+  metrics?: Array<{
+    platform: string;
+    followersDelta: number;
+    saveRateDeltaPct: number;
+  }>;
+};
+
+type TaskItem = {
+  id: string;
+  title: string;
+  detail: string;
+  doneAt: string | null;
+  deepLink?: string | null;
+};
+
 export function AssistantHome({ locale = "ja" }: { locale?: Locale }) {
   const t = getDictionary(locale).os;
   const [messages, setMessages] = useState<Message[]>([]);
   const [nextActions, setNextActions] = useState<NextAction[]>([]);
   const [missions, setMissions] = useState<Mission[]>([]);
   const [expected, setExpected] = useState<ExpectedEffect | null>(null);
+  const [yesterday, setYesterday] = useState<Yesterday | null>(null);
+  const [tasks, setTasks] = useState<TaskItem[]>([]);
+  const [unread, setUnread] = useState(0);
   const [brandLabel, setBrandLabel] = useState<string | null>(null);
   const [input, setInput] = useState("");
   const [busy, setBusy] = useState(false);
@@ -42,12 +64,20 @@ export function AssistantHome({ locale = "ja" }: { locale?: Locale }) {
   const bottomRef = useRef<HTMLDivElement>(null);
   const composerRef = useRef<HTMLInputElement>(null);
 
+  async function loadTasks() {
+    const res = await fetch("/api/v1/os/tasks");
+    if (!res.ok) return;
+    const data = await res.json();
+    setTasks((data.taskSet?.items as TaskItem[]) ?? []);
+  }
+
   useEffect(() => {
     void (async () => {
       try {
-        const [briefRes, brandRes] = await Promise.all([
+        const [briefRes, brandRes, notifRes] = await Promise.all([
           fetch("/api/v1/os/brief/today"),
           fetch("/api/v1/os/brand"),
+          fetch("/api/v1/os/notifications"),
         ]);
         if (briefRes.status === 401 || brandRes.status === 401) {
           window.location.href = "/login?next=/admin";
@@ -66,10 +96,18 @@ export function AssistantHome({ locale = "ja" }: { locale?: Locale }) {
         if (payload?.expectedEffect) {
           setExpected(payload.expectedEffect as ExpectedEffect);
         }
+        if (payload?.yesterday) {
+          setYesterday(payload.yesterday as Yesterday);
+        }
         const brandData = await brandRes.json();
         if (brandRes.ok) {
           setBrandLabel(brandData.brand?.brandName ?? null);
         }
+        if (notifRes.ok) {
+          const n = await notifRes.json();
+          setUnread(n.unread ?? 0);
+        }
+        await loadTasks();
       } catch (e) {
         setError(
           e instanceof Error
@@ -85,6 +123,26 @@ export function AssistantHome({ locale = "ja" }: { locale?: Locale }) {
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, busy]);
+
+  async function toggleTask(itemId: string, done: boolean) {
+    setTasks((prev) =>
+      prev.map((t) =>
+        t.id === itemId
+          ? { ...t, doneAt: done ? new Date().toISOString() : null }
+          : t,
+      ),
+    );
+    const res = await fetch("/api/v1/os/tasks", {
+      method: "PATCH",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ itemId, done }),
+    });
+    if (!res.ok) {
+      await loadTasks();
+      return;
+    }
+    setUnread((u) => Math.max(0, done ? u - 1 : u + 1));
+  }
 
   async function send(text?: string) {
     const message = (text ?? input).trim();
@@ -118,7 +176,14 @@ export function AssistantHome({ locale = "ja" }: { locale?: Locale }) {
   return (
     <div className="os-assistant os-assistant-employee">
       <header className="os-assistant-head os-assistant-head-minimal">
-        <p className="os-eyebrow">{t.employee}</p>
+        <p className="os-eyebrow">
+          {t.employee}
+          {unread > 0 ? (
+            <span className="os-notif-badge" aria-label={`未完了タスク ${unread}`}>
+              {unread}
+            </span>
+          ) : null}
+        </p>
         <h1 className="os-home-greeting">
           {brandLabel ? `${brandLabel}の今日` : t.homeTitle}
         </h1>
@@ -132,8 +197,32 @@ export function AssistantHome({ locale = "ja" }: { locale?: Locale }) {
           <Link className="os-chip" href="/admin/create">
             {t.chipPosts}
           </Link>
+          <a className="os-chip" href="#tasks">
+            今日のタスク
+          </a>
         </div>
       </header>
+
+      {yesterday ? (
+        <section className="os-card os-yesterday-strip" aria-label="昨日の結果">
+          <p className="os-eyebrow">Yesterday</p>
+          <strong>{yesterday.headline}</strong>
+          {yesterday.metrics?.length ? (
+            <div className="os-chip-row" style={{ marginTop: "0.5rem" }}>
+              {yesterday.metrics.map((m) => (
+                <span key={m.platform} className="os-chip" style={{ cursor: "default" }}>
+                  {m.platform} フォロワー {m.followersDelta >= 0 ? "+" : ""}
+                  {m.followersDelta} / 保存 {m.saveRateDeltaPct >= 0 ? "+" : ""}
+                  {m.saveRateDeltaPct}pt
+                </span>
+              ))}
+            </div>
+          ) : null}
+          <p className="os-muted" style={{ marginBottom: 0 }}>
+            原因: {yesterday.cause} → 学び: {yesterday.lesson}
+          </p>
+        </section>
+      ) : null}
 
       {(missions.length > 0 || expected) && (
         <section className="os-mission-rail" aria-label="今日のミッション">
@@ -181,6 +270,41 @@ export function AssistantHome({ locale = "ja" }: { locale?: Locale }) {
           </div>
         </section>
       )}
+
+      <section id="tasks" className="os-card" aria-label="今日のタスク">
+        <div className="os-row" style={{ justifyContent: "space-between" }}>
+          <h2 style={{ margin: 0 }}>今日のタスク</h2>
+          <Link className="os-chip" href="/admin/analysis#results">
+            成果を見る
+          </Link>
+        </div>
+        {tasks.length === 0 ? (
+          <p className="os-muted">タスクを準備しています…</p>
+        ) : (
+          <ul className="os-task-list">
+            {tasks.map((task) => (
+              <li key={task.id} className={task.doneAt ? "done" : undefined}>
+                <label>
+                  <input
+                    type="checkbox"
+                    checked={!!task.doneAt}
+                    onChange={(e) => void toggleTask(task.id, e.target.checked)}
+                  />
+                  <span>
+                    <strong>{task.title}</strong>
+                    {task.detail ? <em>{task.detail}</em> : null}
+                  </span>
+                </label>
+                {task.deepLink ? (
+                  <Link href={task.deepLink} className="os-chip">
+                    開く
+                  </Link>
+                ) : null}
+              </li>
+            ))}
+          </ul>
+        )}
+      </section>
 
       <div className="os-chat-scroll">
         {booting ? (

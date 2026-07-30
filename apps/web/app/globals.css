@@ -958,6 +958,68 @@ select {
   color: var(--os-muted);
   font-size: 0.9rem;
 }
+.os-notif-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.15rem;
+  height: 1.15rem;
+  margin-left: 0.45rem;
+  padding: 0 0.3rem;
+  border-radius: 999px;
+  background: var(--os-ink);
+  color: var(--os-bg, #fff);
+  font-size: 0.7rem;
+  font-weight: 600;
+  vertical-align: middle;
+}
+.os-yesterday-strip {
+  margin-bottom: 0.85rem;
+}
+.os-analysis-sections {
+  display: grid;
+  gap: 0.85rem;
+  margin: 1rem 0;
+}
+@media (min-width: 840px) {
+  .os-analysis-sections {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+.os-photo-history {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(96px, 1fr));
+  gap: 0.65rem;
+  margin-top: 0.75rem;
+}
+.os-photo-thumb {
+  display: grid;
+  gap: 0.35rem;
+  padding: 0;
+  border: 1px solid var(--os-line);
+  border-radius: 12px;
+  background: color-mix(in srgb, var(--os-bg, #fff) 88%, var(--os-ink));
+  overflow: hidden;
+  cursor: pointer;
+  text-align: left;
+}
+.os-photo-thumb img {
+  width: 100%;
+  aspect-ratio: 1;
+  object-fit: cover;
+  display: block;
+}
+.os-photo-thumb span,
+.os-photo-thumb em {
+  display: block;
+  padding: 0 0.45rem 0.45rem;
+  font-size: 0.68rem;
+  color: var(--os-muted);
+  font-style: normal;
+}
+.os-photo-thumb.is-active {
+  border-color: var(--os-ink);
+}
 @media (max-width: 480px) {
   .os-compare-frame {
     aspect-ratio: 3 / 4;
