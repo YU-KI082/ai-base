@@ -19,6 +19,11 @@ enum UserStatus {
   disabled
 }
 
+enum UserKind {
+  customer
+  ops
+}
+
 enum AgentStatus {
   active
   disabled
@@ -99,17 +104,20 @@ enum MediaType {
 }
 
 model User {
-  id        String     @id @default(cuid())
-  email     String     @unique
-  name      String?
-  status    UserStatus @default(active)
-  locale    Locale     @default(en)
-  createdAt DateTime   @default(now()) @map("created_at")
-  updatedAt DateTime   @updatedAt @map("updated_at")
+  id           String     @id @default(cuid())
+  email        String     @unique
+  name         String?
+  passwordHash String?    @map("password_hash")
+  kind         UserKind   @default(ops)
+  status       UserStatus @default(active)
+  locale       Locale     @default(ja)
+  createdAt    DateTime   @default(now()) @map("created_at")
+  updatedAt    DateTime   @updatedAt @map("updated_at")
 
-  roles     UserRole[]
-  approvals Approval[]
-  auditLogs AuditLog[]
+  roles      UserRole[]
+  approvals  Approval[]
+  auditLogs  AuditLog[]
+  workspaces Workspace[]
 
   @@map("users")
 }
@@ -1411,4 +1419,219 @@ model SelfHealingAttempt {
 
   @@index([incidentId, attemptNumber])
   @@map("self_healing_attempts")
+}
+
+/// AI BASE OS — multi-tenant marketing workspace (customer users)
+model Workspace {
+  id          String   @id @default(cuid())
+  ownerUserId String   @map("owner_user_id")
+  name        String
+  setupDone   Boolean  @default(false) @map("setup_done")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  owner      User                @relation(fields: [ownerUserId], references: [id], onDelete: Cascade)
+  brand      BrandProfile?
+  handles    SnsAccountHandle[]
+  connections SnsConnection[]
+  analyses   AccountAnalysis[]
+  scores     AiScoreSnapshot[]
+  taskSets   DailyTaskSet[]
+  creatives  GeneratedCreative[]
+  chatThreads OsChatThread[]
+  briefs     DailyBrief[]
+
+  @@index([ownerUserId])
+  @@map("workspaces")
+}
+
+model BrandProfile {
+  id              String   @id @default(cuid())
+  workspaceId     String   @unique @map("workspace_id")
+  brandName       String   @map("brand_name")
+  industry        String   @default("")
+  targetAudience  String   @default("") @map("target_audience")
+  concept         String   @default("")
+  worldview       String   @default("")
+  colors          String   @default("")
+  competitors     String   @default("")
+  postTone        String   @default("") @map("post_tone")
+  products        String   @default("")
+  goals           String   @default("")
+  memoryExtra     Json     @default("{}") @map("memory_extra")
+  createdAt       DateTime @default(now()) @map("created_at")
+  updatedAt       DateTime @updatedAt @map("updated_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@map("brand_profiles")
+}
+
+model SnsAccountHandle {
+  id          String   @id @default(cuid())
+  workspaceId String   @map("workspace_id")
+  /// instagram | tiktok | x | threads | youtube
+  platform    String
+  username    String
+  connectionId String? @map("connection_id")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  workspace  Workspace      @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  connection SnsConnection? @relation(fields: [connectionId], references: [id], onDelete: SetNull)
+
+  @@unique([workspaceId, platform])
+  @@index([workspaceId])
+  @@map("sns_account_handles")
+}
+
+/// Future OAuth / API connection (unused in V2 API-less flow)
+model SnsConnection {
+  id                 String    @id @default(cuid())
+  workspaceId        String    @map("workspace_id")
+  provider           String
+  status             String    @default("disconnected")
+  externalAccountId  String?   @map("external_account_id")
+  accountLabel       String?   @map("account_label")
+  accessTokenCipher  String?   @map("access_token_cipher")
+  refreshTokenCipher String?   @map("refresh_token_cipher")
+  accessTokenExpiresAt DateTime? @map("access_token_expires_at")
+  scopes             String[]  @default([])
+  metadata           Json      @default("{}")
+  lastError          String?   @map("last_error")
+  createdAt          DateTime  @default(now()) @map("created_at")
+  updatedAt          DateTime  @updatedAt @map("updated_at")
+
+  workspace Workspace          @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  handles   SnsAccountHandle[]
+
+  @@unique([workspaceId, provider])
+  @@index([workspaceId])
+  @@map("os_sns_connections")
+}
+
+model AccountAnalysis {
+  id           String   @id @default(cuid())
+  workspaceId  String   @map("workspace_id")
+  platform     String?
+  summary      String
+  findings     Json     @default("[]")
+  nextActions  Json     @default("[]") @map("next_actions")
+  detail       Json     @default("{}")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, createdAt])
+  @@map("account_analyses")
+}
+
+model AiScoreSnapshot {
+  id           String   @id @default(cuid())
+  workspaceId  String   @map("workspace_id")
+  overall      Int
+  platforms    Json     @default("{}")
+  reasons      Json     @default("[]")
+  nextActions  Json     @default("[]") @map("next_actions")
+  createdAt    DateTime @default(now()) @map("created_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, createdAt])
+  @@map("ai_score_snapshots")
+}
+
+model DailyTaskSet {
+  id          String   @id @default(cuid())
+  workspaceId String   @map("workspace_id")
+  /// YYYY-MM-DD in workspace locale / Asia/Tokyo
+  dateKey     String   @map("date_key")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  workspace Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  items     DailyTaskItem[]
+
+  @@unique([workspaceId, dateKey])
+  @@map("daily_task_sets")
+}
+
+model DailyTaskItem {
+  id          String    @id @default(cuid())
+  taskSetId   String    @map("task_set_id")
+  title       String
+  detail      String    @default("")
+  category    String    @default("general")
+  priority    Int       @default(0)
+  deepLink    String?   @map("deep_link")
+  doneAt      DateTime? @map("done_at")
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  taskSet DailyTaskSet @relation(fields: [taskSetId], references: [id], onDelete: Cascade)
+
+  @@index([taskSetId])
+  @@map("daily_task_items")
+}
+
+model GeneratedCreative {
+  id          String   @id @default(cuid())
+  workspaceId String   @map("workspace_id")
+  platform    String   @default("instagram")
+  caption     String   @default("")
+  hashtags    String[] @default([])
+  reelScript  String   @default("") @map("reel_script")
+  imagePrompt String   @default("") @map("image_prompt")
+  imageUrl    String?  @map("image_url")
+  metadata    Json     @default("{}")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  workspace Workspace @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+
+  @@index([workspaceId, createdAt])
+  @@map("generated_creatives")
+}
+
+model OsChatThread {
+  id          String   @id @default(cuid())
+  workspaceId String   @map("workspace_id")
+  title       String   @default("AI社員")
+  createdAt   DateTime @default(now()) @map("created_at")
+  updatedAt   DateTime @updatedAt @map("updated_at")
+
+  workspace Workspace       @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  messages  OsChatMessage[]
+  briefs    DailyBrief[]
+
+  @@index([workspaceId, updatedAt])
+  @@map("os_chat_threads")
+}
+
+model OsChatMessage {
+  id        String   @id @default(cuid())
+  threadId  String   @map("thread_id")
+  role      String
+  content   String
+  metadata  Json     @default("{}")
+  createdAt DateTime @default(now()) @map("created_at")
+
+  thread OsChatThread @relation(fields: [threadId], references: [id], onDelete: Cascade)
+
+  @@index([threadId, createdAt])
+  @@map("os_chat_messages")
+}
+
+model DailyBrief {
+  id          String   @id @default(cuid())
+  workspaceId String   @map("workspace_id")
+  dateKey     String   @map("date_key")
+  threadId    String?  @map("thread_id")
+  messageId   String?  @map("message_id")
+  content     String
+  payload     Json     @default("{}")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  workspace Workspace    @relation(fields: [workspaceId], references: [id], onDelete: Cascade)
+  thread    OsChatThread? @relation(fields: [threadId], references: [id], onDelete: SetNull)
+
+  @@unique([workspaceId, dateKey])
+  @@map("daily_briefs")
 }

@@ -14,6 +14,29 @@
 
 **禁止:** ID/パスワードのブラウザ自動ログイン。公式 OAuth のみ。
 
+## 本番 OAuth コールバック（Meta / TikTok / X に登録）
+
+Site: `https://ai-base-beta.vercel.app`
+
+| Provider | Redirect URI |
+|----------|--------------|
+| Instagram | `https://ai-base-beta.vercel.app/api/v1/admin/social/oauth/instagram/callback` |
+| TikTok | `https://ai-base-beta.vercel.app/api/v1/admin/social/oauth/tiktok/callback` |
+| X | `https://ai-base-beta.vercel.app/api/v1/admin/social/oauth/x/callback` |
+| Threads | `https://ai-base-beta.vercel.app/api/v1/admin/social/oauth/threads/callback` |
+
+Required Vercel env (production):
+
+- `TOKEN_ENCRYPTION_KEY` (32+) — tokens sealed at rest
+- `OAUTH_STATE_SECRET`
+- `INSTAGRAM_APP_ID` / `INSTAGRAM_APP_SECRET` (aliases: `META_*` / `FACEBOOK_*`)
+- `TIKTOK_CLIENT_KEY` / `TIKTOK_CLIENT_SECRET`
+- `X_CLIENT_ID` / `X_CLIENT_SECRET`
+- `THREADS_APP_ID` / `THREADS_APP_SECRET` (optional; falls back to Instagram Meta app)
+- `INSTAGRAM_BUSINESS_ACCOUNT_ID` (Reels publish)
+
+Admin Connect: `/admin/social` → one-click OAuth (redirects to provider login). note → draft-queue enable (no OAuth).
+
 ## フルオート パイプライン
 
 1. **テーマ自動選定** — 新着ツール / ニュース / 比較 / ランキング / 使い方 / 事例 / トレンド / 過去実績

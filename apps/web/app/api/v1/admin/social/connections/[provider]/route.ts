@@ -12,13 +12,17 @@ const BodySchema = z.object({
   action: z.enum(["refresh", "validate", "disconnect"]),
 });
 
+function isConnectableProvider(value: string): boolean {
+  return isOAuthProvider(value) || value === "note";
+}
+
 export async function POST(
   request: Request,
   context: { params: Promise<{ provider: string }> },
 ) {
   return withAdmin(request, "settings.manage", async () => {
     const { provider: raw } = await context.params;
-    if (!isOAuthProvider(raw)) return jsonError("Unknown provider", 400);
+    if (!isConnectableProvider(raw)) return jsonError("Unknown provider", 400);
     let body: z.infer<typeof BodySchema>;
     try {
       body = await readJsonSchema(request, BodySchema);
@@ -29,6 +33,9 @@ export async function POST(
     if (body.action === "disconnect") {
       await repos.snsOAuth.disconnect(raw);
       return jsonOk({ ok: true });
+    }
+    if (!isOAuthProvider(raw)) {
+      return jsonError("note uses draft queue — refresh/validate not applicable", 400);
     }
     if (body.action === "refresh") {
       const result = await refreshConnection(raw);

@@ -1,6 +1,7 @@
 export type { AuthUser } from "./types.js";
 export { AuthError } from "./types.js";
 export { requireAdmin, tryRequireAdmin } from "./require-admin.js";
+export { requireUser, tryRequireUser, type OsUserContext } from "./require-user.js";
 export { hasPermission, hasAnyPermission } from "./rbac.js";
 export {
   isAdminDevBypassEnabled,
@@ -11,6 +12,7 @@ export {
   CSRF_COOKIE,
   CSRF_HEADER,
   SESSION_COOKIE,
+  USER_SESSION_COOKIE,
 } from "./constants.js";
 export {
   createCsrfToken,
@@ -25,6 +27,16 @@ export {
   isOpsAuthConfigured,
   extractOpsCredential,
 } from "./ops-session.js";
+export {
+  hashPassword,
+  verifyPassword,
+  createUserSessionToken,
+  verifyUserSessionToken,
+  extractUserSessionToken,
+  userSessionCookieHeader,
+  clearUserSessionCookieHeader,
+  emailFingerprint,
+} from "./user-session.js";
 export {
   MemoryRateLimiter,
   adminMutationLimiter,

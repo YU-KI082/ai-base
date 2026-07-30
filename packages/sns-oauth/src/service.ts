@@ -100,15 +100,16 @@ function publicConnectionView(row: {
     reauthRequiredAt: row.reauthRequiredAt?.toISOString() ?? null,
     configured: isOAuthProvider(row.provider)
       ? getProvider(row.provider).isConfigured()
-      : false,
+      : row.provider === "note",
     hasTokens: Boolean(row.accessTokenCipher),
+    authType: row.provider === "note" ? ("draft_queue" as const) : ("oauth" as const),
   };
 }
 
 export async function listConnectionSummaries() {
   const existing = await repos.snsOAuth.list();
   const byProvider = new Map(existing.map((r) => [r.provider, r]));
-  return OAUTH_PROVIDERS.map((provider) => {
+  const oauthRows = OAUTH_PROVIDERS.map((provider) => {
     const row = byProvider.get(provider);
     if (row) return publicConnectionView(row);
     return {
@@ -126,8 +127,54 @@ export async function listConnectionSummaries() {
       reauthRequiredAt: null,
       configured: getProvider(provider).isConfigured(),
       hasTokens: false,
+      authType: "oauth" as const,
     };
   });
+
+  const noteRow = byProvider.get("note");
+  const noteView = noteRow
+    ? {
+        ...publicConnectionView(noteRow),
+        configured: true,
+        authType: "draft_queue" as const,
+      }
+    : {
+        provider: "note",
+        status: "disconnected" as ConnectionStatus,
+        statusLabelJa: connectionStatusLabel("disconnected", "ja"),
+        statusLabelEn: connectionStatusLabel("disconnected", "en"),
+        accountLabel: null,
+        externalAccountId: null,
+        scopes: [] as string[],
+        accessTokenExpiresAt: null,
+        lastRefreshedAt: null,
+        lastValidatedAt: null,
+        lastError: null,
+        reauthRequiredAt: null,
+        configured: true,
+        hasTokens: false,
+        authType: "draft_queue" as const,
+      };
+
+  return [...oauthRows, noteView];
+}
+
+/** Enable note draft-queue connection with one click (no OAuth tokens). */
+export async function connectNoteDraftQueue() {
+  await repos.snsOAuth.upsertConnection("note", {
+    status: "connected",
+    accountLabel: "note draft queue",
+    scopes: ["draft_queue"],
+    accessTokenCipher: null,
+    refreshTokenCipher: null,
+    accessTokenExpiresAt: null,
+    refreshTokenExpiresAt: null,
+    lastValidatedAt: new Date(),
+    lastError: null,
+    reauthRequiredAt: null,
+    metadata: { authType: "draft_queue" },
+  });
+  return listConnectionSummaries();
 }
 
 async function persistTokens(provider: OAuthProvider, tokens: TokenBundle) {

@@ -570,6 +570,9 @@ importers:
       '@ai-base/llm':
         specifier: workspace:*
         version: link:../../packages/llm
+      '@ai-base/marketing-os':
+        specifier: workspace:*
+        version: link:../../packages/marketing-os
       '@ai-base/marketplace':
         specifier: workspace:*
         version: link:../../packages/marketplace
@@ -841,6 +844,28 @@ importers:
 
   packages/llm:
     dependencies:
+      zod:
+        specifier: ^3.24.1
+        version: 3.25.76
+    devDependencies:
+      '@types/node':
+        specifier: ^22.10.2
+        version: 22.20.1
+      tsx:
+        specifier: ^4.19.2
+        version: 4.23.1
+      typescript:
+        specifier: 5.7.2
+        version: 5.7.2
+
+  packages/marketing-os:
+    dependencies:
+      '@ai-base/database':
+        specifier: workspace:*
+        version: link:../database
+      '@ai-base/llm':
+        specifier: workspace:*
+        version: link:../llm
       zod:
         specifier: ^3.24.1
         version: 3.25.76

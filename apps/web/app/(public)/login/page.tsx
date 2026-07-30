@@ -1,40 +1,27 @@
 import Link from "next/link";
-import { cookies } from "next/headers";
-import { getDictionary, resolveLocale } from "@ai-base/i18n";
-import { LoginForm } from "./login-form";
+import { UserAuthForm } from "./user-auth-form";
 
-export default async function AdminLoginPage({
+export default async function LoginPage({
   searchParams,
 }: {
   searchParams: Promise<{ next?: string }>;
 }) {
   const sp = await searchParams;
-  const cookieStore = await cookies();
-  const locale = resolveLocale(cookieStore.get("locale")?.value);
-  const t = getDictionary(locale).public;
-  const a = getDictionary(locale).admin;
   const nextPath =
     sp.next && sp.next.startsWith("/admin") ? sp.next : "/admin";
 
   return (
-    <main className="container" style={{ padding: "4rem 0", maxWidth: 560 }}>
-      <h1 style={{ fontFamily: "var(--font-display-loaded), serif" }}>{t.adminSignIn}</h1>
-      <p className="muted">{t.adminSignInBody}</p>
-      <div style={{ marginTop: "1.25rem" }}>
-        <LoginForm
-          nextPath={nextPath}
-          labels={{
-            secret: a.opsSecret,
-            submit: a.signIn,
-            error: getDictionary(locale).common.error,
-          }}
-        />
+    <main className="os-auth-page">
+      <div className="os-auth-hero">
+        <p className="os-eyebrow">AI BASE OS</p>
+        <h1>AI社員が、毎日のマーケを考える</h1>
+        <p className="os-lead">
+          分析だけで終わらない。今日やるべきことまで、会話で提案します。
+        </p>
       </div>
-      <p className="muted" style={{ marginTop: "1.25rem", fontSize: 14 }}>
-        {t.adminSignInDevHint}
-      </p>
-      <p>
-        <Link href="/">{t.backHome}</Link>
+      <UserAuthForm mode="login" nextPath={nextPath} />
+      <p className="os-auth-foot">
+        <Link href="/">サイトトップへ</Link>
       </p>
     </main>
   );

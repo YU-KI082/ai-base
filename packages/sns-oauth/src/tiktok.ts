@@ -1,10 +1,5 @@
 import type { OAuthProviderPort, TokenBundle } from "./types.js";
-
-function requireEnv(name: string): string {
-  const v = process.env[name]?.trim();
-  if (!v) throw new Error(`${name} is not configured`);
-  return v;
-}
+import { isTikTokConfigured, requireEnvFirst } from "./env.js";
 
 /**
  * TikTok Login Kit + Content Posting API OAuth.
@@ -14,14 +9,11 @@ export const tiktokProvider: OAuthProviderPort = {
   provider: "tiktok",
 
   isConfigured() {
-    return Boolean(
-      process.env.TIKTOK_CLIENT_KEY?.trim() &&
-        process.env.TIKTOK_CLIENT_SECRET?.trim(),
-    );
+    return isTikTokConfigured();
   },
 
   getAuthorizationUrl({ state, redirectUri }) {
-    const clientKey = requireEnv("TIKTOK_CLIENT_KEY");
+    const clientKey = requireEnvFirst("TIKTOK_CLIENT_KEY", "TIKTOK_APP_ID");
     const scopes = (
       process.env.TIKTOK_OAUTH_SCOPES?.trim() ||
       "user.info.basic,video.upload,video.publish"
@@ -40,8 +32,11 @@ export const tiktokProvider: OAuthProviderPort = {
   },
 
   async exchangeCode({ code, redirectUri }) {
-    const clientKey = requireEnv("TIKTOK_CLIENT_KEY");
-    const clientSecret = requireEnv("TIKTOK_CLIENT_SECRET");
+    const clientKey = requireEnvFirst("TIKTOK_CLIENT_KEY", "TIKTOK_APP_ID");
+    const clientSecret = requireEnvFirst(
+      "TIKTOK_CLIENT_SECRET",
+      "TIKTOK_APP_SECRET",
+    );
     const res = await fetch("https://open.tiktokapis.com/v2/oauth/token/", {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -84,8 +79,11 @@ export const tiktokProvider: OAuthProviderPort = {
 
   async refresh({ refreshToken }) {
     if (!refreshToken) throw new Error("Missing TikTok refresh token");
-    const clientKey = requireEnv("TIKTOK_CLIENT_KEY");
-    const clientSecret = requireEnv("TIKTOK_CLIENT_SECRET");
+    const clientKey = requireEnvFirst("TIKTOK_CLIENT_KEY", "TIKTOK_APP_ID");
+    const clientSecret = requireEnvFirst(
+      "TIKTOK_CLIENT_SECRET",
+      "TIKTOK_APP_SECRET",
+    );
     const res = await fetch("https://open.tiktokapis.com/v2/oauth/token/", {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },

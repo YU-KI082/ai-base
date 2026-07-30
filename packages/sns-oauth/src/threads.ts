@@ -1,10 +1,10 @@
 import type { OAuthProviderPort, TokenBundle } from "./types.js";
-
-function requireEnv(name: string): string {
-  const v = process.env[name]?.trim();
-  if (!v) throw new Error(`${name} is not configured`);
-  return v;
-}
+import {
+  instagramAppId,
+  instagramAppSecret,
+  isThreadsConfigured,
+  requireEnvFirst,
+} from "./env.js";
 
 /**
  * Threads API (Meta) — OAuth + text publish.
@@ -14,16 +14,14 @@ export const threadsProvider: OAuthProviderPort = {
   provider: "threads",
 
   isConfigured() {
-    return Boolean(
-      (process.env.THREADS_APP_ID?.trim() || process.env.INSTAGRAM_APP_ID?.trim()) &&
-        (process.env.THREADS_APP_SECRET?.trim() ||
-          process.env.INSTAGRAM_APP_SECRET?.trim()),
-    );
+    return isThreadsConfigured();
   },
 
   getAuthorizationUrl({ state, redirectUri }) {
     const clientId =
-      process.env.THREADS_APP_ID?.trim() || requireEnv("INSTAGRAM_APP_ID");
+      process.env.THREADS_APP_ID?.trim() ||
+      instagramAppId() ||
+      requireEnvFirst("INSTAGRAM_APP_ID", "META_APP_ID", "FACEBOOK_APP_ID");
     const scopes =
       process.env.THREADS_OAUTH_SCOPES?.trim() ||
       "threads_basic,threads_content_publish";
@@ -38,9 +36,17 @@ export const threadsProvider: OAuthProviderPort = {
 
   async exchangeCode({ code, redirectUri }) {
     const clientId =
-      process.env.THREADS_APP_ID?.trim() || requireEnv("INSTAGRAM_APP_ID");
+      process.env.THREADS_APP_ID?.trim() ||
+      instagramAppId() ||
+      requireEnvFirst("INSTAGRAM_APP_ID", "META_APP_ID", "FACEBOOK_APP_ID");
     const clientSecret =
-      process.env.THREADS_APP_SECRET?.trim() || requireEnv("INSTAGRAM_APP_SECRET");
+      process.env.THREADS_APP_SECRET?.trim() ||
+      instagramAppSecret() ||
+      requireEnvFirst(
+        "INSTAGRAM_APP_SECRET",
+        "META_APP_SECRET",
+        "FACEBOOK_APP_SECRET",
+      );
     const res = await fetch("https://graph.threads.net/oauth/access_token", {
       method: "POST",
       headers: { "Content-Type": "application/x-www-form-urlencoded" },
@@ -96,7 +102,13 @@ export const threadsProvider: OAuthProviderPort = {
     const token = refreshToken || accessToken;
     if (!token) throw new Error("Missing Threads token");
     const clientSecret =
-      process.env.THREADS_APP_SECRET?.trim() || requireEnv("INSTAGRAM_APP_SECRET");
+      process.env.THREADS_APP_SECRET?.trim() ||
+      instagramAppSecret() ||
+      requireEnvFirst(
+        "INSTAGRAM_APP_SECRET",
+        "META_APP_SECRET",
+        "FACEBOOK_APP_SECRET",
+      );
     const url = new URL("https://graph.threads.net/refresh_access_token");
     url.searchParams.set("grant_type", "th_refresh_token");
     url.searchParams.set("access_token", token);

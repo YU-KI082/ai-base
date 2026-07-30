@@ -28,4 +28,12 @@ export {
   ensureReadyForPublish,
   refreshDueConnections,
   getAccessToken,
+  connectNoteDraftQueue,
 } from "./service.js";
+export {
+  oauthSetupStatus,
+  isInstagramConfigured,
+  isTikTokConfigured,
+  isXConfigured,
+  isThreadsConfigured,
+} from "./env.js";

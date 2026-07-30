@@ -1,10 +1,5 @@
 import type { OAuthProviderPort, TokenBundle } from "./types.js";
-
-function requireEnv(name: string): string {
-  const v = process.env[name]?.trim();
-  if (!v) throw new Error(`${name} is not configured`);
-  return v;
-}
+import { isXConfigured, requireEnvFirst } from "./env.js";
 
 /**
  * X (Twitter) OAuth 2.0 PKCE + tweet publish.
@@ -14,13 +9,11 @@ export const xProvider: OAuthProviderPort = {
   provider: "x",
 
   isConfigured() {
-    return Boolean(
-      process.env.X_CLIENT_ID?.trim() && process.env.X_CLIENT_SECRET?.trim(),
-    );
+    return isXConfigured();
   },
 
   getAuthorizationUrl({ state, redirectUri }) {
-    const clientId = requireEnv("X_CLIENT_ID");
+    const clientId = requireEnvFirst("X_CLIENT_ID", "TWITTER_CLIENT_ID");
     const scopes = (
       process.env.X_OAUTH_SCOPES?.trim() ||
       "tweet.read tweet.write users.read offline.access"
@@ -43,8 +36,11 @@ export const xProvider: OAuthProviderPort = {
   },
 
   async exchangeCode({ code, redirectUri }) {
-    const clientId = requireEnv("X_CLIENT_ID");
-    const clientSecret = requireEnv("X_CLIENT_SECRET");
+    const clientId = requireEnvFirst("X_CLIENT_ID", "TWITTER_CLIENT_ID");
+    const clientSecret = requireEnvFirst(
+      "X_CLIENT_SECRET",
+      "TWITTER_CLIENT_SECRET",
+    );
     const basic = Buffer.from(`${clientId}:${clientSecret}`).toString("base64");
     const verifier =
       process.env.X_OAUTH_CODE_VERIFIER?.trim() ||
@@ -87,8 +83,11 @@ export const xProvider: OAuthProviderPort = {
 
   async refresh({ refreshToken }) {
     if (!refreshToken) throw new Error("Missing X refresh token");
-    const clientId = requireEnv("X_CLIENT_ID");
-    const clientSecret = requireEnv("X_CLIENT_SECRET");
+    const clientId = requireEnvFirst("X_CLIENT_ID", "TWITTER_CLIENT_ID");
+    const clientSecret = requireEnvFirst(
+      "X_CLIENT_SECRET",
+      "TWITTER_CLIENT_SECRET",
+    );
     const basic = Buffer.from(`${clientId}:${clientSecret}`).toString("base64");
     const res = await fetch("https://api.twitter.com/2/oauth2/token", {
       method: "POST",

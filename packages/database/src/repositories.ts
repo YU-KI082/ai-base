@@ -2719,6 +2719,14 @@ export class MarketplaceRepository {
   }
 }
 
+import {
+  BrandProfileRepository,
+  CustomerUserRepository,
+  MarketingOsRepository,
+  SnsHandleRepository,
+  WorkspaceRepository,
+} from "./marketing-os-repos.js";
+
 export class Repositories {
   readonly outbox = new OutboxRepository();
   readonly consumptions = new EventConsumptionRepository();
@@ -2749,6 +2757,11 @@ export class Repositories {
   readonly knowledgeDocuments = new KnowledgeDocumentRepository();
   readonly vectorRecords = new VectorRecordRepository();
   readonly marketplace = new MarketplaceRepository();
+  readonly workspaces = new WorkspaceRepository();
+  readonly brandProfiles = new BrandProfileRepository();
+  readonly snsHandles = new SnsHandleRepository();
+  readonly marketingOs = new MarketingOsRepository();
+  readonly customers = new CustomerUserRepository();
 }
 
 export const repos = new Repositories();

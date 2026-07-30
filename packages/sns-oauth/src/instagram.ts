@@ -1,10 +1,5 @@
 import type { OAuthProviderPort, TokenBundle } from "./types.js";
-
-function requireEnv(name: string): string {
-  const v = process.env[name]?.trim();
-  if (!v) throw new Error(`${name} is not configured`);
-  return v;
-}
+import { isInstagramConfigured, requireEnvFirst } from "./env.js";
 
 /**
  * Instagram via Meta Instagram Graph / Instagram Login (OAuth).
@@ -14,17 +9,18 @@ export const instagramProvider: OAuthProviderPort = {
   provider: "instagram",
 
   isConfigured() {
-    return Boolean(
-      process.env.INSTAGRAM_APP_ID?.trim() &&
-        process.env.INSTAGRAM_APP_SECRET?.trim(),
-    );
+    return isInstagramConfigured();
   },
 
   getAuthorizationUrl({ state, redirectUri }) {
-    const clientId = requireEnv("INSTAGRAM_APP_ID");
+    const clientId = requireEnvFirst(
+      "INSTAGRAM_APP_ID",
+      "META_APP_ID",
+      "FACEBOOK_APP_ID",
+    );
     const scopes = (
       process.env.INSTAGRAM_OAUTH_SCOPES?.trim() ||
-      "instagram_basic,instagram_content_publish,pages_show_list,pages_read_engagement"
+      "instagram_basic,instagram_content_publish,pages_show_list,pages_read_engagement,business_management"
     )
       .split(",")
       .map((s) => s.trim())
@@ -40,8 +36,16 @@ export const instagramProvider: OAuthProviderPort = {
   },
 
   async exchangeCode({ code, redirectUri }) {
-    const clientId = requireEnv("INSTAGRAM_APP_ID");
-    const clientSecret = requireEnv("INSTAGRAM_APP_SECRET");
+    const clientId = requireEnvFirst(
+      "INSTAGRAM_APP_ID",
+      "META_APP_ID",
+      "FACEBOOK_APP_ID",
+    );
+    const clientSecret = requireEnvFirst(
+      "INSTAGRAM_APP_SECRET",
+      "META_APP_SECRET",
+      "FACEBOOK_APP_SECRET",
+    );
 
     const shortUrl = new URL("https://graph.facebook.com/v21.0/oauth/access_token");
     shortUrl.searchParams.set("client_id", clientId);
@@ -97,8 +101,16 @@ export const instagramProvider: OAuthProviderPort = {
   },
 
   async refresh({ refreshToken, accessToken }) {
-    const clientId = requireEnv("INSTAGRAM_APP_ID");
-    const clientSecret = requireEnv("INSTAGRAM_APP_SECRET");
+    const clientId = requireEnvFirst(
+      "INSTAGRAM_APP_ID",
+      "META_APP_ID",
+      "FACEBOOK_APP_ID",
+    );
+    const clientSecret = requireEnvFirst(
+      "INSTAGRAM_APP_SECRET",
+      "META_APP_SECRET",
+      "FACEBOOK_APP_SECRET",
+    );
     const token = refreshToken || accessToken;
     if (!token) throw new Error("Missing Instagram token for refresh");
 
@@ -159,7 +171,6 @@ export const instagramProvider: OAuthProviderPort = {
       throw err;
     }
 
-    // Prefer IG user id from connection metadata / env
     const igUserId =
       process.env.INSTAGRAM_BUSINESS_ACCOUNT_ID?.trim() ||
       process.env.INSTAGRAM_USER_ID?.trim();
@@ -196,7 +207,6 @@ export const instagramProvider: OAuthProviderPort = {
       throw err;
     }
 
-    // Poll briefly for FINISHED (best-effort)
     for (let i = 0; i < 8; i++) {
       await new Promise((r) => setTimeout(r, 2000));
       const stRes = await fetch(

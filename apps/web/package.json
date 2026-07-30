@@ -16,6 +16,7 @@
     "@ai-base/sns-auto-ops": "workspace:*",
     "@ai-base/sns-learning": "workspace:*",
     "@ai-base/sns-oauth": "workspace:*",
+    "@ai-base/marketing-os": "workspace:*",
     "@ai-base/video-render": "workspace:*",
     "@prisma/client": "6.19.3",
     "next": "^15.1.3",

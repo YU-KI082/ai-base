@@ -34,7 +34,7 @@ export function LoginForm({
         setError(body.error ?? labels.error);
         return;
       }
-      router.replace(nextPath || "/admin");
+      router.replace(nextPath || "/ops");
       router.refresh();
     } catch {
       setError(labels.error);
