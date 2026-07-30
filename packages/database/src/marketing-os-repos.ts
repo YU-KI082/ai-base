@@ -60,23 +60,30 @@ export class BrandProfileRepository {
       memoryExtra?: Prisma.InputJsonValue;
     },
   ) {
-    return this.db.brandProfile.upsert({
+    // Neon HTTP adapter does not support Prisma upsert transactions.
+    const existing = await this.db.brandProfile.findUnique({
       where: { workspaceId },
-      create: {
-        workspaceId,
-        brandName: data.brandName,
-        industry: data.industry ?? "",
-        targetAudience: data.targetAudience ?? "",
-        concept: data.concept ?? "",
-        worldview: data.worldview ?? "",
-        colors: data.colors ?? "",
-        competitors: data.competitors ?? "",
-        postTone: data.postTone ?? "",
-        products: data.products ?? "",
-        goals: data.goals ?? "",
-        memoryExtra: data.memoryExtra ?? {},
-      },
-      update: {
+    });
+    const createData = {
+      workspaceId,
+      brandName: data.brandName,
+      industry: data.industry ?? "",
+      targetAudience: data.targetAudience ?? "",
+      concept: data.concept ?? "",
+      worldview: data.worldview ?? "",
+      colors: data.colors ?? "",
+      competitors: data.competitors ?? "",
+      postTone: data.postTone ?? "",
+      products: data.products ?? "",
+      goals: data.goals ?? "",
+      memoryExtra: data.memoryExtra ?? {},
+    };
+    if (!existing) {
+      return this.db.brandProfile.create({ data: createData });
+    }
+    return this.db.brandProfile.update({
+      where: { workspaceId },
+      data: {
         brandName: data.brandName,
         industry: data.industry,
         targetAudience: data.targetAudience,
@@ -122,15 +129,27 @@ export class SnsHandleRepository {
         });
         continue;
       }
-      results.push(
-        await this.db.snsAccountHandle.upsert({
-          where: {
-            workspaceId_platform: { workspaceId, platform: h.platform },
-          },
-          create: { workspaceId, platform: h.platform, username },
-          update: { username },
-        }),
-      );
+      const existing = await this.db.snsAccountHandle.findUnique({
+        where: {
+          workspaceId_platform: { workspaceId, platform: h.platform },
+        },
+      });
+      if (!existing) {
+        results.push(
+          await this.db.snsAccountHandle.create({
+            data: { workspaceId, platform: h.platform, username },
+          }),
+        );
+      } else {
+        results.push(
+          await this.db.snsAccountHandle.update({
+            where: {
+              workspaceId_platform: { workspaceId, platform: h.platform },
+            },
+            data: { username },
+          }),
+        );
+      }
     }
     return results;
   }
@@ -189,10 +208,13 @@ export class MarketingOsRepository {
   }
 
   async getOrCreateTaskSet(workspaceId: string, dateKey: string) {
-    return this.db.dailyTaskSet.upsert({
+    const existing = await this.db.dailyTaskSet.findUnique({
       where: { workspaceId_dateKey: { workspaceId, dateKey } },
-      create: { workspaceId, dateKey },
-      update: {},
+      include: { items: { orderBy: { priority: "asc" } } },
+    });
+    if (existing) return existing;
+    return this.db.dailyTaskSet.create({
+      data: { workspaceId, dateKey },
       include: { items: { orderBy: { priority: "asc" } } },
     });
   }
