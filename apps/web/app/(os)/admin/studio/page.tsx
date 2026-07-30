@@ -249,60 +249,62 @@ export default function PhotoStudioPage() {
       {error ? <p className="os-error">{error}</p> : null}
 
       {imageUrl ? (
-        {/* eslint-disable @next/next/no-img-element -- data URL preview */}
-        <section className="os-studio-compare">
-          <div className="os-compare-frame">
-            <img /* eslint-disable-next-line /next/no-img-element */
-              src={imageUrl}
-              alt="改善後"
-              className="os-compare-layer"
-              style={{ filter: enhancedFilter }}
-            />
-            <img /* eslint-disable-next-line /next/no-img-element */
-              src={imageUrl}
-              alt="オリジナル"
-              className="os-compare-layer os-compare-before-clip"
-              style={{ clipPath: `inset(0 ${100 - compare}% 0 0)` }}
-            />
-            <div className="os-compare-divider" style={{ left: `${compare}%` }} />
-            <div className="os-compare-labels">
-              <span>Before</span>
-              <span>After</span>
+        <>
+          {/* eslint-disable @next/next/no-img-element -- data URL preview */}
+          <section className="os-studio-compare">
+            <div className="os-compare-frame">
+              <img
+                src={imageUrl}
+                alt="改善後"
+                className="os-compare-layer"
+                style={{ filter: enhancedFilter }}
+              />
+              <img
+                src={imageUrl}
+                alt="オリジナル"
+                className="os-compare-layer os-compare-before-clip"
+                style={{ clipPath: `inset(0 ${100 - compare}% 0 0)` }}
+              />
+              <div className="os-compare-divider" style={{ left: `${compare}%` }} />
+              <div className="os-compare-labels">
+                <span>Before</span>
+                <span>After</span>
+              </div>
             </div>
-          </div>
-          <label className="os-compare-slider">
-            <span>比較スライダー</span>
-            <input
-              type="range"
-              min={5}
-              max={95}
-              value={compare}
-              onChange={(e) => setCompare(Number(e.target.value))}
-            />
-          </label>
-          <div className="os-row">
-            <button
-              type="button"
-              className="os-btn os-btn-primary"
-              disabled={!!busy || !sessionId}
-              onClick={() => void enhance()}
-            >
-              {busy === "enhance" ? "改善中…" : "ワンクリック改善"}
-            </button>
-            <button
-              type="button"
-              className="os-btn os-btn-ghost"
-              disabled={!!busy || !sessionId}
-              onClick={() => void generatePosts()}
-            >
-              {busy === "posts" ? "生成中…" : "投稿を3パターン生成"}
-            </button>
-          </div>
-          {recipe?.labels?.length ? (
-            <p className="os-muted">適用: {recipe.labels.join(" · ")}</p>
-          ) : null}
-        </section>
-        {/* eslint-enable @next/next/no-img-element */}
+            <label className="os-compare-slider">
+              <span>比較スライダー</span>
+              <input
+                type="range"
+                min={5}
+                max={95}
+                value={compare}
+                onChange={(e) => setCompare(Number(e.target.value))}
+              />
+            </label>
+            <div className="os-row">
+              <button
+                type="button"
+                className="os-btn os-btn-primary"
+                disabled={!!busy || !sessionId}
+                onClick={() => void enhance()}
+              >
+                {busy === "enhance" ? "改善中…" : "ワンクリック改善"}
+              </button>
+              <button
+                type="button"
+                className="os-btn os-btn-ghost"
+                disabled={!!busy || !sessionId}
+                onClick={() => void generatePosts()}
+              >
+                {busy === "posts" ? "生成中…" : "投稿を3パターン生成"}
+              </button>
+            </div>
+            {recipe?.labels?.length ? (
+              <p className="os-muted">適用: {recipe.labels.join(" · ")}</p>
+            ) : null}
+          </section>
+          {/* eslint-enable @next/next/no-img-element */}
+        </>
       ) : null}
 
       {analysis ? (
